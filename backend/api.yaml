@@ -1,0 +1,251 @@
+openapi: 3.0.3
+info:
+  title: Squealer Backend API
+  description: |-
+    Backend API for the Squealer Social Media application.
+  contact:
+    email: leonard.naldi@studio.unibo.it
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+tags:
+  - name: users
+    description: Operations dealing with users
+  - name: channels
+    description: Operations dealing with channels
+  - name: messages
+    description: Operations dealing with messages
+paths:
+  /users/{handle}:
+    put:
+      tags:
+        - users
+      description: Create a new user with the selected handle
+      operationId: createUser
+      requestBody:
+        description: New user
+        required: True
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+      parameters:
+        - name: handle
+          in: path
+          description: The new user's Handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: User Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'   
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle or email
+          content:
+            application/json:
+                schema:
+                  type: object
+                  properties:
+                    message: 
+                      type: string
+                      enum: 
+                        - Invalid Handle
+                        - Invalid Email
+                        - Invalid Handle and Email
+    delete:
+      tags:
+        - users
+      description: Delete the user with the given handle
+      operationId: deleteUser
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: User Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    get:
+      tags:
+        - users
+      description: Delete the user with the given handle
+      operationId: getUser
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    post:
+      tags:
+        - users
+      description: Change user object
+      operationId: writeUser
+      requestBody:
+        description: Data to be modified
+        required: True
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/UserInfo'
+                - $ref: '#/components/schemas/UserTypes'
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: User changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+components:
+  schemas:
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserHandle'
+        - $ref: '#/components/schemas/UserInfo'
+        - $ref: '#/components/schemas/UserTypes'
+       
+    Message:
+      type: object
+      required: [content, posted, author]
+      properties:
+        content:
+          type: object
+          properties:
+            text: 
+              type: string
+              example: This is an example squeal that contains very interesting info.
+            image:
+              type: string
+              format: binary
+              description: An image
+        posted:
+          type: string
+          description: Message's timestamp
+          format: date-time
+          example: "2021-01-30T08:30:00Z"
+        author:
+          type: string
+          description: The author's handle
+          example: pieraldo196
+        reactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reaction'
+    Channel:
+      type: object
+      required: [name, created, owner]
+      properties:
+        name: 
+          type: string
+          example: AwesomeChannel42
+        created:
+          type: string
+          format: date-time
+          description: Channel's creation timestamp
+          example: "2021-01-30T08:30:00Z"
+        owner:
+          type: string
+          description: Owner's Handle
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Member's Handle
+              joined:
+                type: string
+                format: date-time
+                description: Date of user joining
+                example: "2021-01-30T08:30:00Z"
+    Reaction:
+      type: object
+      properties:
+        author:
+          type: string
+          description: The reactor's handle
+        time:
+          type: string
+          format: date-time
+          description: Reaction timestamp
+          example: "2021-01-30T08:30:00Z"
+        type:
+          type: string
+          enum:
+            - positive
+            - negative
+      required: [author, time, type]
+    UserHandle:
+      type: object
+      properties: 
+        handle:
+          type: string
+          description: User's unique handle
+          example: userHandle123
+      required: [handle]
+    UserInfo:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: giovanni@gmail.com
+        password:
+          type: string
+          format: password
+          example: supersafepassword123
+          minLength: 6
+      required: [email, password]
+    UserTypes:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - user
+            - pro
+            - admin
+      required: [type]
+    
