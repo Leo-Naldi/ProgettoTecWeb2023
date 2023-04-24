@@ -83,7 +83,7 @@ paths:
     get:
       tags:
         - users
-      description: Delete the user with the given handle
+      description: G the user with the given handle
       operationId: getUser
       parameters:
         - name: handle
@@ -137,6 +137,143 @@ paths:
           description: Unauthorized operation
         '409':
           description: Invalid handle
+          
+  /user/{handle}/messages/:
+    get:
+      tags:
+        - users
+        - messages
+      description: Get all the messages of a specific user
+      operationId: getUserMessages
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: channel
+          in: query
+          description: Channel Filter
+          required: False
+          schema:
+            type: string
+            description: The channel name
+        - name: from
+          in: query
+          description: Only get messages from given date onwards
+          required: False
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Only get messages up until given date
+          required: False
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    post:
+      tags:
+        - users
+        - messages
+      description: Post new Message
+      operationId: postUserMessage
+      requestBody:
+        description: message to be posted
+        required: True
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageInfo'
+                
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Message posted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+          
+    delete:
+      tags:
+        - users
+        - messages
+      description: Delete all messages from the user with the given handle
+      operationId: deleteUserMessages
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Messages Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    
+  /user/{handle}/messages/{id}:
+  
+    delete:
+      tags:
+        - users
+        - messages
+      description: Delete all messages from the user with the given handle
+      operationId: deleteMessage
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Message Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    
 components:
   schemas:
     User:
@@ -144,34 +281,47 @@ components:
         - $ref: '#/components/schemas/UserHandle'
         - $ref: '#/components/schemas/UserInfo'
         - $ref: '#/components/schemas/UserTypes'
-       
     Message:
-      type: object
-      required: [content, posted, author]
-      properties:
-        content:
-          type: object
+      allOf:
+        - $ref: '#/components/schemas/MessageInfo'
+        - type: object
+          required: [viewed, reactions, id]
           properties:
-            text: 
-              type: string
-              example: This is an example squeal that contains very interesting info.
-            image:
-              type: string
-              format: binary
-              description: An image
-        posted:
-          type: string
-          description: Message's timestamp
-          format: date-time
-          example: "2021-01-30T08:30:00Z"
-        author:
-          type: string
-          description: The author's handle
-          example: pieraldo196
-        reactions:
-          type: array
-          items:
-            $ref: '#/components/schemas/Reaction'
+            id:
+              type: integer
+              format: int64
+              description: The message's numerical id
+            viewed:
+              type: integer
+              description: Number of time the message has been viewed
+              minimum: 0
+            reactions:
+              type: object
+              required: [positive, negative]
+              description: Bookkeeping data on reactions
+              properties:
+                positive:
+                  type: object
+                  description: Numbers of positive reactions divided by types
+                  properties:
+                    agree:
+                      type: integer
+                      minimum: 0
+                    strongAgree: 
+                      type: integer
+                      minimum: 0
+                negative:
+                  type: object
+                  description: Numbers of negative reactions divided by types
+                  properties:
+                    disagree:
+                      type: integer
+                      minimum: 0
+                    strongDisagree: 
+                      type: integer
+                      minimum: 0
+                
+              
     Channel:
       type: object
       required: [name, created, owner]
@@ -200,23 +350,6 @@ components:
                 format: date-time
                 description: Date of user joining
                 example: "2021-01-30T08:30:00Z"
-    Reaction:
-      type: object
-      properties:
-        author:
-          type: string
-          description: The reactor's handle
-        time:
-          type: string
-          format: date-time
-          description: Reaction timestamp
-          example: "2021-01-30T08:30:00Z"
-        type:
-          type: string
-          enum:
-            - positive
-            - negative
-      required: [author, time, type]
     UserHandle:
       type: object
       properties: 
@@ -248,4 +381,34 @@ components:
             - pro
             - admin
       required: [type]
+    MessageInfo:
+      type: object
+      required: [content, posted, author, dest]
+      properties:
+        content:
+          type: object
+          properties:
+            
+            text: 
+              type: string
+              example: This is an example squeal that contains very interesting info.
+            image:
+              type: string
+              format: binary
+              description: An image
+        posted:
+          type: string
+          description: Message's timestamp
+          format: date-time
+          example: "2021-01-30T08:30:00Z"
+        author:
+          type: string
+          description: The author's handle
+          example: pieraldo196
+        dest:
+          type: array
+          items:
+            type: string
+            description: The handle for single individuals, the channel name for channels
+          example: ['@gianni', '@alberto', 'CONTROVERSIAL']
     
