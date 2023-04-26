@@ -1,0 +1,320 @@
+openapi: 3.0.3
+info:
+  title: "User/VIP/admin"
+  description: "Backend API for authentication"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+tags:
+- name: "messages"
+  
+paths:
+  /user/{handle}/messages/:
+    get:
+      tags:
+        - messages
+      description: Get all the messages of a specific user
+      operationId: getUserMessages
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: channel
+          in: query
+          description: Channel Filter
+          required: False
+          schema:
+            type: string
+            description: The channel name
+        - name: from
+          in: query
+          description: Only get messages from given date onwards
+          required: False
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Only get messages up until given date
+          required: False
+          schema:
+            type: string
+            format: date-time
+        - name: popular
+          in: query
+          description: Get only popular messages. If used together with controversial and/or unpopular it will perform an or.
+          required: False
+          schema:
+            type: boolean
+        - name: controversial
+          in: query
+          description: Get only controversial messages. If used together with popular and/or unpopular it will perform an or.
+          required: False
+          schema:
+            type: boolean
+        - name: unpopular
+          in: query
+          description: Get only unpopular messages. If used together with controversial and/or popular it will perform an or.
+          required: False
+          schema:
+            type: boolean
+        - name: top
+          in: query
+          description: Get messages with the most positive reactions. Value decides time frame, values of from and to will be ignored if this field is set.
+          required: False
+          schema:
+            type: string
+            enum:
+              - today
+              - week
+              - month
+              - year
+              - all
+        - name: page
+          in: query
+          description: For result pagination, not sure if it should be mandatory/have a default.
+          required: False
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    post:
+      tags:
+        - messages
+      description: Post a new Message
+      operationId: postUserMessage
+      security:
+        - adminAuth: []
+        - userAuth: []
+      requestBody:
+        description: message to be posted
+        required: True
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageInfo'
+                
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Message posted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+          
+    delete:
+      tags:
+        - messages
+      description: Delete all messages from the user with the given handle
+      operationId: deleteUserMessages
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Messages Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    
+  /user/{handle}/messages/{id}:
+  
+    delete:
+      tags:
+        - users
+        - messages
+      description: Delete the message with the given id from the user with the given handle.
+      operationId: deleteMessage
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Message Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    post:
+      tags:
+        - users
+        - messages
+      description: Change message data. 
+      operationId: postMessage
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: True
+        description: The data to be changed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageImpressions'
+      responses:
+        '200':
+          description: Message Modified
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+components:
+  schemas:
+    Message:
+      allOf:
+        - $ref: '#/components/schemas/MessageInfo'
+        - $ref: '#/components/schemas/MessageImpressions'
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              format: int64
+              description: The message's numerical id
+    MessageImpressions:
+      type: object
+      required: [viewed, reactions]
+      properties:
+        viewed:
+              type: integer
+              description: Number of time the message has been viewed
+              minimum: 0
+        reactions:
+          type: object
+          required: [positive, negative]
+          description: Bookkeeping data on reactions
+          properties:
+            positive:
+              type: object
+              description: Numbers of positive reactions divided by types
+              properties:
+                agree:
+                  type: integer
+                  minimum: 0
+                strongAgree: 
+                  type: integer
+                  minimum: 0
+            negative:
+              type: object
+              description: Numbers of negative reactions divided by types
+              properties:
+                disagree:
+                  type: integer
+                  minimum: 0
+                strongDisagree: 
+                  type: integer
+                  minimum: 0
+    MessageInfo:
+      type: object
+      required: [content, posted, author, dest]
+      properties:
+        content:
+          type: object
+          properties:
+            
+            text: 
+              type: string
+              example: This is an example squeal that contains very interesting info.
+            image:
+              type: string
+              format: binary
+              description: An image
+        posted:
+          type: string
+          description: Message's timestamp
+          format: date-time
+          example: "2021-01-30T08:30:00Z"
+        author:
+          type: string
+          description: The author's handle
+          example: pieraldo196
+        dest:
+          type: array
+          items:
+            type: string
+            description: The handle for single individuals, the channel name for channels
+          example: ['@gianni', '@alberto', '§canalebello']
+  securitySchemes:
+      userAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT
+        description: Requires Requires a JWT token generated with user credentials. Even with a correctly formed JWT, a user can only alter their own account.
+      adminAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT
+        description: Requires a JWT token generated with admin credentials.
+      

@@ -1,0 +1,433 @@
+openapi: 3.0.3
+info:
+  title: "User/VIP/admin"
+  description: "Backend API for authentication"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+tags:
+- name: "users"
+- name: "admin"
+- name: "registration"
+
+paths:
+  /users:
+    get:
+      tags:
+        - users
+      description: Get all users. Filtering is strongly advised lmao.
+      operationId: getUsers
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results.
+          schema:
+            type: integer
+            minimum: 1
+            example: 3
+        - name: handle
+          in: query
+          description: Handle filter. If there's a perfect match the user will be returned, otherwise a list of users whose handle contains the given value.
+          schema:
+            type: string
+            example: userhandle99
+      security:
+        - adminAuth: []
+      responses:
+        '200':
+          description: Request successfull
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: '#/components/schemas/User'
+                    - $ref: '#/components/schemas/UserPro'
+        '401':
+          description: Unauthorized operation
+  
+  /users/{handle}:
+    post:
+      tags:
+        - users
+      description: Create a new user with the selected handle. It will return the user object and the token used for all further authorized comunication.
+      operationId: createUser
+      requestBody:
+        description: New user
+        required: True
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+      parameters:
+        - name: handle
+          in: path
+          description: The new user's Handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: User Created, the JWT token is in the body.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - anyOf:
+                    - $ref: '#/components/schemas/User'   
+                    - $ref: '#/components/schemas/UserPro'   
+                  - $ref: '#/components/schemas/TokenInfo'   
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle or email
+          content:
+            application/json:
+                schema:
+                  type: object
+                  properties:
+                    invalid: 
+                      type: array
+                      description: A list of data that was invalid
+                      items:
+                        type: string
+                        enum:
+                          - handle
+                          - email
+                      minItems: 1
+    delete:
+      tags:
+        - users
+      description: Delete the user with the given handle
+      operationId: deleteUser
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      security:
+        - adminAuth: []
+        - userAuth: []
+      responses:
+        '200':
+          description: User Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    get:
+      tags:
+        - users
+      description: Get the user with the given handle
+      operationId: getUser
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      security:
+        - adminAuth: []
+        - userAuth: []
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/User'
+                  - $ref: '#/components/schemas/UserPro'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Invalid handle
+    put:
+      tags:
+        - users
+      description: Change user object. A user account will only be able to modify his own password or email, an admin can also change remaining characters.
+      operationId: writeUser
+      requestBody:
+        description: Data to be modified
+        required: True
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/UserInfo'
+                - $ref: '#/components/schemas/UserTypes'
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: User changed
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/User'
+                  - $ref: '#/components/schemas/UserPro'
+        '401':
+          description: Unauthorized operation. To promote a user to admin one needs to provide an admin token, to set the smm one needs to be a pro user.
+        '409':
+          description: Invalid handle
+
+  /users/{handle}/profiles:
+    get:
+      tags:
+        - users
+      description: Search a user's profile
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      security:
+        - adminAuth: []
+        - userAuth: []
+      responses:
+        '200':
+          description: User Details found
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/UserInfo'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Invalid handle
+        500:
+          description: "Internal server error"
+
+  /users/registration/{username}:
+    get:
+      tags:
+        - registration
+      description: make sure the username is avalible when making registrations
+      parameters:
+        - name: username
+          in: path
+          required: True
+          schema:
+            type: string  
+      responses:
+        200:
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                    description: "true if the username is available"
+                required: [available]
+        400:
+          description: "Input malformato"
+        500:
+          description: "Internal server error"
+  /users/registration/{email}:
+    get:
+      tags:
+        - registration
+      description: make sure the email is avalible when making registrations
+      parameters:
+        - name: email
+          in: path
+          required: True
+          schema:
+            type: string  
+      responses:
+        200:
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                    description: "true if the email is available"
+                required: [available]
+        400:
+          description: "Input malformato"
+        500:
+          description: "Internal server error"
+          
+  /users/registration/enable:
+    put:
+      tags:
+        - registration
+      description: make sure the email is avalible when making registrations
+      responses:
+        200:
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        401:
+          description: "Non autenticato"
+        500:
+          description: "Internal server error"
+          
+  /users/registration/verification:
+    get:
+      tags:
+        - registration
+      description: verify a new registed user
+      responses:
+        200:
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        403:
+          description: "Utenza già attiva"
+        404:
+          description: "Utenza inesistente"
+        500:
+          description: "Internal server error"
+
+       
+  /admin:
+    description: TODO(or don't need this), create, modify, delete, search a new admin(simile with operations with users)
+      
+  
+  
+components:
+  schemas:
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserHandle'
+        - $ref: '#/components/schemas/UserInfo'
+        - $ref: '#/components/schemas/UserTypes'
+    UserPro:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - $ref: '#/components/schemas/SMMData'
+        - type: object
+          required: [subscription]
+          properties:
+            subscription:
+              type: object
+              required: [subscribed, expires, price]
+              properties:
+                subscribed:
+                  type: string
+                  format: date
+                  description: The user's subscription date
+                expires:
+                  type: string
+                  format: date
+                  description: The expiry date
+                price:
+                  type: number
+                  format: float
+                  description: Subscription's price
+    UserHandle:
+      type: object
+      properties: 
+        handle:
+          type: string
+          description: User's unique handle
+          example: userHandle123
+      required: [handle]
+    UserInfo:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: giovanni@gmail.com
+        password:
+          type: string
+          format: password
+          example: supersafepassword123
+          minLength: 6
+        username:
+          type: string
+        name:
+          type: string
+        surname:
+          type: string
+        picture:
+          type: string
+        gender:
+          type: string
+        phone:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+      required: [username, email, name, surname, permissions, enabled ]
+    UserTypes:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - user
+            - pro
+            - admin
+      required: [type]
+    TokenInfo:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: The JWT token
+          format: byte
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+    SMMData:
+      type: object
+      properties:
+        smm:
+          type: string
+          description: The SMM's handle
+          example: smmHandle4
+        managing:
+          type: array
+          description: The list of users the user is managing as an SMM.
+          items: 
+            type: string
+          example: giovannib5
+            
+  
+  securitySchemes:
+    userAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Requires Requires a JWT token generated with user credentials. Even with a correctly formed JWT, a user can only alter their own account.
+    adminAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Requires a JWT token generated with admin credentials.
