@@ -17,7 +17,9 @@ SECRET='supersafesecret99'
 PORT=8000  # Or whatever port you want to listen to
 DB_HOST=127.0.0.1  # Locally installed db
 DB_PORT=27017  # Default mongo port
-DB_NAME=test  # Will eventually be changed to a proper name
+DB_NAME=TecWebDB  # Will eventually be changed to a proper name
+CRIT_MASS=200
+DANGER_ZONE="0.2"
 ```
 
 To check wether mongo is running you can do:

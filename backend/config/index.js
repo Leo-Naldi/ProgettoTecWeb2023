@@ -8,6 +8,8 @@ const config = {
     secrect: process.env.SECRET,
     port: process.env.PORT || 8000,
     db_url: `mongodb://${db_host}:${db_port}/${db_name}`,
+    crit_mass: Number(process.env.CRIT_MASS) || 100,
+    danger_zone: parseFloat(process.env.DANGER_ZONE) || 0.2,
 }
 
-module.exports = config
+module.exports = config;
