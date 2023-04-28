@@ -1,23 +1,39 @@
-const Schema = require('mongoose').Schema;
+const mongoose = require('mongoose');
 
 const config = require('../config/index');
 
 
-const MessageSchema = new Schema({
+const ReactionSchema = new mongoose.Schema({
+    positive: { type: Number, default: 0, min: 0 },
+    negative: { type: Number, default: 0, min: 0 },
+}, { _id: false });
+
+const MessageMetaSchema = new mongoose.Schema({
+    created: { type: Date, default: Date.now },
+    lastModified: { type: Date, default: Date.now },
+    geo: {},  // any, TODO una volta che e' definito
+}, { _id: false });
+
+const MessageSchema = new mongoose.Schema({
         content: String,
         dest: [{ 
             type: String,
             trim: true,
             match: /^[@§#]/,  // Per differenziare i tipi di destinatari  
         }],
+        answering: {
+            type: mongoose.ObjectId,  // Id dello squeal a cui si sta rispondendo
+            ref: 'User',
+        },
         reactions: {
-            positive: { type: Number, default: 0, min: 0 },
-            negative: { type: Number, default: 0, min: 0 },
+            type: ReactionSchema,
+            default: () => ({}),
+            required: true,
         },
         meta: {
-          created: Date,
-          lastModified: Date,
-          geo: {},  // any, TODO una volta che e' definito
+            type: MessageMetaSchema,
+            default: () => ({}),
+            required: true,
         }
     }, {
         virtuals: {
@@ -54,4 +70,7 @@ const MessageSchema = new Schema({
     }
 );
 
-module.exports = MessageSchema;
+
+const Message = mongoose.model('Message', MessageSchema);
+
+module.exports = Message;

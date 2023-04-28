@@ -1,0 +1,33 @@
+const mongoose = require('mongoose');
+
+
+const ChannelSchema = new mongoose.Schema(
+    {
+        name: { 
+            type: String, 
+            required: true,
+            unique: true,
+            trim: true,
+        },
+        description: String,
+        creator: { 
+            type: mongoose.ObjectId,
+            ref: 'User',
+            required: true,
+         },
+        messages: [{ 
+            type: mongoose.ObjectId,
+            ref: 'Message',
+        }],
+        members: [{
+            type: mongoose.ObjectId,
+            ref: 'Message',
+        }],
+        private: { type: Boolean, default: false, required: true, },
+        official: { type: Boolean, default: false, required: true, },
+    }
+);
+
+const Channel = new mongoose.model('Channel', ChannelSchema);
+
+module.exports = Channel;
