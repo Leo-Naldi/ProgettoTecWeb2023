@@ -51,7 +51,7 @@ const UserSchema = mongoose.Schema(
         lastName: {
             type: String,
         },
-        mail: {
+        email: {
             type: String,
             required: true,
         },
@@ -99,6 +99,13 @@ const UserSchema = mongoose.Schema(
             default: () => ({}),
         },
         proPlan: mongoose.ObjectId,  // TODO change quando i piani sono definiti
+        smm: { 
+            // Id del social media manager
+            type: mongoose.ObjectId, 
+            ref: 'User',
+        },
+        // Account per cui fa da smms
+        managed: [{ type: mongoose.ObjectId, ref: 'User' }]
     },
 );
 
