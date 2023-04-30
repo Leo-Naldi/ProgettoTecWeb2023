@@ -49,7 +49,7 @@ paths:
           description: Unauthorized operation
   
   /users/{handle}:
-    post:
+    put:
       tags:
         - users
       description: Create a new user with the selected handle. It will return the user object and the token used for all further authorized comunication.
@@ -124,7 +124,7 @@ paths:
     get:
       tags:
         - users
-      description: Get the user with the given handle
+      description: Get the user with the given handle. A user can only get his own account, a moderator can get any
       operationId: getUser
       parameters:
         - name: handle
@@ -150,10 +150,11 @@ paths:
           description: Unauthorized operation.
         '409':
           description: Invalid handle
-    put:
+    post:
       tags:
         - users
-      description: Change user object. A user account will only be able to modify his own password or email, an admin can also change remaining characters.
+      description: Change user object. A user account will 
+        only be able to modify his own password or email, an admin can also change remaining characters.
       operationId: writeUser
       requestBody:
         description: Data to be modified
@@ -272,23 +273,6 @@ paths:
                 required: [available]
         400:
           description: "Input malformato"
-        500:
-          description: "Internal server error"
-          
-  /users/registration/enable:
-    put:
-      tags:
-        - registration
-      description: make sure the email is avalible when making registrations
-      responses:
-        200:
-          description: "Ok"
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserInfo'
-        401:
-          description: "Non autenticato"
         500:
           description: "Internal server error"
           

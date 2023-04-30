@@ -15,18 +15,21 @@ const CharQuotaSchema = new mongoose.Schema({
         type: Number,
         default: config.daily_quote,
         max: config.daily_quote,
+        min: 0,
         required: true,
     },
     week: {
         type: Number,
-        default: config.daily_quote,
+        default: config.weekly_quote,
         max: config.weekly_quote,
+        min: 0,
         required: true,
     },
     month: {
         type: Number,
-        default: config.daily_quote,
+        default: config.monthly_quote,
         max: config.monthly_quote,
+        min: 0,
         required: true,
     },
 }, { _id: false });
