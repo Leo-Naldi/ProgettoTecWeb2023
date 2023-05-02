@@ -41,10 +41,10 @@ class Controller {
         let serviceResponse = null;
         try {
             serviceResponse = await serviceOperation(this.collectRequestParams(request));
+            Controller.sendResponse(serviceResponse, response);
         } catch (error) {
             Controller.sendError(response, error);
         }
-        Controller.sendResponse(serviceResponse, response);
     }
 }
 
