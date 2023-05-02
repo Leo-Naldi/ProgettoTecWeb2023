@@ -22,6 +22,8 @@ class UserService {
         let creation_error = null;
         const new_user = new User(data);  // this will shave off all properties
 
+        new_user.admin = false;
+
         try{
             await new_user.save();
         } catch (err) {
