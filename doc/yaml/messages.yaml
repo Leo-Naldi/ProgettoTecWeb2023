@@ -8,8 +8,97 @@ info:
   version: 1.0.0
 tags:
 - name: "messages"
+- name: "users"
+- name: "channels"
   
 paths:
+  /messages/: 
+    get:
+      tags:
+        - messages 
+      description: Get all messages. Filtering is strongly advised.
+      operationId: getMessages
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results.
+          schema:
+            type: integer
+            minimum: 1
+        - name: popular
+          in: query
+          description: Get only pupular messages, value determines the timeframe. If used together with unpopular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: unpopular
+          in: query
+          description: Get only unpupular messages, value determines the timeframe. If used together with popular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: controversial
+          in: query
+          description: Get only controversial messages, value determines the timeframe. 
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: risk
+          in: query
+          description: Get only messages at risk of being controversial, popular or unpopular. 
+          schema:
+            type: string 
+            enum:
+              - controversial
+              - popular 
+              - unpopular
+        - name: before
+          in: query
+          description: Get only messages dated before given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: after
+          in: query
+          description: Get only messages dated after given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: dest
+          in: query
+          description: Get only messages addressed to values. If value starts with @ it will be interpreted
+            as a handle, if it starts with a § it will be interpreted as a channel name and if it starts with
+            a \# it will be interpreted as a keyword channel. Otherwise this field will be ignored.
+          schema:
+            type: string 
+            example: ['#sanremo1312', '@feltri', '§canalebello67']
+      responses:
+        200: 
+          description: Ok 
+          content:
+            application/json:
+              schema: 
+                type: array 
+                items:
+                  $ref: '#/components/schemas/Message'
+
   /user/{handle}/messages/:
     get:
       tags:
@@ -27,64 +116,76 @@ paths:
           schema: 
             type: string
             example: userHandle123
-        - name: channel
-          in: query
-          description: Channel Filter
-          required: False
-          schema:
-            type: string
-            description: The channel name
-        - name: from
-          in: query
-          description: Only get messages from given date onwards
-          required: False
-          schema:
-            type: string
-            format: date-time
-        - name: to
-          in: query
-          description: Only get messages up until given date
-          required: False
-          schema:
-            type: string
-            format: date-time
-        - name: popular
-          in: query
-          description: Get only popular messages. If used together with controversial and/or unpopular it will perform an or.
-          required: False
-          schema:
-            type: boolean
-        - name: controversial
-          in: query
-          description: Get only controversial messages. If used together with popular and/or unpopular it will perform an or.
-          required: False
-          schema:
-            type: boolean
-        - name: unpopular
-          in: query
-          description: Get only unpopular messages. If used together with controversial and/or popular it will perform an or.
-          required: False
-          schema:
-            type: boolean
-        - name: top
-          in: query
-          description: Get messages with the most positive reactions. Value decides time frame, values of from and to will be ignored if this field is set.
-          required: False
-          schema:
-            type: string
-            enum:
-              - today
-              - week
-              - month
-              - year
-              - all
         - name: page
           in: query
-          description: For result pagination, not sure if it should be mandatory/have a default.
-          required: False
+          description: To paginate results.
           schema:
             type: integer
-            minimum: 0
+            minimum: 1
+        - name: popular
+          in: query
+          description: Get only pupular messages, value determines the timeframe. If used together with unpopular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: unpopular
+          in: query
+          description: Get only unpupular messages, value determines the timeframe. If used together with popular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: controversial
+          in: query
+          description: Get only controversial messages, value determines the timeframe. 
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: risk
+          in: query
+          description: Get only messages at risk of being controversial, popular or unpopular. 
+          schema:
+            type: string 
+            enum:
+              - controversial
+              - popular 
+              - unpopular
+        - name: before
+          in: query
+          description: Get only messages dated before given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: after
+          in: query
+          description: Get only messages dated after given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: dest
+          in: query
+          description: Get only messages addressed to values. If value starts with @ it will be interpreted
+            as a handle, if it starts with a § it will be interpreted as a channel name and if it starts with
+            a \# it will be interpreted as a keyword channel. Otherwise this field will be ignored.
+          schema:
+            type: string 
+            example: ['#sanremo1312', '@feltri', '§canalebello67']
       responses:
         '200':
           description: User found
@@ -101,7 +202,8 @@ paths:
     post:
       tags:
         - messages
-      description: Post a new Message
+      description: Post a new Message. This operation will also adjust the poster's character quotas,
+        if there are not enough characters it will fail with error 418.
       operationId: postUserMessage
       security:
         - adminAuth: []
@@ -130,9 +232,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Message'
         '401':
-          description: Unauthorized operation
+          description: Unauthorized operation.
         '409':
-          description: Invalid handle
+          description: Invalid handle.
+        418: 
+          description: User did not have enough characters left.
           
     delete:
       tags:
@@ -195,11 +299,10 @@ paths:
       tags:
         - users
         - messages
-      description: Change message data. 
+      description: Change message data. Currently only the reactions can be changed by an admin.
       operationId: postMessage
       security:
         - adminAuth: []
-        - userAuth: []
       parameters:
         - name: handle
           in: path
@@ -229,6 +332,35 @@ paths:
           description: Unauthorized operation
         '409':
           description: Invalid handle
+
+  /channel/{name}/messages: 
+    delete:
+      tags:
+        - messages
+        - channels 
+      description: Delete all of a channel's messages. The channel will be removed from the dest list of 
+        all messages. If it was the only dest the message will be removed.
+      operationId: deleteChannelMessages
+      parameters:
+        - name: name 
+          in: path 
+          required: True
+          schema:
+            type: number
+            description: The channel's name,
+            format: int64
+      security:
+        - userAuth: []  # Only the owner can call it with a user token
+        - adminAuth: []
+      responses:
+        200: 
+          description: All messages deleted.
+        400: 
+          description: Channel id not found
+        409: 
+          description: Unauthorized 
+        500: 
+          description: Intiernal Server Error
 
 components:
   schemas:
@@ -283,7 +415,6 @@ components:
         content:
           type: object
           properties:
-            
             text: 
               type: string
               example: This is an example squeal that contains very interesting info.

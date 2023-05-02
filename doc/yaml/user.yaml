@@ -241,6 +241,7 @@ paths:
       tags:
         - admin
       description: "Make the user an admin account"
+      operationId: grantAdmin,
       parameters:
         - name: handle
           in: path
@@ -262,6 +263,7 @@ paths:
       tags:
         - admin
       description: "Revoke admin priviledges from an account"
+      operationId: revokeAdmin,
       parameters:
         - name: handle
           in: path

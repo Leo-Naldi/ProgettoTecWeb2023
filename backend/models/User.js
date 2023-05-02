@@ -91,6 +91,7 @@ const UserSchema = mongoose.Schema(
             required: true,
         },
         joinedChannels: [{ type: mongoose.ObjectId, ref: 'Channel' }],
+        messages: [{ type: mongoose.ObjectId, ref: 'Message' }],
         meta: {
             type: metaSchema,
             default: () => ({}),  // To actually trigger the created default 

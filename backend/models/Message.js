@@ -1,4 +1,5 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose');4
+const dayjs = require('dayjs'); 
 
 const config = require('../config/index');
 
@@ -44,27 +45,58 @@ const MessageSchema = new mongoose.Schema({
                 }
             },
         },
-        methods: {
-            // Not sure se servano nel backend but oh well male non fanno
-            isPopular() {
-                return this.reactions.positive >= 0.25 * config.crit_mass;
+        query: {
+        
+            byPopularity(popularity) {
+                
+                if (popularity === 'popular') {
+                
+                    return this.where({ 'reactions.positive':  { '$gte': 0.25 * config.crit_mass }})
+                
+                } else if (popularity === 'unpopular') {
+                
+                    return this.where({ 'reactions.negative': { '$gte': 0.25 * config.crit_mass } })
+                
+                } else if (popularity === 'controversial') {
+                
+                    return this.where({ 'reactions.negative': { '$gte': 0.25 * config.crit_mass },
+                        'reactions.positive': { '$gte': 0.25 * config.crit_mass } })
+                
+                } else {
+                    throw Error("Popularity in byPopularity qyery helper can only be popular, unpopular or controversial")
+                }
             },
-            isUnpopular() {
-                return this.reactions.negative >= 0.25 * config.crit_mass;
-            },
-            isControversial() {
-                return this.isPopular() && this.isUnpopular();
-            },
-            isAlmostPopular() {
-                return !(this.isPopular()) && 
-                    (this.reactions.positive >= config.danger_zone * config.crit_mass);
-            },
-            isAlmostUnpopular() {
-                return !(this.isUnpopular()) &&
-                    (this.reactions.negative >= config.danger_zone * config.crit_mass);
-            },
-            isAlmostControversial() {
-                return this.isAlmostPopular() && this.isAlmostUnpopular();
+            byTimeFrame(timeFrame){
+                if (timeFrame === 'all') {
+                    return this;
+                } else if (timeFrame === 'today') {
+
+                    return this.where({ 
+                        'meta.created': {
+                            $gte: dayjs().second(0).hour(0).minute(0).toDate(),
+                        } 
+                    })
+                
+                } else if (timeFrame === 'week') {
+
+                    return this.where({
+                        'meta.created': {
+                            $gte: dayjs().day(1).hour(0).minute(0).toDate(),
+                        }
+                    })
+
+                } else if (timeFrame === 'month') {
+                    
+                    return this.where({
+                        'meta.created': {
+                            $gte: dayjs().date(1).hour(0).minute(0).second(0).toDate(),
+                        }
+                    })
+
+                } else {
+                    throw Error("timeFrame in byTimeFrame qyery helper can only be all, today, week or month")
+                }
+
             }
         }
     }
