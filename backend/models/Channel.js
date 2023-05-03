@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+const Message = require('./Message')
+
 
 const ChannelSchema = new mongoose.Schema(
     {

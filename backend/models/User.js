@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
 const config = require('../config/index');
+const Message = require('./Message')
+
 
 // Schema per i metadata utente, va fatto cosi per far funzionare i default
 const metaSchema = new mongoose.Schema({

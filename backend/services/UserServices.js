@@ -19,12 +19,10 @@ class UserService {
 
     static async getUser({ handle }) {
         
-        const user = await User.findOne({ handle: handle }).exec();
-
-        //console.log(handle)
+        let user = await User.findOne({ handle: handle }).exec();
 
         if (user.messages instanceof Array) {
-            user = await user.populate('messages').exec();
+            user = await user.populate('messages');
         }
 
         if (user)
