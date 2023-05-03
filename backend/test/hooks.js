@@ -12,20 +12,17 @@ function testUser(i) {
     });
 }
 
-let users, tokens;
+let users, admins;
 
 
 before(async function() {
     await mongoose.connect(config.db_url);
 
-    users = [testUser(1), testUser(2), testUser(3), testUser(4), testUser('Admin5')];
-    users[4].admin = true;
-    tokens = users.map(u => makeToken({ 
-                                handle: u.handle,
-                                accountType: u.accountType,
-                                admin: u.admin 
-                            }));
+    users = [testUser(1), testUser(2), testUser(3), testUser(4)];
+    admins = [testUser('ad1')]
+    admins[0].admin = true;
     users.map(async (u) => await u.save())
+    admins.map(async (u) => await u.save())
 });
 
 after(async function(){
@@ -34,8 +31,14 @@ after(async function(){
         
         await User.deleteOne({ handle : users[i].handle })
     }
+
+    for (let i = 0; i < admins.length; i++) {
+
+        await User.deleteOne({ handle: admins[i].handle })
+    }
+
     await mongoose.disconnect();
     
 })
 
-module.exports = { users, tokens , testUser }
+module.exports = { users , testUser }

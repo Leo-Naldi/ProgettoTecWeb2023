@@ -63,42 +63,59 @@ class UserService {
         const res = await User.deleteOne({ handle: handle });
 
         if (res.deletedCount === 0) 
-            return Service.rejectResponse({ message: `Handle ${hadle} not found` }, 400)
+            return Service.rejectResponse({ message: `Handle ${handle} not found` })
         
         return Service.successResponse()
     }
 
-    static async writeUser(data) {
-        let newValues = {...data};
+    static async writeUser({ handle, username,
+        email, password, name, lastName, 
+        phone, gender, blocked,
+        accountType, charLeft,
+    }) {
+        const newVals = {
+            email, password, name, lastName, 
+            phone, gender, username,
+            accountType,
+        }
+        let user = await User.findOne({ handle: handle });
 
-        // delete fields that cannot be changed
-        if (newValues.meta) delete newValues.meta;
-        if (newValues.messages) delete newValues.messages;  // use delete /messages/id
+        if (!user) return Service.rejectResponse({ 
+            message: "User with given handle not found",
+         });
 
-        const user = await User.findOne({ handle: data.handle }).exec();
+        Object.keys(newVals).forEach(k => {
+            if (newVals[k])
+                user[k] = newVals[k]
+        });
 
-        if (user) {
+        if ((blocked === true) || (blocked === false)) user.blocked = blocked;
 
-            // set new fields
-            Object.keys(newValues).forEach(k => {
-                user[k] = newValues[k];
-            })
+        // Maybe protects charLeft from getting extra fields but not sure
 
-            let err = null;
-
-            try {
-                await user.save();
-            } catch (e) {
-                err = e;
+        if (charLeft) {
+            if ((charLeft.day === 0) || (charLeft.day)) {
+                user.charLeft.day = charLeft.day;
             }
-
-            if (err) return Service.rejectResponse(err);
-            else return Service.successResponse();
-        
-        } else {
-            return Service.rejectResponse({ message: "User not found" });
+            if ((charLeft.week === 0) || (charLeft.week)) {
+                user.charLeft.week = charLeft.week;
+            }
+            if ((charLeft.month === 0) || (charLeft.month)) {
+                user.charLeft.month = charLeft.month;
+            }
         }
 
+        let err = null;
+
+        try {
+            await user.save()
+        } catch(e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err);
+        
+        return Service.successResponse(user);
     }
 
     static async grantAdmin({ handle }) {
@@ -111,6 +128,8 @@ class UserService {
             // is a 5xx error
             user.admin = true;
             await user.save();  
+
+            return Service.successResponse()
 
         } else {
             Service.rejectResponse({ message: "User not found" });
@@ -127,6 +146,8 @@ class UserService {
             // is a 5xx error
             user.admin = false;
             await user.save();
+
+            return Service.successResponse();
 
         } else {
             Service.rejectResponse({ message: "User not found" });
@@ -145,6 +166,10 @@ class UserService {
         if (results) return Service.successResponse({ available: false })
         else return Service.successResponse({ available: true })
     }
+
+    static async changeSmm({}){}
+
+    static async changeManaged({}){}
 }
 
 module.exports = UserService;

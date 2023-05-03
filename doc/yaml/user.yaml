@@ -170,6 +170,7 @@ paths:
         - users
       description: Change user object. A user account will 
         only be able to modify his own password or email, an admin can also change remaining characters.
+        To add/remove a message/joinedChannel use the message/channel endpoints
       operationId: writeUser
       requestBody:
         description: Data to be modified
@@ -204,6 +205,91 @@ paths:
           description: Unauthorized operation. To promote a user to admin one needs to provide an admin token, to set the smm one needs to be a pro user.
         '409':
           description: Invalid handle
+
+  /users/{handle}/smm:
+    post: 
+      tags:
+        - "users"
+      description: Add/remove/change user's SMM
+      operationId: changeSmm
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      requestBody:
+        description: Operation Parameters 
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object 
+              properties:
+                operation: 
+                  type: string
+                  enum: 
+                    - change 
+                    - remove 
+                smm: 
+                  type: string 
+                  description: The smm's handle, optional if operation is remove
+              required: [operation]
+      responses:
+        200: 
+          description: Ok 
+        401: 
+          description: Unauthorized
+        409: 
+          description: Invalid Handle 
+        500: 
+          description: Internal server error
+
+  /users/{handle}/managed:
+    post: 
+      tags:
+        - "users"
+      description: Add/remove/change user's managed account
+      operationId: changeManaged
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      requestBody:
+        description: Operation Parameters 
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object 
+              properties:
+                operation: 
+                  type: string
+                  enum: 
+                    - add 
+                    - remove 
+                users: 
+                  type: array
+                  items:
+                    type: string 
+                  description: Array of users handles
+              required: [operation]
+      responses:
+        200: 
+          description: Ok 
+        401: 
+          description: Unauthorized
+        409: 
+          description: Invalid Handle 
+        500: 
+          description: Internal server error
+
 
   /users/{handle}/profiles:
     get:

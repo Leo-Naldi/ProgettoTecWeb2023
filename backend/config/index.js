@@ -13,6 +13,8 @@ const config = {
     daily_quote: 500,
     weekly_quote: 3000,
     monthly_quote: 11000,
+    default_client_error: 409,
+    default_success_code: 200,
 }
 
 module.exports = config;
