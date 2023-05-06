@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 
 const config = require('../config/index');
 const User = require('../models/User');
-const makeToken = require('../utils/makeToken');
 
 function testUser(i) {
     return new User({
@@ -41,4 +40,4 @@ after(async function(){
     
 })
 
-module.exports = { users , testUser }
+module.exports = { testUser }
