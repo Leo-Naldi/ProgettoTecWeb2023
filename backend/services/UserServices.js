@@ -21,14 +21,14 @@ class UserService {
         
         let user = await User.findOne({ handle: handle }).exec();
 
+        if (!user) return Service.rejectResponse({ message: "User not found" });
+
         if (user.messages instanceof Array) {
             user = await user.populate('messages');
         }
 
-        if (user)
-            return Service.successResponse(user);
-        else
-            return Service.rejectResponse({ message: "User not found" });
+        return Service.successResponse(user);
+        
     }
 
     static async createUser(data) {  // TODO destructure

@@ -15,7 +15,7 @@ describe('User Service Unit Tests', function () {
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(config.default_success_code);
             expect(res).to.have.property('payload');
             expect(res.payload).to.be.an('array').that.is.not.empty;
         })
@@ -32,15 +32,25 @@ describe('User Service Unit Tests', function () {
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(config.default_success_code);
             expect(res).to.have.property('payload');
             expect(res.payload).to.be.an.instanceOf(User);
             expect(res.payload).to.have.property('handle');
             expect(res.payload.handle).to.be.a('string');
             expect(res.payload.handle).to.equal(testUser(1).handle);
+
+            //console.log(res.payload)
         })
 
-        
+        it('Should not return anything when the user does not exist', async function(){
+            const res = await UserService.getUser({
+                handle: 'bwernfwebgwohpeqcrbwo4gqnbdcohfb2oirfoi3urhf8745237hjdcnscjdn',
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_client_error);
+        })
     });
 
     describe('createUser Unit Tests', function () { 
@@ -55,7 +65,7 @@ describe('User Service Unit Tests', function () {
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
-            expect(res.status).to.equal(200);
+            expect(res.status).to.equal(config.default_success_code);
             expect(found).to.be.an.instanceOf(User);
             expect(found).to.have.property('handle');
             expect(found.handle).to.be.a('string');
@@ -148,7 +158,7 @@ describe('User Service Unit Tests', function () {
             expect(u).to.not.be.null;
             expect(u).to.be.an('object');
 
-            expect(u.toObject()).to.have.deep.include(values)
+            expect(u.toObject()).to.deep.include(values)
         })
     });
 
