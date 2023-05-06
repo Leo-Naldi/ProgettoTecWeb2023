@@ -11,13 +11,13 @@ describe('User Service Unit Tests', function () {
     describe('getUsers Unit Tests', function () { 
         
         it('Should Return an array of Users', async function() {
-            const res = await UserService.getUsers({});
+            const res = await UserService.getUsers();
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(200);
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array');
+            expect(res.payload).to.be.an('array').that.is.not.empty;
         })
 
     });

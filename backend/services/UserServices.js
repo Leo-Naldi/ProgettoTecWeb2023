@@ -5,7 +5,7 @@ const Service = require("./Service");
 
 class UserService {
 
-    static async getUsers({ handle, admin, accountType, page = 1 }){
+    static async getUsers({ handle, admin, accountType, page = 1 } = {}){
         let filter = new Object();
 
         if (handle) filter.handle = handle;
@@ -31,7 +31,7 @@ class UserService {
             return Service.rejectResponse({ message: "User not found" });
     }
 
-    static async createUser(data) {
+    static async createUser(data) {  // TODO destructure
         let creation_error = null;
         const new_user = new User(data);  // this will shave off all properties
 
