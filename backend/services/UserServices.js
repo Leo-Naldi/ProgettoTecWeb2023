@@ -14,10 +14,12 @@ class UserService {
 
         const users = await User.find(filter, '-_id').exec();
 
-        return Service.successResponse(users);
+        return Service.successResponse(users.map(u => u.toObject()));
     }
 
     static async getUser({ handle }) {
+
+        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
         let user = await User.findOne({ handle: handle }).exec();
 
@@ -27,15 +29,43 @@ class UserService {
             user = await user.populate('messages');
         }
 
-        return Service.successResponse(user);
+        const managed = await User.findManaged(user._id);
+
+        return Service.successResponse({ ...(user.toObject()), managed: managed.map(u => u.hanlde)});
         
     }
 
-    static async createUser(data) {  // TODO destructure
+    static async createUser({ handle, email, password,
+            username, name, lastName, phone, gender, urlAvatar,
+            blocked=false, accountType='user',
+            joinedChannels=[], messages=[], meta, smm, managed=[] }) {
+        
         let creation_error = null;
-        const new_user = new User(data);  // this will shave off all properties
+        
+        // Filter out undefined params that don't have a default
+        // not sure if needed but oh well
+        let extra = Object.entries({
+            username, name, lastName, phone, gender, urlAvatar,
+            meta, smm
+        }).reduce((a, [k, v]) => {
+            if (v !== undefined) {
+                a[k] = v;
+            }
+            return a;
+        }, {});
 
-        new_user.admin = false;
+        const new_user = new User({
+            handle: handle,
+            email: email,
+            password: password,
+            admin: false,
+            accountType: accountType,
+            joinedChannels: joinedChannels,
+            messages: messages,
+            managed: managed,
+            blocked: blocked,
+            ...extra,
+        });
 
         try{
             await new_user.save();
@@ -60,10 +90,14 @@ class UserService {
     }
 
     static async deleteUser({ handle }) {
-        const res = await User.deleteOne({ handle: handle });
 
-        if (res.deletedCount === 0) 
-            return Service.rejectResponse({ message: `Handle ${handle} not found` })
+        // smm and co fields are kept coherent with the pre('deleteOne') setting, see models/User
+        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
+
+        const user = await User.findOne({ handle: handle });
+
+        if (!user) return Service.rejectResponse({ message: 'User not found' })
+        const res = await user.deleteOne();
         
         return Service.successResponse()
     }
@@ -73,6 +107,9 @@ class UserService {
         phone, gender, blocked,
         accountType, charLeft,
     }) {
+
+        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
+
         const newVals = {
             email, password, name, lastName, 
             phone, gender, username,
@@ -120,6 +157,8 @@ class UserService {
 
     static async grantAdmin({ handle }) {
         
+        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
+
         let user = await User.findOne({ handle: handle });
 
         if (user) {
@@ -138,6 +177,9 @@ class UserService {
     }
 
     static async revokeAdmin({ handle }) {
+
+        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
+
         let user = await User.findOne({ handle: handle });
 
         if (user) {
@@ -156,20 +198,76 @@ class UserService {
 
     static async checkAvailability({ handle=null, email=null }) {
         
+        if (!(email || handle)) return Service.rejectResponse({ message: "Must provide either handle or email" })
+
         let filter = { $or: [] };
 
-        if (handle) filter.$or.shift({handle: handle});
-        if (email) filter.$or.shift({ email: email });
+        if (handle) filter.$or.push({handle: handle});
+        if (email) filter.$or.push({ email: email });
         
-        const results = await users.findOne(filter).exec();
+        const results = await User.findOne(filter).exec();
         
         if (results) return Service.successResponse({ available: false })
         else return Service.successResponse({ available: true })
     }
 
-    static async changeSmm({}){}
+    static async changeSmm({ handle, operation, smm }){
 
-    static async changeManaged({}){}
+        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
+
+        // Parameters check
+
+        if ((operation !== 'remove') && (operation !== 'change')) {
+            return Service.rejectResponse({ message: `Unknown operation: '${operation}'` });
+        }
+
+        if ((operation !== 'remove') && (!smm)) {
+            return Service.rejectResponse({ message: "Must provide a valid handle to the smm field if the operation is not 'remove'" });
+        } 
+
+        // User Fetching
+
+        const user = await User.findOne({ handle: handle });
+
+        if (!user) return Service.rejectResponse({ message: `User '${handle}' not found` });
+
+        // if op was remove we are done
+        if (operation === 'remove') {
+
+            user.smm = null;
+
+            await user.save();
+
+            return Service.successResponse();
+        }
+
+        // else it was change, fetch new user and set smm
+        const new_smm_acc = await User.findOne({ handle: smm });
+
+        if (!new_smm_acc) return Service.rejectResponse({ message: `User '${smm}' not found` });
+
+
+        // operation was 'change'
+        user.smm = new_smm_acc._id;
+        
+        let err = null;
+
+        try {
+            await user.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err);
+
+        return Service.successResponse()
+    }
+
+    static async removeManaged({ handle, userHandle }){
+
+        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
+
+    }
 }
 
 module.exports = UserService;

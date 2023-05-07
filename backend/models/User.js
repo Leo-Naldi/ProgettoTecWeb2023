@@ -111,10 +111,24 @@ const UserSchema = mongoose.Schema(
             ref: 'User',
         },
         // Account per cui fa da smms
-        managed: [{ type: mongoose.ObjectId, ref: 'User' }]
-    },
+    }, {
+        statics: {
+            async findManaged(smmid) {
+                return await this.find({ smm: smmid }).exec();
+            }
+        } 
+    }
 );
 
+UserSchema.pre('deleteOne', { document: true }, async function(){
+    
+    const updates = (await this.constructor.find({ smm: this._id })).map(async u => {
+        u.smm = null;
+        await u.save();
+    })
+
+    await Promise.all(updates);
+})
 
 const User = mongoose.model('User', UserSchema);
 

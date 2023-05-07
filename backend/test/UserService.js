@@ -34,7 +34,6 @@ describe('User Service Unit Tests', function () {
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an.instanceOf(User);
             expect(res.payload).to.have.property('handle');
             expect(res.payload.handle).to.be.a('string');
             expect(res.payload.handle).to.equal(testUser(1).handle);
@@ -178,15 +177,180 @@ describe('User Service Unit Tests', function () {
      });
 
     describe('revokeAdmin Unit Tests', async function () { 
-        const res = await UserService.revokeAdmin({ handle: testUser('ad1').handle });
+        
+        it('Should actually revoke admin priviledges', async function(){
 
-        expect(res).to.be.an('object');
-        expect(res).to.have.property('status');
-        expect(res.status).to.equal(config.default_success_code);
-
-        const u = await User.findOne({ handle: testUser('ad1').handle });
-
-        expect(u.admin).to.be.false;
+            const res = await UserService.revokeAdmin({ handle: testUser('ad2').handle });
+    
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+    
+            const u = await User.findOne({ handle: testUser('ad2').handle });
+    
+            expect(u.admin).to.be.false;
+        })
     });
+
+    describe('changeSmm Unit Tests', async function(){
+        it("Should fail if operation is neither 'remove' nor 'change'", async function(){
+            const res = await UserService.changeSmm({ 
+                handle: testUser(21).handle,
+                operation: 'secret third option',
+                email: testUser(21).email,
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_client_error);
+        });
+        
+        it("Should remove the smm if the user exists", async function(){
+
+            const handle1 = testUser(22).handle, handle2 = testUser(23).handle;
+
+            const user1 = await User.findOne({ handle: handle1 });
+            const user2 = await User.findOne({ handle: handle2 });
+
+            expect(user1).to.not.be.null;
+            expect(user2).to.not.be.null;
+
+            user2.smm = user1._id;
+
+            await user2.save();
+
+            const res = await UserService.changeSmm({
+                handle: handle2,
+                operation: 'remove',
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            const u = await User.findOne({ handle: handle2 });
+
+            expect(u).to.not.be.null;
+            expect(u.smm).to.be.null;
+        });
+        
+        it("Should change the smm field to the new smm's _id if both exist", async function(){
+            const handle1 = testUser(24).handle, handle2 = testUser(25).handle;
+
+            const user1 = await User.findOne({ handle: handle1 });
+            const user2 = await User.findOne({ handle: handle2 });
+
+            expect(user1).to.not.be.null;
+            expect(user2).to.not.be.null;
+
+            const res = await UserService.changeSmm({
+                handle: handle2,
+                operation: 'change',
+                smm: handle1
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            const u = await User.findOne({ handle: handle2 });
+
+            expect(u).to.not.be.null;
+            expect(u.smm).to.not.be.null;
+            expect(u.smm.equals(user1._id)).to.be.true;
+        })
+    });
+
+    describe('checkAvailability Unit Tests', async function () {
+
+        it("Should fail if you provide neither email nor handle", async function(){
+            const res = await UserService.checkAvailability({});
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_client_error);
+        });
+
+        it("Should return available: true if handle is available", async function () {
+            const res = await UserService.checkAvailability({ handle: testUser(100000000).handle });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object').that.has.property('available');
+            expect(res.payload.available).to.be.true;
+        })
+
+        it("Should return available: true if email is available", async function () {
+            const res = await UserService.checkAvailability({ email: testUser(100000000).email });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object').that.has.property('available');
+            expect(res.payload.available).to.be.true;
+        })
+
+        it("Should return available: true if email and handle are available", async function () {
+            const res = await UserService.checkAvailability({ handle: testUser(100000000).handle, email: testUser(100000000).email });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object').that.has.property('available');
+            expect(res.payload.available).to.be.true;
+        })
+
+        it("Should return available: false if email or handle are taken", async function () {
+            const res = await UserService.checkAvailability({ handle: testUser(1).handle, email: testUser(100000000).email });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object').that.has.property('available');
+            expect(res.payload.available).to.be.false;
+
+            const res2 = await UserService.checkAvailability({ handle: testUser(100000000).handle, email: testUser(1).email });
+
+            expect(res2).to.be.an('object');
+            expect(res2).to.have.property('status');
+            expect(res2.status).to.equal(config.default_success_code);
+
+            expect(res2).to.have.property('payload');
+            expect(res2.payload).to.be.an('object').that.has.property('available');
+            expect(res2.payload.available).to.be.false;
+
+            const res3 = await UserService.checkAvailability({ email: testUser(1).email });
+
+            expect(res3).to.be.an('object');
+            expect(res3).to.have.property('status');
+            expect(res3.status).to.equal(config.default_success_code);
+
+            expect(res3).to.have.property('payload');
+            expect(res3.payload).to.be.an('object').that.has.property('available');
+            expect(res3.payload.available).to.be.false;
+
+            const res4 = await UserService.checkAvailability({ handle: testUser(1).handle });
+
+            expect(res4).to.be.an('object');
+            expect(res4).to.have.property('status');
+            expect(res4.status).to.equal(config.default_success_code);
+
+            expect(res4).to.have.property('payload');
+            expect(res4.payload).to.be.an('object').that.has.property('available');
+            expect(res4.payload.available).to.be.false;
+        })
+
+     });
+
+    describe.skip('removeManaged Unit Tests', async function () { });
         
 })

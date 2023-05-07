@@ -13,13 +13,24 @@ function testUser(i) {
 
 let users, admins;
 
+const users_count = 30;
 
 before(async function() {
     await mongoose.connect(config.db_url);
 
-    users = [testUser(1), testUser(2), testUser(3), testUser(4)];
-    admins = [testUser('ad1')]
-    admins[0].admin = true;
+    users = [];
+
+    for (let i = 1; i <= users_count; i++) {
+        users.push(testUser(i));
+    }
+
+    admins = []
+
+    for (let i = 1; i <= users_count; i++) {
+        admins.push(testUser(`ad${i}`));
+        admins[i - 1].admin = true;
+    }
+
     users.map(async (u) => await u.save())
     admins.map(async (u) => await u.save())
 });
