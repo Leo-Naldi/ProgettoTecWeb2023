@@ -2,6 +2,7 @@ const { default: mongoose } = require('mongoose');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const Service = require('./Service');
+const config = require('../config');
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -18,24 +19,24 @@ class MessageService {
         
         if(controversial) {
 
-            query = query.byPopularity('controversial');
-            query = query.byTimeFrame(controversial);
+            query.byPopularity('controversial');
+            query.byTimeFrame(controversial);
         
         } else if (popular){
 
-            query = query.byPopularity('popular');
-            query = query.byTimeFrame(popular);
+            query.byPopularity('popular');
+            query.byTimeFrame(popular);
 
         } else if (unpopular) {
 
-            query = query.byPopularity('unpopular');
-            query = query.byTimeFrame(unpopular);
+            query.byPopularity('unpopular');
+            query.byTimeFrame(unpopular);
 
         } else if (risk) {
-            query = query.atRisk(risk)
+            query.atRisk(risk)
         } else {
-            if (before) query = query.where('meta.created').lte(before);
-            if (after) query = query.where('meta.created').gte(after);
+            if (before) query.where('meta.created').lte(before);
+            if (after) query.where('meta.created').gte(after);
         }
 
 
@@ -43,11 +44,11 @@ class MessageService {
             if (dest.charAt(0) === '@') {
                 const dest = await User.findOne({ handle: dest.slice(1) }).select('_id');
 
-                query = query.where({ destUser: dest._id });
+                query.where({ destUser: dest._id });
             } else if (dest.charAt(0) === '§') {
                 const dest = await Channel.findOne({ name: dest.slice(1) }).select('_id');
 
-                query = query.where({ destChannel: dest._id });
+                query.where({ destChannel: dest._id });
             }
         }
 
@@ -55,23 +56,26 @@ class MessageService {
     }
 
     static async getMessages({ page=1, popular, unpopular, controversial, risk,
-        before, after, dest }) {
+        before, after, dest }={ page: 1 }) {
 
-
-        const query = MessageService._addQueryChains({ 
+        page = Math.max(1, page);  // page numbers can only be >= 1
+        let query = MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
             before, after, dest
-         });
+        })
 
-        const res = await query().sort('meta.created');
+        
+        const res = await query;
 
-        return Service.successResponse(res.slice(100*(page - 1), 100*page));
+        return Service.successResponse(res.slice(config.results_per_page*(page - 1), config.results_per_page*page));
     }
 
     static async getUserMessages({ page = 1, reqUser, handle, top, popular, unpopular, controversial, risk,
         before, after, dest }){
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
+
+        page = Math.max(1, page);  // page numbers can only be >= 1
         
         let user = reqUser;
 
@@ -88,7 +92,7 @@ class MessageService {
 
         const res = await messagesQuery();
 
-        return Service.successResponse(res.slice(100 * (page - 1), 100 * page));
+        return Service.successResponse(res.slice(config.results_per_page * (page - 1), config.results_per_page * page));
         
     }
 
@@ -119,6 +123,11 @@ class MessageService {
         try {
             await message.save();
             user.messages.push(message._id);
+            if (content.text) {
+                user.charLeft.day -= content.text.length;
+                user.charLeft.week -= content.text.length;
+                user.charLeft.month -= content.text.length;
+            }
             await user.save();
         } catch (e) {
             err = e;

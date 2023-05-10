@@ -7,7 +7,7 @@ class AuthService {
         let err = null, user = null;
 
         try {
-            user = await User.findOne({ handle: handle }).exec();
+            user = await User.findOne({ handle: handle });
         } catch (error) {
             err = error;
         }
@@ -19,11 +19,11 @@ class AuthService {
 
         if (user.password === password)
                 return Service.successResponse({ 
-                ...user,
+                user: user.toObject(),
                 token: makeToken({
-                    handle: new_user.handle,
-                    accountType: new_user.accountType,
-                    admin: false
+                    handle: user.handle,
+                    accountType: user.accountType,
+                    admin: user.admin
                 }) 
             });
         else {

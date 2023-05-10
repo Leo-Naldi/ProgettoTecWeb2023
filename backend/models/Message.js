@@ -28,6 +28,7 @@ const MessageSchema = new mongoose.Schema({
         author: {
             type: mongoose.ObjectId,
             ref: 'User',
+            required: true,
         },
         destChannel: [{ 
             type: mongoose.ObjectId,

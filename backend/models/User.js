@@ -36,6 +36,7 @@ const CharQuotaSchema = new mongoose.Schema({
     },
 }, { _id: false });
 
+// TODO add lastloggedin field;
 const UserSchema = mongoose.Schema(
     {
         handle: {

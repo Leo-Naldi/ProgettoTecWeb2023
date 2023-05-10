@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const config = require('../config/index');
 const User = require('../models/User');
+const Message = require('../models/Message');
+const Channel = require('../models/Channel');
 
 function testUser(i) {
     return new User({
@@ -13,10 +15,32 @@ function testUser(i) {
 
 let users, admins;
 
-const users_count = 30;
+const users_count = 40;
+
+async function addMessage(text, authorHandle, destHanldes, destChannels) {
+    const author = await User.findOne({ handle: authorHandle });
+
+    const destUser = await Promise.all(destHanldes.map(async h => await User.findOne({ handle: h }).select('_id')));
+    
+    if (destUser.some(u => !u)) throw Error("addMessage: dest Handle not found");
+
+    const message = new Message({ 
+        content: {
+            text: text,
+        }, 
+        author: author._id,
+        destUser: destUser,
+    })
+
+    await message.save();
+    author.messages.push(message._id);
+    await author.save();
+}
 
 before(async function() {
-    await mongoose.connect(config.db_url);
+
+    await mongoose.connect(config.db_test_url);
+    console.log(`Connected to ${config.db_test_url}`);
 
     users = [];
 
@@ -37,18 +61,12 @@ before(async function() {
 
 after(async function(){
 
-    for (let i = 0; i < users.length; i++) {
-        
-        await User.deleteOne({ handle : users[i].handle })
-    }
-
-    for (let i = 0; i < admins.length; i++) {
-
-        await User.deleteOne({ handle: admins[i].handle })
-    }
+    await User.deleteMany({});
+    await Message.deleteMany({});
+    await Channel.deleteMany({});
 
     await mongoose.disconnect();
     
 })
 
-module.exports = { testUser }
+module.exports = { testUser, addMessage }

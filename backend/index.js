@@ -9,7 +9,7 @@ const Channel = require('./models/Channel');
 mongoose.connect(config.db_url).then(() => {
 
     console.log(config.db_url)
-    console.log("connected db...");
+    console.log(`connected db at ${config.db_url}`);
 
     new ExpressLoader();
 });
