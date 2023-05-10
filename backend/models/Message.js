@@ -16,8 +16,15 @@ const MessageMetaSchema = new mongoose.Schema({
     geo: {},  // any, TODO una volta che e' definito
 }, { _id: false });
 
+const ContentSchema = new mongoose.Schema({
+    text: String,
+    image: String,
+})
+
 const MessageSchema = new mongoose.Schema({
-        content: String,
+        content: {
+            type: ContentSchema,
+        },
         author: {
             type: mongoose.ObjectId,
             ref: 'User',

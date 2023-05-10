@@ -1,4 +1,6 @@
+const { default: mongoose } = require('mongoose');
 const Message = require('../models/Message');
+const User = require('../models/User');
 const Service = require('./Service');
 
 /*
@@ -90,20 +92,84 @@ class MessageService {
         
     }
 
-    static async postUserMessage({ handle, content, posted, author, dest }) {
+    static async postUserMessage({ reqUser, handle, content, dest }) {
+        if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
+        let user = reqUser.handle;
+        if (user.handle !== handle) {  // SMM posting for the user
+            user = await User.findOne({ handle: handle });
+
+            if (!user) return Service.rejectResponse({ message: "Invalid user handle" })
+        }
+
+        const min_left = Math.min(user.charLeft.day, user.charLeft.week, user.charLeft.month);
+
+        if (content.text && (min_left < content.text.length)) 
+            return Service.rejectResponse({ 
+                message: `Attempted posting a message of ${content.text.length} characters with ${min_left} characters remaining`, 
+            }, 418);
+
+        const destUser = dest.filter(h => h.charAt(0) === '@');
+        const destChannel = dest.filter(h => h.charAt(0) === '§');
+
+        const message = new Message({ content, author: user._id, destUser, destChannel });
+
+        let err = null;
+
+        try {
+            await message.save();
+            user.messages.push(message._id);
+            await user.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err);
+        
+        return Service.successResponse({ ...message.toObject() });
     }
 
-    static async deleteUserMessagesI({ hanlde }) {
+    static async deleteUserMessages({ reqUser }) {
+        // Only user can call this, so handle === reqUser.handle
+        await Messages.deleteMany({ author: reqUser._id });
 
+        return Service.successResponse();
     }
 
-    static async deleteMessage({ handle, id }) {
+    static async deleteMessage({ id }) {
 
+        if (!mongoose.isObjectIdOrHexString(id)) 
+            return Service.rejectResponse({ message: "Invalid message id" })
+
+        const res = await Message.deleteOne({ _id: mongoose.ObjectId(id) });
+
+        if (res.deletedCount) return Service.successResponse();
+
+        return Service.rejectResponse({ message: "Id not found" });
     }
 
-    static async postMessage({ handle, id, reactions }) {
+    static async postMessage({ id, reactions }) {
+        if (!mongoose.isObjectIdOrHexString(id)) 
+            return Service.rejectResponse({ message: "Invalid message id" })
 
+        const message = await Message.findById(id);
+        
+        if (!message) 
+            return Service.rejectResponse({ message: "Id not found" });
+
+        message.reactions = reactions;
+
+        let err = null;
+        try{
+            await message.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) 
+            return Service.rejectResponse(err);
+        
+        return Service.successResponse();
     }
 
     static async deleteChannelMessages({ name }) {
