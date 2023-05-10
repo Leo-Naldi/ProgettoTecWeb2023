@@ -351,6 +351,49 @@ describe('User Service Unit Tests', function () {
 
      });
 
-    describe.skip('removeManaged Unit Tests', async function () { });
+     describe("General User Services Unit Tests", function(){
+
+        it("Should add the user to the managed field returned by getUser after calling changeSmm",
+        async function(){
+            const handle1 = testUser(5).handle, handle2= testUser(6).handle;
+
+            const u1 = await UserService.getUser({ handle: handle1 });
+
+            let u2 = await User.findOne({ handle: handle2 }).orFail();
+
+            // make sure u1 did not already manage u2
+            expect(u1).to.be.an('object');
+            expect(u1).to.have.property('status');
+            expect(u1.status).to.equal(config.default_success_code);
+            expect(u1).to.have.property('payload');
+            expect(u1.payload).to.be.an('object');
+            expect(u1.payload).to.have.property('managed');
+            expect(u1.payload.managed).to.be.an('array');
+            expect(u1.payload.managed).to.not.have.deep.members([u2.toObject()]);
+
+            const res = await UserService.changeSmm({
+                handle: handle2, 
+                operation: 'change',
+                smm: handle1,
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            const getRes = await UserService.getUser({ handle: handle1 });
+
+            expect(getRes).to.be.an('object');
+            expect(getRes).to.have.property('status');
+            expect(getRes.status).to.equal(config.default_success_code);
+            expect(getRes).to.have.property('payload');
+            expect(getRes.payload).to.be.an('object');
+            expect(getRes.payload).to.have.property('managed');
+            expect(getRes.payload.managed).to.be.an('array');
+
+            expect(getRes.payload.managed).to.have.deep.members([handle2]);
+        });
+
+     })
         
 })

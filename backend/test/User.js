@@ -88,7 +88,7 @@ describe('User Model Unit Tests', function(){
             expect([user2.id, user3.id]).to.have.members(managed.map(m => m.id))
         });
 
-        it('Should unset all of the users smm', async function(){
+        it('Should unset all of the users smm field when the smm user is deleted', async function(){
             const user1 = await User.findOne({ handle: testUser(14).handle });
             const user2 = await User.findOne({ handle: testUser(15).handle });
             const user3 = await User.findOne({ handle: testUser(16).handle });

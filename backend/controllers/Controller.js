@@ -31,8 +31,9 @@ class Controller {
             ...request.params,
             ...request.body,
             ...request.query,
-            userSender: request.user,  // extracted with jwt
         };
+
+        if (request.user) requestParams.reqUser = request.user;
 
         return requestParams;
     }

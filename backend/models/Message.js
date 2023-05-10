@@ -4,6 +4,7 @@ const dayjs = require('dayjs');
 const config = require('../config/index');
 
 
+
 const ReactionSchema = new mongoose.Schema({
     positive: { type: Number, default: 0, min: 0 },
     negative: { type: Number, default: 0, min: 0 },
@@ -17,14 +18,21 @@ const MessageMetaSchema = new mongoose.Schema({
 
 const MessageSchema = new mongoose.Schema({
         content: String,
-        dest: [{ 
-            type: String,
-            trim: true,
-            match: /^[@§#]/,  // Per differenziare i tipi di destinatari  
+        author: {
+            type: mongoose.ObjectId,
+            ref: 'User',
+        },
+        destChannel: [{ 
+            type: mongoose.ObjectId,
+            ref: 'Channel', 
+        }],
+        destUser: [{
+            type: mongoose.ObjectId,
+            ref: 'User',
         }],
         answering: {
             type: mongoose.ObjectId,  // Id dello squeal a cui si sta rispondendo
-            ref: 'User',
+            ref: 'Message',
         },
         reactions: {
             type: ReactionSchema,
@@ -62,6 +70,48 @@ const MessageSchema = new mongoose.Schema({
                     return this.where({ 'reactions.negative': { '$gte': 0.25 * config.crit_mass },
                         'reactions.positive': { '$gte': 0.25 * config.crit_mass } })
                 
+                } else {
+                    throw Error("Popularity in byPopularity qyery helper can only be popular, unpopular or controversial")
+                }
+            },
+            atRisk(popularity){
+
+                if (popularity === 'popular') {
+
+                    return this.where({ 'reactions.positive': { 
+                        '$and': [
+                            { '$lt': 0.25 * config.crit_mass }, 
+                            { '$gte': 0.20 * config.crit_mass },
+                        ]}})
+
+                } else if (popularity === 'unpopular') {
+
+                    return this.where({
+                        'reactions.negative': {
+                            '$and': [
+                                { '$lt': 0.25 * config.crit_mass },
+                                { '$gte': 0.20 * config.crit_mass },
+                            ]
+                        }
+                    })
+
+                } else if (popularity === 'controversial') {
+
+                    return this.where({
+                        'reactions.negative': {
+                            '$and': [
+                                { '$lt': 0.25 * config.crit_mass },
+                                { '$gte': 0.20 * config.crit_mass },
+                            ]
+                        },
+                        'reactions.positive': {
+                            '$and': [
+                                { '$lt': 0.25 * config.crit_mass },
+                                { '$gte': 0.20 * config.crit_mass },
+                            ]
+                        }
+                    })
+
                 } else {
                     throw Error("Popularity in byPopularity qyery helper can only be popular, unpopular or controversial")
                 }

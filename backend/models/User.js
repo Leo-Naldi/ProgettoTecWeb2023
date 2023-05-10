@@ -114,7 +114,7 @@ const UserSchema = mongoose.Schema(
     }, {
         statics: {
             async findManaged(smmid) {
-                return await this.find({ smm: smmid }).exec();
+                return await this.find({ smm: smmid });
             }
         } 
     }

@@ -29,24 +29,32 @@ class UserService {
             user = await user.populate('messages');
         }
 
-        const managed = await User.findManaged(user._id);
+        let managed = await User.findManaged(user._id);
+        //console.log(managed)
 
-        return Service.successResponse({ ...(user.toObject()), managed: managed.map(u => u.hanlde)});
+        if (!managed) managed = [];
+
+        const result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
+        
+        //console.log('aaa')
+        //console.log(result)
+        //console.log('aaa')
+
+        return Service.successResponse(result);
         
     }
 
     static async createUser({ handle, email, password,
             username, name, lastName, phone, gender, urlAvatar,
             blocked=false, accountType='user',
-            joinedChannels=[], messages=[], meta, smm, managed=[] }) {
+            meta }) {
         
         let creation_error = null;
         
         // Filter out undefined params that don't have a default
         // not sure if needed but oh well
         let extra = Object.entries({
-            username, name, lastName, phone, gender, urlAvatar,
-            meta, smm
+            username, name, lastName, phone, gender, urlAvatar, meta,
         }).reduce((a, [k, v]) => {
             if (v !== undefined) {
                 a[k] = v;
@@ -60,9 +68,7 @@ class UserService {
             password: password,
             admin: false,
             accountType: accountType,
-            joinedChannels: joinedChannels,
-            messages: messages,
-            managed: managed,
+            smm: null,
             blocked: blocked,
             ...extra,
         });
@@ -263,11 +269,7 @@ class UserService {
         return Service.successResponse()
     }
 
-    static async removeManaged({ handle, userHandle }){
-
-        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
-
-    }
+    
 }
 
 module.exports = UserService;
