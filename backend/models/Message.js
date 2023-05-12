@@ -19,7 +19,7 @@ const MessageMetaSchema = new mongoose.Schema({
 const ContentSchema = new mongoose.Schema({
     text: String,
     image: String,
-})
+}, { _id: false })
 
 const MessageSchema = new mongoose.Schema({
         content: {
@@ -64,61 +64,46 @@ const MessageSchema = new mongoose.Schema({
         query: {
         
             byPopularity(popularity) {
+
                 
                 if (popularity === 'popular') {
                 
-                    return this.where({ 'reactions.positive':  { '$gte': 0.25 * config.crit_mass }})
+                    return this.where('reactions.positive').gte(config.fame_threshold)
+                        .where('reactions.negative').lt(config.fame_threshold);
                 
                 } else if (popularity === 'unpopular') {
                 
-                    return this.where({ 'reactions.negative': { '$gte': 0.25 * config.crit_mass } })
+                    return this.where('reactions.positive').lt(config.fame_threshold)
+                        .where('reactions.negative').gte(config.fame_threshold);
                 
                 } else if (popularity === 'controversial') {
                 
-                    return this.where({ 'reactions.negative': { '$gte': 0.25 * config.crit_mass },
-                        'reactions.positive': { '$gte': 0.25 * config.crit_mass } })
+                    return this.where('reactions.positive').gte(config.fame_threshold)
+                        .where('reactions.negative').gte(config.fame_threshold);
                 
                 } else {
                     throw Error("Popularity in byPopularity qyery helper can only be popular, unpopular or controversial")
                 }
             },
-            atRisk(popularity){
+            byRisk(popularity){
 
                 if (popularity === 'popular') {
 
-                    return this.where({ 'reactions.positive': { 
-                        '$and': [
-                            { '$lt': 0.25 * config.crit_mass }, 
-                            { '$gte': 0.20 * config.crit_mass },
-                        ]}})
+                    return this.where('reactions.positive').gte(config.danger_threshold).lt(config.fame_threshold)
+                        .where('reactions.negative').lt(config.danger_threshold);
 
                 } else if (popularity === 'unpopular') {
 
-                    return this.where({
-                        'reactions.negative': {
-                            '$and': [
-                                { '$lt': 0.25 * config.crit_mass },
-                                { '$gte': 0.20 * config.crit_mass },
-                            ]
-                        }
-                    })
+                    return this.where('reactions.negative').gte(config.danger_threshold).lt(config.fame_threshold)
+                        .where('reactions.positive').lt(config.danger_threshold);
 
                 } else if (popularity === 'controversial') {
 
-                    return this.where({
-                        'reactions.negative': {
-                            '$and': [
-                                { '$lt': 0.25 * config.crit_mass },
-                                { '$gte': 0.20 * config.crit_mass },
-                            ]
-                        },
-                        'reactions.positive': {
-                            '$and': [
-                                { '$lt': 0.25 * config.crit_mass },
-                                { '$gte': 0.20 * config.crit_mass },
-                            ]
-                        }
-                    })
+                    return this.or([
+                        { 'reactions.positive': { '$lt': config.fame_threshold }}, 
+                        { 'reactions.negative': { '$lt': config.fame_threshold } }])
+                        .where('reactions.positive').gte(config.danger_threshold)
+                        .where('reactions.negative').gte(config.danger_threshold);
 
                 } else {
                     throw Error("Popularity in byPopularity qyery helper can only be popular, unpopular or controversial")
@@ -127,29 +112,29 @@ const MessageSchema = new mongoose.Schema({
             byTimeFrame(timeFrame){
                 if (timeFrame === 'all') {
                     return this;
-                } else if (timeFrame === 'today') {
+                } else if ((timeFrame === 'today') || (timeFrame === 'day')) {
 
-                    return this.where({ 
-                        'meta.created': {
-                            $gte: dayjs().second(0).hour(0).minute(0).toDate(),
-                        } 
-                    })
+                    return this.where('meta.created')
+                        .lte(dayjs().toDate())
+                        .gte(dayjs().startOf('day').toDate());
                 
                 } else if (timeFrame === 'week') {
 
-                    return this.where({
-                        'meta.created': {
-                            $gte: dayjs().day(1).hour(0).minute(0).toDate(),
-                        }
-                    })
+                    return this.where('meta.created')
+                        .lte(dayjs().toDate())
+                        .gte(dayjs().startOf('week').toDate());
 
                 } else if (timeFrame === 'month') {
                     
-                    return this.where({
-                        'meta.created': {
-                            $gte: dayjs().date(1).hour(0).minute(0).second(0).toDate(),
-                        }
-                    })
+                    return this.where('meta.created')
+                        .lte(dayjs().toDate())
+                        .gte(dayjs().startOf('month').toDate());
+
+                } else if (timeFrame === 'year') {
+
+                    return this.where('meta.created')
+                        .lte(dayjs().toDate())
+                        .gte(dayjs().startOf('year').toDate());
 
                 } else {
                     throw Error("timeFrame in byTimeFrame qyery helper can only be all, today, week or month")

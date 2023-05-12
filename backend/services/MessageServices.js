@@ -14,9 +14,8 @@ class MessageService {
      *  Aux function to build a mongoose query chain query paramenters.
     */
     static async _addQueryChains({ query=Message.find(), author, popular, unpopular, controversial, risk,
-        before, after, dest }) {
-        
-        
+        before, after, dest, page = 1 } = { query: Message.find(), page: 1 }) {
+
         if(controversial) {
 
             query.byPopularity('controversial');
@@ -52,6 +51,10 @@ class MessageService {
             }
         }
 
+        query.sort('meta.created')
+            .skip((page - 1) * config.results_per_page)
+            .limit(config.results_per_page);
+
         return query;
     }
 
@@ -61,13 +64,13 @@ class MessageService {
         page = Math.max(1, page);  // page numbers can only be >= 1
         let query = MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
-            before, after, dest
+            before, after, dest, page
         })
 
         
         const res = await query;
 
-        return Service.successResponse(res.slice(config.results_per_page*(page - 1), config.results_per_page*page));
+        return Service.successResponse(res.map(m => m.toObject()));
     }
 
     static async getUserMessages({ page = 1, reqUser, handle, top, popular, unpopular, controversial, risk,
@@ -87,12 +90,12 @@ class MessageService {
         messagesQuery = MessageService._addQueryChains({ 
             query: messagesQuery,
             top, popular, unpopular, controversial, risk,
-            before, after, dest
+            before, after, dest, page
          })
 
         const res = await messagesQuery();
 
-        return Service.successResponse(res.slice(config.results_per_page * (page - 1), config.results_per_page * page));
+        return Service.successResponse(res.map(m => m.toObject()));
         
     }
 
@@ -139,7 +142,7 @@ class MessageService {
     }
 
     static async deleteUserMessages({ reqUser }) {
-        // Only user can call this, so handle === reqUser.handle
+        // Only user can call this, so handle === reqUser.handle was checked in authentication
         await Messages.deleteMany({ author: reqUser._id });
 
         return Service.successResponse();

@@ -1,9 +1,11 @@
 const mongoose = require('mongoose');
+const dayjs = require('dayjs');
 
 const config = require('../config/index');
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Channel = require('../models/Channel');
+
 
 function testUser(i) {
     return new User({
@@ -15,9 +17,11 @@ function testUser(i) {
 
 let users, admins;
 
-const users_count = 40;
+const users_count = 50;
 
-async function addMessage(text, authorHandle, destHanldes, destChannels) {
+async function addMessage(text, authorHandle, destHanldes, destChannels, dated=dayjs(),
+    reactions={ positive: 0, negative: 0 }) {
+    
     const author = await User.findOne({ handle: authorHandle });
 
     const destUser = await Promise.all(destHanldes.map(async h => await User.findOne({ handle: h }).select('_id')));
@@ -30,7 +34,10 @@ async function addMessage(text, authorHandle, destHanldes, destChannels) {
         }, 
         author: author._id,
         destUser: destUser,
+        reactions: reactions,
     })
+
+    message.meta.created = dated;
 
     await message.save();
     author.messages.push(message._id);
@@ -38,6 +45,12 @@ async function addMessage(text, authorHandle, destHanldes, destChannels) {
 }
 
 before(async function() {
+
+    /*
+     * Aggiunge users_count utenti al db di test, una sola volta prima di qualunque altro
+     * test/hook. I test vengono eseguiti in parallelo (credo), quindi ogni utente 
+     * andrebbe manipolato in al piu un it.
+    */
 
     await mongoose.connect(config.db_test_url);
     console.log(`Connected to ${config.db_test_url}`);
