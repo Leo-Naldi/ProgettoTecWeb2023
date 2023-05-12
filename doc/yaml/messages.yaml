@@ -214,8 +214,30 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MessageInfo'
-                
+              type: object
+              properties:
+                content:
+                  type: object
+                  properties:
+                    text: 
+                      type: string
+                      example: This is an example squeal that contains very interesting info.
+                    image:
+                      type: string
+                      format: binary
+                      description: An image
+                posted:
+                  type: string
+                  description: Message's timestamp
+                  format: date-time
+                  example: "2021-01-30T08:30:00Z"
+                dest:
+                  type: array
+                  items:
+                    type: string
+                    description: The handle for single individuals, the channel name for channels
+                  example: ['@gianni', '@alberto', '§canalebello']
+
       parameters:
         - name: handle
           in: path

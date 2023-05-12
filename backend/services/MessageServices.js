@@ -32,7 +32,7 @@ class MessageService {
             query.byTimeFrame(unpopular);
 
         } else if (risk) {
-            query.atRisk(risk)
+            query.byRisk(risk)
         } else {
             if (before) query.where('meta.created').lte(before);
             if (after) query.where('meta.created').gte(after);

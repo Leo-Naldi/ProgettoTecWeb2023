@@ -42,418 +42,240 @@ describe('Message Model Unit Tests', function(){
 
     let all = null;
 
-        before(async function () {
-            /*
-            *  NB this breaks the character limits, messages should be added using the service
-            */
-
-            this.timeout(7000)
-
-            const handleauth1 = testUser(37).handle;
-            const recievers1 = [testUser(38).handle, testUser(39).handle]
-            const handleauth2 = testUser(40).handle;
-            const recievers2 = [testUser(41).handle, testUser(42).handle]
-
-            // Random Messages
-            for (let i = 0; i < messagesCount; i++) {
+    before(async function () {
+        /*
+        *  NB this breaks the character limits, messages should be added using the service
+        */
+        this.timeout(7000)
+        const handleauth1 = testUser(37).handle;
+        const recievers1 = [testUser(38).handle, testUser(39).handle]
+        const handleauth2 = testUser(40).handle;
+        const recievers2 = [testUser(41).handle, testUser(42).handle]
+        // Random Messages
+        for (let i = 0; i < messagesCount; i++) {
+            await addMessage(
+                lorem.generateSentences(getRandom(3) + 1),
+                handleauth1,
+                [recievers1[0]],
+            )
+            await addMessage(
+                lorem.generateSentences(getRandom(3) + 1),
+                handleauth1,
+                [recievers1[1]],
+            )
+            await addMessage(
+                lorem.generateSentences(getRandom(3) + 1),
+                handleauth2,
+                [recievers2[0]],
+                [],
+                dayjs().subtract(2, 'day'),
+                {
+                    positive: getRandom(3000),
+                    negative: getRandom(20),
+                }
+            )
+            await addMessage(
+                lorem.generateSentences(getRandom(3) + 1),
+                handleauth2,
+                [recievers2[1]],
+                [],
+                dayjs().subtract(2, 'month'),
+                {
+                    negative: getRandom(3000),
+                    positive: getRandom(20),
+                }
+            )
+            await addMessage(
+                lorem.generateSentences(getRandom(3) + 1),
+                handleauth2,
+                [recievers2[1]],
+                [],
+                dayjs().subtract(2, 'year'),
+                {
+                    negative: getRandom(3000),
+                    positive: getRandom(20),
+                }
+            )
+        }
+        // Ensure there are messages for every fame configuration and every time frame
+        const getPopular = () => ({
+            positive: getRandom(3000) + config.crit_mass,
+            negative: getRandom(20),
+        });
+        const getUnpopular = () => ({
+            negative: getRandom(3000) + config.crit_mass,
+            positive: getRandom(20),
+        });
+        const getControversial = () => ({
+            negative: getRandom(3000) + config.crit_mass,
+            positive: getRandom(3000) + config.crit_mass,
+        });
+        const getRiskPopular = () => ({
+            positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+            negative: getRandom(20),
+        });
+        const getRiskUnpopular = () => ({
+            negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+            positive: getRandom(20),
+        });
+        const getRiskControversial = () => ({
+            negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+            positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+        });
+        const periods = ['today', 'week', 'month', 'year'];
+        const maxMessages = 20;
+        await Promise.all(periods.map(async p => {
+            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
                 await addMessage(
                     lorem.generateSentences(getRandom(3) + 1),
                     handleauth1,
-                    [recievers1[0]],
+                    recievers2,
+                    [],
+                    getDateWithin(p),
+                    getPopular(),
                 )
+        }))
+        await Promise.all(periods.map(async p => {
+            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
                 await addMessage(
                     lorem.generateSentences(getRandom(3) + 1),
                     handleauth1,
-                    [recievers1[1]],
+                    recievers2,
+                    [],
+                    getDateWithin(p),
+                    getUnpopular(),
                 )
+        }))
+        await Promise.all(periods.map(async p => {
+            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
                 await addMessage(
                     lorem.generateSentences(getRandom(3) + 1),
-                    handleauth2,
-                    [recievers2[0]],
+                    handleauth1,
+                    recievers2,
                     [],
-                    dayjs().subtract(2, 'day'),
-                    {
-                        positive: getRandom(3000),
-                        negative: getRandom(20),
-                    }
+                    getDateWithin(p),
+                    getControversial(),
                 )
+        }))
+        await Promise.all(periods.map(async p => {
+            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
                 await addMessage(
                     lorem.generateSentences(getRandom(3) + 1),
-                    handleauth2,
-                    [recievers2[1]],
+                    handleauth1,
+                    recievers2,
                     [],
-                    dayjs().subtract(2, 'month'),
-                    {
-                        negative: getRandom(3000),
-                        positive: getRandom(20),
-                    }
+                    getDateWithin(p),
+                    getRiskPopular(),
                 )
-
+        }))
+        await Promise.all(periods.map(async p => {
+            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
                 await addMessage(
                     lorem.generateSentences(getRandom(3) + 1),
-                    handleauth2,
-                    [recievers2[1]],
+                    handleauth1,
+                    recievers2,
                     [],
-                    dayjs().subtract(2, 'year'),
-                    {
-                        negative: getRandom(3000),
-                        positive: getRandom(20),
-                    }
+                    getDateWithin(p),
+                    getRiskUnpopular(),
                 )
-            }
+        }))
+        await Promise.all(periods.map(async p => {
+            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
+                await addMessage(
+                    lorem.generateSentences(getRandom(3) + 1),
+                    handleauth1,
+                    recievers2,
+                    [],
+                    getDateWithin(p),
+                    getRiskControversial(),
+                )
+        }))
+        all = await Message.find();
+    })
 
-            // Ensure there are messages for every fame configuration and every time frame
+    describe("Query Helpers Unit Tests", function(){
 
-            const getPopular = () => ({
-                positive: getRandom(3000) + config.crit_mass,
-                negative: getRandom(20),
-            });
+        describe("byPopularity Unit Tests", function(){
 
-            const getUnpopular = () => ({
-                negative: getRandom(3000) + config.crit_mass,
-                positive: getRandom(20),
-            });
-
-            const getControversial = () => ({
-                negative: getRandom(3000) + config.crit_mass,
-                positive: getRandom(3000) + config.crit_mass,
-            });
-
-            const getRiskPopular = () => ({
-                positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-                negative: getRandom(20),
-            });
-
-            const getRiskUnpopular = () => ({
-                negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-                positive: getRandom(20),
-            });
-
-            const getRiskControversial = () => ({
-                negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-                positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            });
-
-            const periods = ['today', 'week', 'month', 'year'];
-            const maxMessages = 20;
-
-            await Promise.all(periods.map(async p => {
-                for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                    await addMessage(
-                        lorem.generateSentences(getRandom(3) + 1),
-                        handleauth1,
-                        recievers2,
-                        [],
-                        getDateWithin(p),
-                        getPopular(),
-                    )
-            }))
-
-            await Promise.all(periods.map(async p => {
-                for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                    await addMessage(
-                        lorem.generateSentences(getRandom(3) + 1),
-                        handleauth1,
-                        recievers2,
-                        [],
-                        getDateWithin(p),
-                        getUnpopular(),
-                    )
-            }))
-
-            await Promise.all(periods.map(async p => {
-                for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                    await addMessage(
-                        lorem.generateSentences(getRandom(3) + 1),
-                        handleauth1,
-                        recievers2,
-                        [],
-                        getDateWithin(p),
-                        getControversial(),
-                    )
-            }))
-
-            await Promise.all(periods.map(async p => {
-                for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                    await addMessage(
-                        lorem.generateSentences(getRandom(3) + 1),
-                        handleauth1,
-                        recievers2,
-                        [],
-                        getDateWithin(p),
-                        getRiskPopular(),
-                    )
-            }))
-
-            await Promise.all(periods.map(async p => {
-                for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                    await addMessage(
-                        lorem.generateSentences(getRandom(3) + 1),
-                        handleauth1,
-                        recievers2,
-                        [],
-                        getDateWithin(p),
-                        getRiskUnpopular(),
-                    )
-            }))
-
-            await Promise.all(periods.map(async p => {
-                for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                    await addMessage(
-                        lorem.generateSentences(getRandom(3) + 1),
-                        handleauth1,
-                        recievers2,
-                        [],
-                        getDateWithin(p),
-                        getRiskControversial(),
-                    )
-            }))
-
-            all = await Message.find();
-        })
-        
-        describe.skip("Default Value Unit Tests");
-
-        describe.only("Query Helpers Unit Tests", function(){
-
-            describe("byPopularity Unit Tests", function(){
-
-                ['popular', 'unpopular', 'controversial'].map(fame => {
-                    it(`Should return all and only ${fame} messages`, async function(){
-
-                        expect(all).to.be.an('array').that.is.not.empty;
-                        
-                        const res = await Message.find().byPopularity(fame);
-
-                        expect(res).to.be.an('array').that.is.not.empty;
-
-                        res.map(m => {
-                            expect(m).to.be.an('object').that.has.property('reactions');
-                            expect(m.reactions).to.be.an('object').that.has.property('positive');
-                            expect(m.reactions).to.be.an('object').that.has.property('negative');
-                            expect(checkFame(m.reactions, fame)).to.be.true;
-                        })
-
-                        // check it returned all popular messages
-                        all.map(m => {
-                            if (checkFame(m.reactions, fame)) {
-                                expect(res.some(pm => pm._id.equals(m._id)));
-                            }
-                        })
-                    });
-                })
-                /*
-                it("Should return all and only popular messages", async function(){
-
-                    console.log(config.fame_threshold)
-
-                    const res = await Message.find().byPopularity('popular');
-                    const all = await Message.find();
-
-                    expect(res).to.be.an('array').that.is.not.empty;
+            ['popular', 'unpopular', 'controversial'].map(fame => {
+                
+                it(`Should return all and only ${fame} messages`, async function(){
                     expect(all).to.be.an('array').that.is.not.empty;
                     
+                    const res = await Message.find().byPopularity(fame);
+                    expect(res).to.be.an('array').that.is.not.empty;
                     res.map(m => {
                         expect(m).to.be.an('object').that.has.property('reactions');
                         expect(m.reactions).to.be.an('object').that.has.property('positive');
                         expect(m.reactions).to.be.an('object').that.has.property('negative');
-                        expect(isPopular(m.reactions)).to.be.true;
+                        expect(checkFame(m.reactions, fame)).to.be.true;
                     })
-
                     // check it returned all popular messages
                     all.map(m => {
-                        if (isPopular(m.reactions)) {
+                        if (checkFame(m.reactions, fame)) {
                             expect(res.some(pm => pm._id.equals(m._id)));
                         }
                     })
-
                 });
+            })
+           
+        });
 
-                it("Should return unpopular messages", async function(){
-
-                    const res = await Message.find().byPopularity('unpopular');
-                    const all = await Message.find();
-
-                    expect(res).to.be.an('array').that.is.not.empty;
+        describe("byRisk Unit Tests", function () {
+            
+            ['popular', 'unpopular', 'controversial'].map(fame => {
+            
+                it(`Should return all and only messages at risk of being ${fame}`, async function () {
                     expect(all).to.be.an('array').that.is.not.empty;
-
+                    const res = await Message.find().byRisk(fame);
+                    expect(res).to.be.an('array').that.is.not.empty;
                     res.map(m => {
                         expect(m).to.be.an('object').that.has.property('reactions');
                         expect(m.reactions).to.be.an('object').that.has.property('positive');
                         expect(m.reactions).to.be.an('object').that.has.property('negative');
-                        expect(isUnpopular(m.reactions)).to.be.true;
+                        expect(checkRiskOfFame(m.reactions, fame)).to.be.true;
                     })
-
                     // check it returned all popular messages
                     all.map(m => {
-                        if (isUnpopular(m.reactions)) {
+                        if (checkRiskOfFame(m.reactions, fame)) {
                             expect(res.some(pm => pm._id.equals(m._id)));
                         }
                     })
-
                 });
+            })
+            
+        });
 
-                it("Should return controversial messages", async function () {
-
-                    const res = await Message.find().byPopularity('controversial');
-                    const all = await Message.find();
-
-                    expect(res).to.be.an('array').that.is.not.empty;
+        describe("byTimeFrame Unit Tests", function(){
+          
+            ['day', 'week', 'month', 'year'].map(period => {
+              
+                it(`Should only return messages from this ${period}`, async function(){
+                    
+                    expect(all).to.not.be.null;
                     expect(all).to.be.an('array').that.is.not.empty;
-
-                    res.map(m => {
-                        expect(m).to.be.an('object').that.has.property('reactions');
-                        expect(m.reactions).to.be.an('object').that.has.property('positive');
-                        expect(m.reactions).to.be.an('object').that.has.property('negative');
-                        expect(isControversial(m.reactions)).to.be.true;
-                    })
-
-                    // check it returned all popular messages
-                    all.map(m => {
-                        if (isControversial(m.reactions)) {
-                            expect(res.some(pm => pm._id.equals(m._id)));
-                        }
-                    })
-
-                });*/
-            });
-
-            describe("byRisk Unit Tests", function () {
-
-                ['popular', 'unpopular', 'controversial'].map(fame => {
-                    it(`Should return all and only messages at risk of being ${fame}`, async function () {
-
-                        expect(all).to.be.an('array').that.is.not.empty;
-
-                        const res = await Message.find().byRisk(fame);
-
-                        expect(res).to.be.an('array').that.is.not.empty;
-
-                        res.map(m => {
-                            expect(m).to.be.an('object').that.has.property('reactions');
-                            expect(m.reactions).to.be.an('object').that.has.property('positive');
-                            expect(m.reactions).to.be.an('object').that.has.property('negative');
-                            expect(checkRiskOfFame(m.reactions, fame)).to.be.true;
-                        })
-
-                        // check it returned all popular messages
-                        all.map(m => {
-                            if (checkRiskOfFame(m.reactions, fame)) {
-                                expect(res.some(pm => pm._id.equals(m._id)));
-                            }
-                        })
-                    });
-                })
-                /*
-                it("Should return all and only messages that are almost popular", async function () {
-
-                    //console.log(config.fame_threshold)
-
-                    const res = await Message.find().byRisk('popular');
-                    const all = await Message.find();
-
+                    
+                    const res = await Message.find().byTimeFrame(period);
+                    
                     expect(res).to.be.an('array').that.is.not.empty;
-                    expect(all).to.be.an('array').that.is.not.empty;
-
                     res.map(m => {
-                        expect(m).to.be.an('object').that.has.property('reactions');
-                        expect(m.reactions).to.be.an('object').that.has.property('positive');
-                        expect(m.reactions).to.be.an('object').that.has.property('negative');
-                        expect(atRiskOfPopular(m.reactions)).to.be.true;
-                    })
-
-                    // check it returned all popular messages
-                    all.map(m => {
-                        if (atRiskOfPopular(m.reactions)) {
-                            expect(res.some(pm => pm._id.equals(m._id)));
-                        }
-                    })
-
-                });
-
-                it("Should return unpopular messages", async function () {
-
-                    const res = await Message.find().byRisk('unpopular');
-                    const all = await Message.find();
-
-                    expect(res).to.be.an('array').that.is.not.empty;
-                    expect(all).to.be.an('array').that.is.not.empty;
-
-                    res.map(m => {
-                        expect(m).to.be.an('object').that.has.property('reactions');
-                        expect(m.reactions).to.be.an('object').that.has.property('positive');
-                        expect(m.reactions).to.be.an('object').that.has.property('negative');
-                        expect(atRiskOfUnpopular(m.reactions)).to.be.true;
-                    })
-
-                    // check it returned all unpopular messages
-                    all.map(m => {
-                        if (atRiskOfUnpopular(m.reactions)) {
-                            expect(res.some(pm => pm._id.equals(m._id)));
-                        }
-                    })
-
-                });
-
-                it("Should return controversial messages", async function () {
-
-                    const res = await Message.find().byRisk('controversial');
-                    const all = await Message.find();
-
-                    expect(res).to.be.an('array').that.is.not.empty;
-                    expect(all).to.be.an('array').that.is.not.empty;
-
-                    res.map(m => {
-                        expect(m).to.be.an('object').that.has.property('reactions');
-                        expect(m.reactions).to.be.an('object').that.has.property('positive');
-                        expect(m.reactions).to.be.an('object').that.has.property('negative');
-                        expect(atRiskOfControversial(m.reactions)).to.be.true;
-                    })
-
-                    // check it returned all unpopular messages
-                    all.map(m => {
-                        if (atRiskOfControversial(m.reactions)) {
-                            expect(res.some(pm => pm._id.equals(m._id)));
-                        }
-                    })
-                });*/
-            });
-
-            describe("byTimeFrame Unit Tests", function(){
-
-                ['day', 'week', 'month', 'year'].map(period => {
-
-                    it(`Should only return messages from this ${period}`, async function(){
+                        expect(m).to.be.an('object').that.has.property('meta');
+                        expect(m.meta).to.be.an('object').that.has.property('created');
                         
-                        expect(all).to.not.be.null;
-                        expect(all).to.be.an('array').that.is.not.empty;
-                        
-                        const res = await Message.find().byTimeFrame(period);
-                        
-                        expect(res).to.be.an('array').that.is.not.empty;
-
-                        res.map(m => {
-                            expect(m).to.be.an('object').that.has.property('meta');
-                            expect(m.meta).to.be.an('object').that.has.property('created');
-                            
-                            const created = dayjs(m.meta.created);
-
-                            expect(created.isBetween(dayjs(), dayjs().startOf(period)))
-                                .to.be.true;
-                        })
-
-                        // check it returned all popular messages
-                        all.map(m => {
-                            const created = dayjs(m.meta.created);
-
-                            if (created.isBetween(dayjs(), dayjs().startOf(period))) {
-                                expect(res.some(pm => pm._id.equals(m._id)));
-                            }
-                        })
+                        const created = dayjs(m.meta.created);
+                        expect(created.isBetween(dayjs(), dayjs().startOf(period)))
+                            .to.be.true;
+                    })
+                    // check it returned all popular messages
+                    all.map(m => {
+                        const created = dayjs(m.meta.created);
+                        if (created.isBetween(dayjs(), dayjs().startOf(period))) {
+                            expect(res.some(pm => pm._id.equals(m._id)));
+                        }
                     })
                 })
+            })
+        });
 
-            });
-
-        })
+    })
 })
