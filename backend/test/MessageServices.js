@@ -46,6 +46,8 @@ const lorem = new LoremIpsum({
 describe('Message Service Unit Tests', function () {
 
     let all = null;
+    let author = null;
+    let new_author =  null;
 
     before(async function () {
         /*
@@ -62,7 +64,7 @@ describe('Message Service Unit Tests', function () {
                 lorem.generateSentences(getRandom(3) + 1),
                 handleauth1,
                 [recievers1[0]],
-            )
+            );
             await addMessage(
                 lorem.generateSentences(getRandom(3) + 1),
                 handleauth1,
@@ -93,6 +95,17 @@ describe('Message Service Unit Tests', function () {
             await addMessage(
                 lorem.generateSentences(getRandom(3) + 1),
                 handleauth2,
+                [recievers2[1]],
+                [],
+                dayjs().subtract(2, 'year'),
+                {
+                    negative: getRandom(3000),
+                    positive: getRandom(20),
+                }
+            )
+            await addMessage(
+                lorem.generateSentences(getRandom(3) + 1),
+                handleauth1,
                 [recievers2[1]],
                 [],
                 dayjs().subtract(2, 'year'),
@@ -197,6 +210,8 @@ describe('Message Service Unit Tests', function () {
         }))
 
         all = await Message.find();
+        author = await User.findOne({ handle: handleauth1 });
+        new_author = await User.findOne({ handle: testUser(43).handle });
     })
 
     describe("getMessages Unit Tests", function(){
@@ -217,7 +232,6 @@ describe('Message Service Unit Tests', function () {
                 expect(m).to.have.property('meta');
                 expect(m.meta).to.be.an('object').that.has.property('created');
                 expect(m).to.have.property('author');
-                expect(mongoose.isObjectIdOrHexString(m.author)).to.be.true;
                 expect(m).to.have.property('destChannel');
                 expect(m.destChannel).to.be.an('array');
                 expect(m).to.have.property('destUser');
@@ -329,18 +343,307 @@ describe('Message Service Unit Tests', function () {
                 }));
             })
 
-            it("Should only return messages destined to the given user");
+            it("Should only return messages destined to the given user", async function(){
+
+                const handle = testUser(32).handle;
+
+                const res = await MessageService.getMessages({ dest: '@' + handle })
+
+                expect(res).to.be.an('object');
+                expect(res).to.have.property('status');
+                expect(res.status).to.equal(config.default_success_code);
+                expect(res).to.have.property('payload');
+                expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                res.payload.map(m => {
+                    expect(m.destUser, `Expected ${m.destUser} to include ${handle}`)
+                        .to.deep.include({ handle: handle });
+                })
+            });
 
             it("Should only return messages destined to the given channel");
 
-            it("Should only return messages authored by the given user");
         });
 
     });
 
-    describe.skip("getUserMessages Unit Tests");
+    describe("getUserMessages Unit Tests", function(){
+        
+        it("Should only return messages authored by the given user", async function () {
 
-    describe.skip("postUserMessage Unit Tests");
+            expect(author).to.not.be.null;
+
+            const res = await MessageService.getUserMessages({ 
+                handle: author.handle,
+                reqUser: author
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.is.not.empty;
+
+            res.payload.map(m => {
+                expect(m.author).to.deep.equal({ handle: author.handle });
+            });
+        });
+
+        it("Should return an array of messages", async function () {
+            
+            expect(author).to.not.be.null;
+
+            const res = await MessageService.getUserMessages({
+                handle: author.handle,
+                reqUser: author
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.is.not.empty;
+
+            res.payload.map(m => {
+                expect(m).to.be.an('object');
+                expect(m).to.have.property('content');
+                expect(m).to.have.property('reactions');
+                expect(m).to.have.property('meta');
+                expect(m.meta).to.be.an('object').that.has.property('created');
+                expect(m).to.have.property('author');
+                expect(m).to.have.property('destChannel');
+                expect(m.destChannel).to.be.an('array');
+                expect(m).to.have.property('destUser');
+                expect(m.destChannel).to.be.an('array');
+            })
+        });
+
+        it(`Should at most return ${config.results_per_page} messages`, async function () {
+
+            expect(author).to.not.be.null;
+
+            const res = await MessageService.getUserMessages({
+                handle: author.handle,
+                reqUser: author
+            });
+
+            const num_messages = await Message.find().count();
+
+            //console.log(num_messages);
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.is.not.empty;
+            expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
+        });
+
+        describe("getUserMessages Filters Unit Tests", function () {
+
+            const fames = ['popular', 'unpopular', 'controversial'];
+            const timeframes = ['day', 'week', 'month', 'year'];
+
+            fames.map(fame => {
+                timeframes.map(timeframe => {
+                    it(`Should return only ${fame} messages from this ${timeframe}`, async function () {
+
+                        let params = new Object();
+
+                        expect(author).to.not.be.null;
+
+                        params[fame] = timeframe;
+                        params.handle = author.handle;
+                        params.reqUser = author;
+
+                        const res = await MessageService.getUserMessages(params);
+
+                        expect(res).to.be.an('object');
+                        expect(res).to.have.property('status');
+                        expect(res.status).to.equal(config.default_success_code);
+                        expect(res).to.have.property('payload');
+                        expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                        res.payload.map(m => {
+                            expect(checkFame(m.reactions, fame)).to.be.true;
+                            expect(dayjs(m.meta.created).isBetween(dayjs(), dayjs().startOf(timeframe)))
+                                .to.be.true;
+                        })
+                    })
+                })
+            })
+
+            fames.map(fame => {
+                it(`Should return only messages that are almost ${fame}`, async function () {
+
+                    let params = new Object();
+
+                    expect(author).to.not.be.null;
+
+                    params.risk = fame;
+                    params.handle = author.handle;
+                    params.reqUser = author;
+
+                    const res = await MessageService.getUserMessages(params);
+
+                    expect(res).to.be.an('object');
+                    expect(res).to.have.property('status');
+                    expect(res.status).to.equal(config.default_success_code);
+                    expect(res).to.have.property('payload');
+                    expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                    res.payload.map(m => {
+                        expect(checkRiskOfFame(m.reactions, fame)).to.be.true;
+                    })
+                })
+            })
+
+            it("Should only return messages created before the given date", async function () {
+                await Promise.all([
+                    dayjs().startOf('week'),
+                    dayjs().startOf('month'),
+                    dayjs().startOf('year'),
+                ].map(async d => {
+
+                    let params = new Object();
+
+                    expect(author).to.not.be.null;
+
+                    params.before = d.toString();
+                    params.handle = author.handle;
+                    params.reqUser = author;
+
+                    const res = await MessageService.getUserMessages(params);
+
+                    expect(res).to.be.an('object');
+                    expect(res).to.have.property('status');
+                    expect(res.status).to.equal(config.default_success_code);
+                    expect(res).to.have.property('payload');
+                    expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                    res.payload.map(m => {
+                        expect(dayjs(m.meta.created).isSameOrBefore(d, 'second')).to.be.true;
+                    })
+                }));
+            })
+
+            it("Should only return messages created after the given date", async function () {
+                await Promise.all([
+                    dayjs().startOf('week'),
+                    dayjs().startOf('month'),
+                    dayjs().startOf('year'),
+                ].map(async d => {
+
+                    let params = new Object();
+
+                    expect(author).to.not.be.null;
+
+                    params.after = d.toString();
+                    params.handle = author.handle;
+                    params.reqUser = author;
+
+                    const res = await MessageService.getUserMessages(params);
+
+                    expect(res).to.be.an('object');
+                    expect(res).to.have.property('status');
+                    expect(res.status).to.equal(config.default_success_code);
+                    expect(res).to.have.property('payload');
+                    expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                    res.payload.map(m => {
+                        expect(dayjs(m.meta.created).isSameOrAfter(d, 'second')).to.be.true;
+                    })
+                }));
+            })
+
+            it("Should only return messages destined to the given user", async function () {
+
+                const handle = testUser(32).handle;
+
+                let params = new Object();
+
+                expect(author).to.not.be.null;
+
+                params.dest = '@' + handle;
+                params.handle = author.handle;
+                params.reqUser = author;
+
+                const res = await MessageService.getUserMessages(params);
+
+                expect(res).to.be.an('object');
+                expect(res).to.have.property('status');
+                expect(res.status).to.equal(config.default_success_code);
+                expect(res).to.have.property('payload');
+                expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                res.payload.map(m => {
+                    expect(m.destUser, `Expected ${m.destUser} to include ${handle}`)
+                        .to.deep.include({ handle: handle });
+                })
+            });
+
+            it("Should only return messages destined to the given channel");
+
+        });
+    });
+
+    describe("postUserMessage Unit Tests", function(){
+
+        it("Should fail if the handle does not exist", async function(){
+
+            const text = lorem.generateWords(20);
+
+            const res = await MessageService.postUserMessage({ 
+                reqUser: new_author,
+                handle: new_author.handle + 'ckjdfvnkdjfnoafnwjfv sjdfbu3i4ru3904uty2495y9hquvsadjnqa',
+                content: {
+                    text: text,
+                }, 
+                dest: ['@' + testUser(35).handle, '@' + testUser(36).handle]
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_client_error);
+
+        });
+
+        it("Should allow message creation if the user has enough characters left", async function(){
+            
+            const text = lorem.generateWords(10);
+            const cur_chars = JSON.parse(JSON.stringify(new_author.charLeft));
+
+            expect(Math.min(cur_chars.day, cur_chars.week, cur_chars.month) >= text.length)
+                .to.be.true;
+
+            const res = await MessageService.postUserMessage({
+                reqUser: new_author,
+                handle: new_author.handle,
+                content: {
+                    text: text,
+                },
+                dest: ['@' + testUser(35).handle, '@' + testUser(36).handle]
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            const checkUser = await User.findOne({ handle: new_author.handle });
+            expect(checkUser.charLeft.day).to.equal(cur_chars.day - text.length)
+            expect(checkUser.charLeft.week).to.equal(cur_chars.week - text.length)
+            expect(checkUser.charLeft.month).to.equal(cur_chars.month - text.length)
+        });
+
+        it("Should adjust the author's remaining characters");
+
+        it("Should fail if the user does not have enough daily characters");
+
+        it("Should fail if the user does not have enough weekly characters");
+
+        it("Should fail if the user does not have enough monthly characters");
+
+    });
 
     describe.skip("deletrUserMessages Unit Tests");
 

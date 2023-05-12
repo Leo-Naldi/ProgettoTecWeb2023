@@ -13,7 +13,7 @@ class MessageService {
     /*
      *  Aux function to build a mongoose query chain query paramenters.
     */
-    static async _addQueryChains({ query=Message.find(), author, popular, unpopular, controversial, risk,
+    static async _addQueryChains({ query=Message.find(), popular, unpopular, controversial, risk,
         before, after, dest, page = 1 } = { query: Message.find(), page: 1 }) {
 
         if(controversial) {
@@ -41,17 +41,21 @@ class MessageService {
 
         if (dest) {
             if (dest.charAt(0) === '@') {
-                const dest = await User.findOne({ handle: dest.slice(1) }).select('_id');
+                const destUser = await User.findOne({ handle: dest.slice(1) }).select('_id');
 
-                query.where({ destUser: dest._id });
+                query.find({ destUser: destUser._id });
+
             } else if (dest.charAt(0) === '§') {
-                const dest = await Channel.findOne({ name: dest.slice(1) }).select('_id');
+                const destChannel = await Channel.findOne({ name: dest.slice(1) }).select('_id');
 
-                query.where({ destChannel: dest._id });
+                query.find({ destChannel: destChannel._id });
             }
         }
 
         query.sort('meta.created')
+            .select('-__v')
+            .populate('author', 'handle -_id')
+            .populate('destUser', 'handle -_id')
             .skip((page - 1) * config.results_per_page)
             .limit(config.results_per_page);
 
@@ -73,7 +77,7 @@ class MessageService {
         return Service.successResponse(res.map(m => m.toObject()));
     }
 
-    static async getUserMessages({ page = 1, reqUser, handle, top, popular, unpopular, controversial, risk,
+    static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
         before, after, dest }){
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
@@ -85,15 +89,15 @@ class MessageService {
         if (handle !== user) {
             user = await User.findOne({ handle: handle });
         }
-        const messagesQuery = Messages.find({ author: user._id });
+        let messagesQuery = Message.find({ author: user._id });
 
         messagesQuery = MessageService._addQueryChains({ 
             query: messagesQuery,
-            top, popular, unpopular, controversial, risk,
+            popular, unpopular, controversial, risk,
             before, after, dest, page
          })
 
-        const res = await messagesQuery();
+        const res = await messagesQuery;
 
         return Service.successResponse(res.map(m => m.toObject()));
         
@@ -116,8 +120,12 @@ class MessageService {
                 message: `Attempted posting a message of ${content.text.length} characters with ${min_left} characters remaining`, 
             }, 418);
 
-        const destUser = dest.filter(h => h.charAt(0) === '@');
-        const destChannel = dest.filter(h => h.charAt(0) === '§');
+        const destUser = await Promise.all(dest.filter(h => h.charAt(0) === '@').map(async handle => {
+            return await User.findOne({ handle: handle.slice(1) });
+        }));
+        const destChannel = await Promise.all(dest.filter(h => h.charAt(0) === '§').map(async name => {
+            return await Channel.findOne({ name: name });
+        }));
 
         const message = new Message({ content, author: user._id, destUser, destChannel });
 
@@ -138,7 +146,7 @@ class MessageService {
 
         if (err) return Service.rejectResponse(err);
         
-        return Service.successResponse({ ...message.toObject() });
+        return Service.successResponse(message.toObject());
     }
 
     static async deleteUserMessages({ reqUser }) {
