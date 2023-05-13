@@ -27,6 +27,11 @@ const ChannelSchema = new mongoose.Schema(
         }],
         private: { type: Boolean, default: false, required: true, },
         official: { type: Boolean, default: false, required: true, },
+        created: {
+            type: Date,
+            required: true,
+            default: Date.now,
+        }
     }
 );
 

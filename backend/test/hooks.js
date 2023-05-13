@@ -28,6 +28,7 @@ const users_count = 150;
 class UserDispatch {
     static _cur = 1;
     static _curAdmin = 1;
+    static _channelInd = 0;
 
     // Return the next available user, the user is already in the db so only use the fields,
     // to modify the user you still have to retrive it from the db. If it throws just increase
@@ -44,11 +45,15 @@ class UserDispatch {
         return testUser(`ad${UserDispatch._curAdmin++}`).toObject();
     }
 
+    static getNextChannelName() {
+        return `__testChannel${UserDispatch._channelInd++}`
+    }
+
 }
 
 
 
-async function addMessage(text, authorHandle, destHandles, destChannels, dated=dayjs(),
+async function addMessage(text, authorHandle, destHandles, destChannels=[], dated=dayjs(),
     reactions={ positive: 0, negative: 0 }) {
     
     //console.log(destHandles)
@@ -56,6 +61,7 @@ async function addMessage(text, authorHandle, destHandles, destChannels, dated=d
     const author = await User.findOne({ handle: authorHandle });
 
     const destUser = await Promise.all(destHandles.map(async h => await User.findOne({ handle: h }).select('_id')));
+    const destChannel = await Promise.all(destChannels.map(async h => await Channel.findOne({ name: h }).select('_id')));
     
     if (destUser.some(u => !u)) throw Error("addMessage: dest Handle not found");
 
@@ -65,6 +71,7 @@ async function addMessage(text, authorHandle, destHandles, destChannels, dated=d
         }, 
         author: author._id,
         destUser: destUser,
+        destChannel: destChannel,
         reactions: reactions,
     })
 
@@ -72,6 +79,14 @@ async function addMessage(text, authorHandle, destHandles, destChannels, dated=d
 
     await message.save();
     author.messages.push(message._id);
+
+    await Promise.all(destChannel.map(async id => {
+        const channel = await Channel.findById(id);
+
+        channel.messages.push(message._id)
+        await channel.save()
+    }))
+
     await author.save();
 }
 
@@ -86,6 +101,10 @@ before(async function() {
     await mongoose.connect(config.db_test_url);
     console.log(`Connected to ${config.db_test_url}`);
 
+    await User.deleteMany({});
+    await Message.deleteMany({});
+    await Channel.deleteMany({});
+
     let users = [];
 
     for (let i = 1; i <= users_count; i++) {
@@ -99,8 +118,8 @@ before(async function() {
         admins[i - 1].admin = true;
     }
 
-    users.map(async (u) => await u.save())
-    admins.map(async (u) => await u.save())
+    await Promise.all(users.map(async (u) => await u.save()))
+    await Promise.all(admins.map(async (u) => await u.save()))
 });
 
 // Runs after every other hook and test

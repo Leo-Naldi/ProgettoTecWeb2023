@@ -60,13 +60,14 @@ paths:
       tags:
         - channels
       description: Create a new channel with the given name.
+      operationId: createChannel
       security:
         - adminAuth: []
         - userAuth: []
       parameters:
         - name: name
           in: path
-          description: The new Channel's name
+          description: The Channel's name
           required: True
           example: channelAboutMountainPictures88
           schema:
@@ -83,19 +84,23 @@ paths:
               properties:
                 owner:
                   type: string
-                  description: The owner's handle
+                  description: The new owner's handle
                   example: ownerHandle777
+                newName:
+                  type: string
+                  description: The new channel's Name
+                  example: Channel34
                 description:
                   type: string
                   description: The channel's description
                   example: This is a channel about how javascript is a great programming language and not     at all a meme
       responses:
         '200':
-          description: Channel Created Successfully
+          description: Channel Modified Successfully
         '401':
           description: Unauthorized operation.
         '409':
-          description: Channel name already taken.
+          description: Channel name already taken or new owner does not exist.
     post:
       tags:
         - channels
