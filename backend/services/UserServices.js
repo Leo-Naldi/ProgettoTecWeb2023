@@ -111,7 +111,7 @@ class UserService {
     static async writeUser({ handle, username,
         email, password, name, lastName, 
         phone, gender, blocked,
-        accountType, charLeft,
+        accountType, charLeft, joinedChannels
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -268,8 +268,6 @@ class UserService {
 
         return Service.successResponse()
     }
-
-    
 }
 
 module.exports = UserService;

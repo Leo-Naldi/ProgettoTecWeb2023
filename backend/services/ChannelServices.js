@@ -5,6 +5,7 @@ const Service = require('./Service');
 const config = require('../config');
 
 class ChannelServices{
+
     static async getChannels({ page = 1, owner=null, postCount=-1  } = 
             { page: 1, owner: null, postCount: -1 }) {
         
@@ -69,11 +70,24 @@ class ChannelServices{
 
         // Delete messages whose only dest was the deleted channel
         const messages = await Message.find({
-            destChannel: [channel._id],
+            destChannel: channel._id,
             destUser: [],
          })
 
-        await Promise.all(messages.map(m => m.deleteOne()));
+        // delete channell from user's joined list
+        const users = await User.find({ joinedChannels: channel._id });
+
+        await Promise.all(messages.map(m => {
+            
+            m.destChannel = m.destChannel.filter(id => !id.equals(channel._id))
+
+            if ((m.destChannel.length === 0) && (m.destUser.length === 0))
+                m.deleteOne()
+
+        }) + users.map(u => {
+                u.joinedChannels = u.joinedChannels.filter(id => !id.equals(channel._id))
+                u.save()
+            }));
 
         return Service.successResponse();
     }
