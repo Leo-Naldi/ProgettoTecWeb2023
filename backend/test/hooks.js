@@ -6,6 +6,13 @@ const User = require('../models/User');
 const Message = require('../models/Message');
 const Channel = require('../models/Channel');
 
+/*
+ * 
+ * Test utils and setup. The Test db gets recreated and then emptied before and after every time the tests\
+ * are ran. Use UserDispatch to get users in the tests
+ * 
+ */
+
 
 function testUser(i) {
     return new User({
@@ -15,16 +22,40 @@ function testUser(i) {
     });
 }
 
-let users, admins;
+// Number of dummy users and dummy admins that will be created in the test db.
+const users_count = 150;
 
-const users_count = 50;
+class UserDispatch {
+    static _cur = 1;
+    static _curAdmin = 1;
 
-async function addMessage(text, authorHandle, destHanldes, destChannels, dated=dayjs(),
+    // Return the next available user, the user is already in the db so only use the fields,
+    // to modify the user you still have to retrive it from the db. If it throws just increase
+    // users count. Ideally every user should be used in at most one 'it'.
+    static getNext() {
+        if (UserDispatch._cur > users_count)
+            throw Error("Ran out of test users");
+        return testUser(UserDispatch._cur++).toObject();
+    }
+
+    static getNextAdmin() {
+        if (UserDispatch._curAdmin > users_count)
+            throw Error("Ran out of test admins");
+        return testUser(`ad${UserDispatch._curAdmin++}`).toObject();
+    }
+
+}
+
+
+
+async function addMessage(text, authorHandle, destHandles, destChannels, dated=dayjs(),
     reactions={ positive: 0, negative: 0 }) {
     
+    //console.log(destHandles)
+
     const author = await User.findOne({ handle: authorHandle });
 
-    const destUser = await Promise.all(destHanldes.map(async h => await User.findOne({ handle: h }).select('_id')));
+    const destUser = await Promise.all(destHandles.map(async h => await User.findOne({ handle: h }).select('_id')));
     
     if (destUser.some(u => !u)) throw Error("addMessage: dest Handle not found");
 
@@ -55,13 +86,13 @@ before(async function() {
     await mongoose.connect(config.db_test_url);
     console.log(`Connected to ${config.db_test_url}`);
 
-    users = [];
+    let users = [];
 
     for (let i = 1; i <= users_count; i++) {
         users.push(testUser(i));
     }
 
-    admins = []
+    let admins = []
 
     for (let i = 1; i <= users_count; i++) {
         admins.push(testUser(`ad${i}`));
@@ -72,6 +103,7 @@ before(async function() {
     admins.map(async (u) => await u.save())
 });
 
+// Runs after every other hook and test
 after(async function(){
 
     await User.deleteMany({});
@@ -82,4 +114,4 @@ after(async function(){
     
 })
 
-module.exports = { testUser, addMessage }
+module.exports = { testUser, addMessage, UserDispatch }

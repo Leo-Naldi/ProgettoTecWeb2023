@@ -21,6 +21,7 @@ const ContentSchema = new mongoose.Schema({
     image: String,
 }, { _id: false })
 
+
 const MessageSchema = new mongoose.Schema({
         content: {
             type: ContentSchema,

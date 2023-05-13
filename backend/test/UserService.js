@@ -4,7 +4,7 @@ let expect = require('chai').expect;
 const config = require('../config');
 const User = require('../models/User');
 const UserService = require('../services/UserServices');
-const { testUser } = require('./hooks');
+const { testUser, UserDispatch } = require('./hooks');
 
 describe('User Service Unit Tests', function () {
 
@@ -26,8 +26,10 @@ describe('User Service Unit Tests', function () {
 
         it('Should return the user', async function(){
             
+            const handle = UserDispatch.getNext().handle
+
             const res = await UserService.getUser({
-                handle: testUser(1).handle,
+                handle: handle,
             });
 
             expect(res).to.be.an('object');
@@ -36,7 +38,7 @@ describe('User Service Unit Tests', function () {
             expect(res).to.have.property('payload');
             expect(res.payload).to.have.property('handle');
             expect(res.payload.handle).to.be.a('string');
-            expect(res.payload.handle).to.equal(testUser(1).handle);
+            expect(res.payload.handle).to.equal(handle);
 
             //console.log(res.payload)
         })
@@ -57,10 +59,12 @@ describe('User Service Unit Tests', function () {
         it('Should be able to create a new user', async function() {
             
             // make sure user can be created
-            await User.deleteOne({ handle: testUser(10).handle })
-            const res = await UserService.createUser(testUser(10));
+            const u = UserDispatch.getNext();
 
-            const found = await User.findOne({ handle: testUser(10).handle });
+            await User.deleteOne({ handle: u.handle })
+            const res = await UserService.createUser(u);
+
+            const found = await User.findOne({ handle: u.handle });
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
@@ -68,14 +72,18 @@ describe('User Service Unit Tests', function () {
             expect(found).to.be.an.instanceOf(User);
             expect(found).to.have.property('handle');
             expect(found.handle).to.be.a('string');
-            expect(found.handle).to.equal(testUser(10).handle);
-
-            await User.deleteOne({ handle: testUser(10).handle })
+            expect(found.handle).to.equal(u.handle);
         });
 
         it('Should fail if handle is taken', async function(){
             
-            const res = await UserService.createUser(testUser(1));
+            const u = UserDispatch.getNext();
+
+            const found = await User.findOne({ handle: u.handle });
+
+            expect(found).to.not.be.null;
+
+            const res = await UserService.createUser(u.handle);
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
@@ -84,7 +92,12 @@ describe('User Service Unit Tests', function () {
 
         it('Should fail if email is taken', async function () {
 
-            let tu = testUser(1);
+            let tu = UserDispatch.getNext();
+
+            const found = await User.findOne({ handle: tu.handle });
+
+            expect(found).to.not.be.null;
+
             tu.handle += "ckjhfvnwhebrfwienidcnq;kvrnfgjwbcker";
             
             // Should still fail since email was not changed
@@ -100,19 +113,22 @@ describe('User Service Unit Tests', function () {
     describe('deleteUser Unit Tests', function () { 
 
         it('Should delete the user if the handle exists', async function(){
-            const res = await UserService.deleteUser({ handle: testUser(2).handle });
+
+            const handle = UserDispatch.getNext().handle;
+
+            const res = await UserService.deleteUser({ handle: handle });
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
 
-            const found = await User.findOne({ handle: testUser(2).handle })
+            const found = await User.findOne({ handle: handle })
 
             expect(found).to.be.null;
         });
 
         it('Should fail if the handle does not exist', async function() {
-            const h = testUser(100000).handle + 'kjhwbfvwohrfbwoierbufwiernqpiwdunv';
+            const h = UserDispatch.getNext().handle + 'kjhwbfvwohrfbwoierbufwiernqpiwdunv';
 
             const res = await UserService.deleteUser({ handle: h });
 
@@ -127,7 +143,7 @@ describe('User Service Unit Tests', function () {
         it('Should actually write the specified fields', async function(){
             
             const values = {
-                handle: testUser(4).handle,
+                handle: UserDispatch.getNext().handle,
                 username: 'DonDiegoDelaVega',
                 name: 'carlo',
                 lastName: 'maroni',
@@ -164,13 +180,14 @@ describe('User Service Unit Tests', function () {
     describe('grantAdmin Unit Tests', function () { 
         it('Should make a user into an admin', async function(){
             
-            const res = await UserService.grantAdmin({ handle: testUser(3).handle });
+            const handle = UserDispatch.getNext().handle
+            const res = await UserService.grantAdmin({ handle: handle });
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
 
-            const u = await User.findOne({ handle: testUser(3).handle });
+            const u = await User.findOne({ handle: handle });
 
             expect(u.admin).to.be.true;
         })
@@ -180,13 +197,14 @@ describe('User Service Unit Tests', function () {
         
         it('Should actually revoke admin priviledges', async function(){
 
-            const res = await UserService.revokeAdmin({ handle: testUser('ad2').handle });
+            const handle = UserDispatch.getNextAdmin().handle;
+            const res = await UserService.revokeAdmin({ handle: handle });
     
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
     
-            const u = await User.findOne({ handle: testUser('ad2').handle });
+            const u = await User.findOne({ handle: handle });
     
             expect(u.admin).to.be.false;
         })
@@ -194,10 +212,13 @@ describe('User Service Unit Tests', function () {
 
     describe('changeSmm Unit Tests', async function(){
         it("Should fail if operation is neither 'remove' nor 'change'", async function(){
+            
+            const u = UserDispatch.getNext();
+
             const res = await UserService.changeSmm({ 
-                handle: testUser(21).handle,
+                handle: u.handle,
                 operation: 'secret third option',
-                email: testUser(21).email,
+                email: u.email,
             })
 
             expect(res).to.be.an('object');
@@ -207,7 +228,8 @@ describe('User Service Unit Tests', function () {
         
         it("Should remove the smm if the user exists", async function(){
 
-            const handle1 = testUser(22).handle, handle2 = testUser(23).handle;
+            const handle1 = UserDispatch.getNext().handle, 
+                handle2 = UserDispatch.getNext().handle;
 
             const user1 = await User.findOne({ handle: handle1 });
             const user2 = await User.findOne({ handle: handle2 });
@@ -235,7 +257,8 @@ describe('User Service Unit Tests', function () {
         });
         
         it("Should change the smm field to the new smm's _id if both exist", async function(){
-            const handle1 = testUser(24).handle, handle2 = testUser(25).handle;
+            const handle1 = UserDispatch.getNext().handle, 
+                handle2 = UserDispatch.getNext().handle;
 
             const user1 = await User.findOne({ handle: handle1 });
             const user2 = await User.findOne({ handle: handle2 });
@@ -308,7 +331,9 @@ describe('User Service Unit Tests', function () {
         })
 
         it("Should return available: false if email or handle are taken", async function () {
-            const res = await UserService.checkAvailability({ handle: testUser(1).handle, email: testUser(100000000).email });
+            const res = await UserService.checkAvailability({ handle: UserDispatch.getNext().handle, email: testUser(100000000).email });
+
+            const u = UserDispatch.getNext();
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
@@ -318,7 +343,7 @@ describe('User Service Unit Tests', function () {
             expect(res.payload).to.be.an('object').that.has.property('available');
             expect(res.payload.available).to.be.false;
 
-            const res2 = await UserService.checkAvailability({ handle: testUser(100000000).handle, email: testUser(1).email });
+            const res2 = await UserService.checkAvailability({ handle: testUser(100000000).handle, email: u.email });
 
             expect(res2).to.be.an('object');
             expect(res2).to.have.property('status');
@@ -328,7 +353,7 @@ describe('User Service Unit Tests', function () {
             expect(res2.payload).to.be.an('object').that.has.property('available');
             expect(res2.payload.available).to.be.false;
 
-            const res3 = await UserService.checkAvailability({ email: testUser(1).email });
+            const res3 = await UserService.checkAvailability({ email: u.email });
 
             expect(res3).to.be.an('object');
             expect(res3).to.have.property('status');
@@ -338,7 +363,7 @@ describe('User Service Unit Tests', function () {
             expect(res3.payload).to.be.an('object').that.has.property('available');
             expect(res3.payload.available).to.be.false;
 
-            const res4 = await UserService.checkAvailability({ handle: testUser(1).handle });
+            const res4 = await UserService.checkAvailability({ handle: u.handle });
 
             expect(res4).to.be.an('object');
             expect(res4).to.have.property('status');
@@ -355,7 +380,8 @@ describe('User Service Unit Tests', function () {
 
         it("Should add the user to the managed field returned by getUser after calling changeSmm",
         async function(){
-            const handle1 = testUser(5).handle, handle2= testUser(6).handle;
+            const handle1 = UserDispatch.getNext().handle, 
+                handle2 = UserDispatch.getNext().handle;
 
             const u1 = await UserService.getUser({ handle: handle1 });
 

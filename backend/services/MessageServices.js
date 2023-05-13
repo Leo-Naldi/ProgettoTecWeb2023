@@ -103,10 +103,10 @@ class MessageService {
         
     }
 
-    static async postUserMessage({ reqUser, handle, content, dest }) {
+    static async postUserMessage({ reqUser, handle, content, dest=[] }) {
         if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
-        let user = reqUser.handle;
+        let user = reqUser;
         if (user.handle !== handle) {  // SMM posting for the user
             user = await User.findOne({ handle: handle });
 
@@ -149,9 +149,26 @@ class MessageService {
         return Service.successResponse(message.toObject());
     }
 
-    static async deleteUserMessages({ reqUser }) {
-        // Only user can call this, so handle === reqUser.handle was checked in authentication
-        await Messages.deleteMany({ author: reqUser._id });
+    static async deleteUserMessages({ reqUser, handle }) {
+        
+        let user = reqUser;
+        if (user.handle !== handle) { 
+            user = await User.findOne({ handle: handle });
+
+            if (!user) return Service.rejectResponse({ message: "Invalid user handle" })
+        }
+
+        const deleted = await Message.deleteMany({ author: user._id });
+
+        //console.log(deleted.deletedCount);
+
+        // You may think that this line is useless, and i would agree with you,
+        // unfortunately without it user.messages doesn't actually get cleared, 
+        // so here it will stay
+        user = await User.findOne({ handle: handle });
+        
+        user.messages = [];
+        await user.save()
 
         return Service.successResponse();
     }
@@ -161,16 +178,28 @@ class MessageService {
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
 
-        const res = await Message.deleteOne({ _id: mongoose.ObjectId(id) });
+        const message = await Message.findById(id);
 
-        if (res.deletedCount) return Service.successResponse();
+        if (!message) return Service.rejectResponse({ message: "Id not found" });
 
-        return Service.rejectResponse({ message: "Id not found" });
+        const mid = message._id;
+        await message.deleteOne();
+
+        let author = await User.findById(message.author);
+
+        author.messages = author.messages.filter(m => !m.equals(mid));
+
+        await author.save()
+
+        return Service.successResponse();
     }
 
-    static async postMessage({ id, reactions }) {
+    static async postMessage({ id, reactions=null }) {
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
+
+        if(!reactions) return Service.rejectResponse({ 
+            message: "Must provide a reaction object" });
 
         const message = await Message.findById(id);
         
@@ -178,7 +207,7 @@ class MessageService {
             return Service.rejectResponse({ message: "Id not found" });
 
         message.reactions = reactions;
-
+        
         let err = null;
         try{
             await message.save();
@@ -187,10 +216,60 @@ class MessageService {
         }
 
         if (err) 
-            return Service.rejectResponse(err);
+            return Service.rejectResponse({ message: 'Reaction object not valid' });
         
         return Service.successResponse();
     }
+
+    static async addNegativeReaction({ id }){
+        if (!mongoose.isObjectIdOrHexString(id))
+            return Service.rejectResponse({ message: "Invalid message id" })
+
+        const message = await Message.findById(id);
+
+        if (!message)
+            return Service.rejectResponse({ message: "Id not found" });
+
+        message.reactions.negative += 1;
+
+        let err = null;
+        try {
+            await message.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err)
+            return Service.rejectResponse(err);
+
+        return Service.successResponse();
+    };
+
+    static async addPositiveReaction({ id }) { 
+        if (!mongoose.isObjectIdOrHexString(id))
+            return Service.rejectResponse({ message: "Invalid message id" })
+
+        const message = await Message.findById(id);
+
+        if (!message)
+            return Service.rejectResponse({ message: "Id not found" });
+
+        message.reactions.positive += 1;
+
+        //console.log(message.reactions.positive)
+
+        let err = null;
+        try {
+            await message.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err)
+            return Service.rejectResponse(err);
+
+        return Service.successResponse();
+    };
 
     static async deleteChannelMessages({ name }) {
 

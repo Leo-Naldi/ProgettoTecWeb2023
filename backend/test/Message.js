@@ -9,7 +9,7 @@ dayjs.extend(isBetween)
 const config = require('../config');
 const Message = require('../models/Message');
 const User = require('../models/User');
-const { testUser, addMessage } = require('./hooks');
+const { testUser, addMessage, UserDispatch } = require('./hooks');
 const { getRandom, getDateWithin } = require('../utils/getDateWithin');
 const {
     checkThreshold,
@@ -46,11 +46,12 @@ describe('Message Model Unit Tests', function(){
         /*
         *  NB this breaks the character limits, messages should be added using the service
         */
-        this.timeout(7000)
-        const handleauth1 = testUser(37).handle;
-        const recievers1 = [testUser(38).handle, testUser(39).handle]
-        const handleauth2 = testUser(40).handle;
-        const recievers2 = [testUser(41).handle, testUser(42).handle]
+        this.timeout(7000)  // 37
+        const handleauth1 = UserDispatch.getNext().handle;
+        //console.log(handleauth1);
+        const recievers1 = [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
+        const handleauth2 = UserDispatch.getNext().handle;
+        const recievers2 = [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
         // Random Messages
         for (let i = 0; i < messagesCount; i++) {
             await addMessage(
