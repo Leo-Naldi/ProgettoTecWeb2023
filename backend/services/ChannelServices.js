@@ -61,9 +61,53 @@ class ChannelServices{
 
     static async deleteChannel({ name }) {
 
-    }
-    static async writeChannel({ name, newName, owner, description }) {
+        const channel = await Channel.findOne({ name: name });
 
+        if (!channell) return Service.rejectResponse({ message: `No channel called ${name}` })
+        
+        await channel.deleteOne({ name: name });
+
+        // Delete messages whose only dest was the deleted channel
+        const messages = await Message.find({
+            destChannel: [channel._id],
+            destUser: [],
+         })
+
+        await Promise.all(messages.map(m => m.deleteOne()));
+
+        return Service.successResponse();
+    }
+
+    static async writeChannel({ name, newName=null, owner=null, description=null }) {
+        const channel = await Channel.findOne({ name: name });
+
+        if (!channel) return Service.rejectResponse({ message: `No channel called ${name}` });
+
+        if(!(newName || owner || description)) return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
+
+        if (newName) channel.name = newName;
+        if (description) channel.description = description;
+        
+        if (owner) {
+            const ownerrec = await User.find({ handle: owner });
+
+            if (!ownerrec) return Service.rejectResponse({ message: `No user named ${owner} found` });
+
+            channel.creator = ownerrec._id;
+        }
+
+        let err = null;
+
+        try {
+            await Channel.save()
+        } catch (e)
+        {
+            err = e
+        }
+
+        if (err) return Service.rejectResponse(err.message ? { message: err.message }: err);
+
+        return Service.successResponse(channel.toObject());
     }
 
 }
