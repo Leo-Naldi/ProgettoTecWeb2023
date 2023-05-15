@@ -1,6 +1,9 @@
 const { default: mongoose } = require('mongoose');
+
 const Message = require('../models/Message');
 const User = require('../models/User');
+const Channel = require('../models/Channel');
+
 const Service = require('./Service');
 const config = require('../config');
 
@@ -56,6 +59,7 @@ class MessageService {
             .select('-__v')
             .populate('author', 'handle -_id')
             .populate('destUser', 'handle -_id')
+            .populate('destChannel', 'name -_id')
             .skip((page - 1) * config.results_per_page)
             .limit(config.results_per_page);
 
@@ -272,7 +276,27 @@ class MessageService {
     };
 
     static async deleteChannelMessages({ name }) {
+        const channel = await Channel.findOne({ name: name });
 
+        if (!channel) 
+            return Service.rejectResponse({ message: `No channel named ${name}` });
+
+        const messages = await Message.find({
+            destChannel: channel._id,
+        });
+
+        await Promise.all(messages.map(async m => {
+
+            m.destChannel = m.destChannel.filter(id => !id.equals(channel._id))
+
+            if ((m.destChannel.length === 0) && (m.destUser.length === 0))
+                return m.deleteOne()
+
+            return await m.save();
+
+        }));
+
+        return Service.successResponse();
     }
 }
 

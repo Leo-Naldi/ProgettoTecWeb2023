@@ -3,8 +3,10 @@ let expect = require('chai').expect;
 
 const config = require('../config');
 const User = require('../models/User');
+const Message = require('../models/Message');
+const Channel = require('../models/Channel');
 const UserService = require('../services/UserServices');
-const { testUser, UserDispatch } = require('./hooks');
+const { testUser, UserDispatch, lorem, createChannel } = require('./hooks');
 
 describe('User Service Unit Tests', function () {
 
@@ -69,6 +71,7 @@ describe('User Service Unit Tests', function () {
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
+            expect(found).to.not.be.null;
             expect(found).to.be.an.instanceOf(User);
             expect(found).to.have.property('handle');
             expect(found.handle).to.be.a('string');
@@ -174,6 +177,117 @@ describe('User Service Unit Tests', function () {
             expect(u).to.be.an('object');
 
             expect(u.toObject()).to.deep.include(values)
+        })
+
+        it("Should add the channels to the users joinedChannel list", async function(){
+            const creator = UserDispatch.getNext();
+            const user = UserDispatch.getNext();
+            const description = lorem.generateParagraphs(1);
+
+            const name = UserDispatch.getNextChannelName();
+            const name2 = UserDispatch.getNextChannelName();
+
+
+            await createChannel({
+                name: name,
+                ownerHandle: creator.handle,
+                description: description,
+            })
+
+            await createChannel({
+                name: name2,
+                ownerHandle: creator.handle,
+                description: description,
+            })
+
+            let crec = await Channel.findOne({ name: name });
+            let crec2 = await Channel.findOne({ name: name2 });
+
+            expect(crec).to.not.be.null;
+            expect(crec2).to.not.be.null;
+
+            const res = await UserService.writeUser({
+                handle: user.handle,
+                addJoinedChannels: [name, name2],
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            const userCheck = await User.findOne({ handle: user.handle });
+
+            expect(userCheck).to.not.be.null;
+            expect(userCheck).to.have.property('joinedChannels');
+            expect(userCheck.joinedChannels).to.be.an('array').that.is.not.empty;
+            expect(userCheck.joinedChannels.some(cid => cid.equals(crec._id)))
+                .to.be.true;
+            expect(userCheck.joinedChannels.some(cid => cid.equals(crec2._id)))
+                .to.be.true;
+        })
+
+        it('Should remove the channels from the users joinedChannel list', async function () {
+            const creator = UserDispatch.getNext();
+            const user = UserDispatch.getNext();
+            const description = lorem.generateParagraphs(1);
+
+            const name = UserDispatch.getNextChannelName();
+            const name2 = UserDispatch.getNextChannelName();
+
+
+            await createChannel({
+                name: name,
+                ownerHandle: creator.handle,
+                description: description,
+            })
+
+            await createChannel({
+                name: name2,
+                ownerHandle: creator.handle,
+                description: description,
+            })
+
+            let crec = await Channel.findOne({ name: name });
+            let crec2 = await Channel.findOne({ name: name2 });
+
+            expect(crec).to.not.be.null;
+            expect(crec2).to.not.be.null;
+
+            let urec = await User.findOne({ handle: user.handle });
+
+            expect(urec).to.not.be.null;
+
+            urec.joinedChannels.push(crec._id);
+            urec.joinedChannels.push(crec2._id);
+            
+            await urec.save();
+           
+            crec.members.push(urec._id);
+            crec2.members.push(urec._id);
+
+            await crec.save()
+            await crec2.save()
+            crec = await Channel.findOne({ name: name });
+            crec2 = await Channel.findOne({ name: name2 });
+
+            const res = await UserService.writeUser({
+                handle: user.handle,
+                removeJoinedChannels: [name],
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            const userCheck = await User.findOne({ handle: user.handle });
+
+            expect(userCheck).to.not.be.null;
+            expect(userCheck).to.have.property('joinedChannels');
+            expect(userCheck.joinedChannels).to.be.an('array').that.is.not.empty;
+            expect(userCheck.joinedChannels.some(cid => cid.equals(crec._id)))
+                .to.be.false;
+            expect(userCheck.joinedChannels.some(cid => cid.equals(crec2._id)))
+                .to.be.true;
         })
     });
 
@@ -283,6 +397,167 @@ describe('User Service Unit Tests', function () {
             expect(u.smm.equals(user1._id)).to.be.true;
         })
     });
+
+    describe('changeManaged Unit Tests', function(){
+        it("Should fail if provided handle does not exist", async function(){
+
+            const user = UserDispatch.getNext();
+            const urec = await User.findOne({ handle: user.handle });
+
+            const res = await UserService.changeManaged({
+                handle: 'kjfbpqwjnqm',
+                reqUser: urec,
+                users: [UserDispatch.getNext(), UserDispatch.getNext()]
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_client_error);
+
+        });
+
+        it("Should remove the given accounts", async function(){
+            
+            const user = UserDispatch.getNext();
+            let urec = await User.findOne({ handle: user.handle });
+
+            urec.accountType = 'pro'
+
+            await urec.save()
+            urec = await User.findOne({ handle: user.handle });
+
+            let managed = [
+                UserDispatch.getNext(), 
+                UserDispatch.getNext(),
+                UserDispatch.getNext(),
+                UserDispatch.getNext(),
+            ]
+
+
+            for (let i = 0; i < managed.length; i++) {
+                let u = await User.findOne({ handle: managed[i].handle });
+
+                u.accountType = 'pro'
+                u.smm = urec._id;
+
+                await u.save()
+            }
+
+            const bfCheck = await User.find({ smm: urec._id });
+
+            expect(bfCheck).to.be.an('array').that.is.not.empty;
+
+            bfCheck.map(u => {
+                expect(managed.some(uac => uac.handle === u.handle))
+            })
+
+            const res = await UserService.changeManaged({
+                handle: urec.handle,
+                reqUser: urec,
+                users: [managed[0].handle, managed[2].handle]
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            urec = await User.findOne({ handle: user.handle });
+
+            const check = await User.find({ smm: urec._id });
+
+            expect(check).to.be.an('array').that.is.not.empty;
+            
+            check.map(m => {
+                expect([managed[0].handle, managed[2].handle].some(h => h === m.handle))
+                    .to.be.false;
+                expect([managed[1].handle, managed[3].handle].some(h => h === m.handle))
+                    .to.be.true;
+            })
+        });
+
+        it("Should ignore not managed accounts", async function () {
+
+            const user = UserDispatch.getNext();
+            let urec = await User.findOne({ handle: user.handle });
+
+            urec.accountType = 'pro'
+
+            await urec.save()
+            urec = await User.findOne({ handle: user.handle });
+
+            let managed = [
+                UserDispatch.getNext(),
+                UserDispatch.getNext(),
+                UserDispatch.getNext(),
+                UserDispatch.getNext(),
+            ]
+
+
+            for (let i = 0; i < managed.length; i++) {
+                let u = await User.findOne({ handle: managed[i].handle });
+
+                u.accountType = 'pro'
+                u.smm = urec._id;
+
+                await u.save()
+            }
+
+            const innocents = [
+                UserDispatch.getNext(),
+                UserDispatch.getNext(),
+            ]
+
+            let i0 = await User.findOne({ handle: innocents[0].handle })
+            let i1 = await User.findOne({ handle: innocents[1].handle })
+
+            i1.smm = i0._id;
+
+            await i1.save();
+
+            const bfCheck = await User.find({ smm: urec._id });
+
+            expect(bfCheck).to.be.an('array').that.is.not.empty;
+
+            bfCheck.map(u => {
+                expect(managed.some(uac => uac.handle === u.handle))
+            })
+
+            const res = await UserService.changeManaged({
+                handle: urec.handle,
+                reqUser: urec,
+                users: [
+                    managed[0].handle, 
+                    managed[2].handle,
+                    innocents[0].handle,
+                    innocents[1].handle,
+                ]
+            })
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            urec = await User.findOne({ handle: user.handle });
+
+            const check = await User.find({ smm: urec._id });
+
+            expect(check).to.be.an('array').that.is.not.empty;
+
+            check.map(m => {
+                expect([managed[0].handle, managed[2].handle].some(h => h === m.handle))
+                    .to.be.false;
+                expect([managed[1].handle, managed[3].handle].some(h => h === m.handle))
+                    .to.be.true;
+            })
+
+            i0 = await User.findOne({ handle: innocents[0].handle })
+            i1 = await User.findOne({ handle: innocents[1].handle })
+
+            expect(i1?.smm).to.not.be.null;
+
+            expect(i1.smm.equals(i0._id)).to.be.true;
+        })
+    })
 
     describe('checkAvailability Unit Tests', async function () {
 

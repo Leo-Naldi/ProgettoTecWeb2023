@@ -25,7 +25,7 @@ const ChannelSchema = new mongoose.Schema(
             type: mongoose.ObjectId,
             ref: 'Message',
         }],
-        private: { type: Boolean, default: false, required: true, },
+        privateChannel: { type: Boolean, default: false, required: true, },
         official: { type: Boolean, default: false, required: true, },
         created: {
             type: Date,

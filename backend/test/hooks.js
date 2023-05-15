@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const dayjs = require('dayjs');
+const LoremIpsum = require("lorem-ipsum").LoremIpsum;
 
 const config = require('../config/index');
 const User = require('../models/User');
@@ -12,6 +13,17 @@ const Channel = require('../models/Channel');
  * are ran. Use UserDispatch to get users in the tests
  * 
  */
+
+const lorem = new LoremIpsum({
+    sentencesPerParagraph: {
+        max: 8,
+        min: 4
+    },
+    wordsPerSentence: {
+        max: 20,
+        min: 4
+    }
+});
 
 
 function testUser(i) {
@@ -90,6 +102,27 @@ async function addMessage(text, authorHandle, destHandles, destChannels=[], date
     await author.save();
 }
 
+async function createChannel({ name, ownerHandle, description, privateChannel = false }) {
+
+    const u = await User.findOne({ handle: ownerHandle });
+    const channel = new Channel({
+        name: name,
+        creator: u._id,
+        privateChannel: privateChannel
+    })
+
+    if (description) channel.description = description;
+
+
+    await channel.save();
+
+    u.joinedChannels.push(channel._id);
+
+    await u.save();
+
+}
+
+
 before(async function() {
 
     /*
@@ -133,4 +166,4 @@ after(async function(){
     
 })
 
-module.exports = { testUser, addMessage, UserDispatch }
+module.exports = { testUser, addMessage, UserDispatch, lorem, createChannel }

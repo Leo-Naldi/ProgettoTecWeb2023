@@ -6,10 +6,27 @@ const config = require('../config');
 
 class ChannelServices{
 
-    static async getChannels({ page = 1, owner=null, postCount=-1  } = 
-            { page: 1, owner: null, postCount: -1 }) {
-        
+    static async getChannels({ reqUser = null, page = 1, owner = null, postCount = -1, privateChannel=null,
+        member=null } = {
+            reqUser: null, page: 1, owner: null, postCount: -1, privateChannel: null,
+            member: null
+        }) {
+
         const query = Channel.find();
+
+        if (member) {
+            if (!reqUser) return Service.rejectResponse({ message: "Must be logged in to filter by membership" })
+        
+            let urec = reqUser;
+
+            if (member !== reqUser.handle) {
+                urec = await User.findOne({ handle: member });
+
+                if (!urec) return Service.rejectResponse({ message: `User with handle ${member} not found` })
+            }
+
+            query.where('_id').in(urec.joinedChannels);
+        }
         
         if (owner){
             const ownerrec = await User.findOne({ handle: owner });
@@ -24,6 +41,9 @@ class ChannelServices{
             query.find({ $expr: { $gte: [{ $size: "$messages" }, postCount] } })
         }
 
+        if ((privateChannel === true) || (privateChannel === false)) 
+            query.find({ privateChannel: privateChannel })
+
         query.sort('created')
             .skip((page - 1 )*config.results_per_page)
             .limit(config.results_per_page);
@@ -33,15 +53,12 @@ class ChannelServices{
         return Service.successResponse(res.map(channel => channel.toObject()));
     }
 
-    static async createChannel({ name, owner, description='' }){
-        if (!(name && owner)) return Service.rejectResponse({ message: "Must provide owner handle and unique name" })
+    static async createChannel({ name, reqUser, description='' }){
         
-        const ownerrecord = await User.findOne({ handle: owner }).select('_id');
-
-        if (!ownerrecord) return Service.rejectResponse({ message: "Invalid owner handle" })
+        if (!(name)) return Service.rejectResponse({ message: "Must provide owner handle and unique name" })
 
         let channel = new Channel({
-            name: name, owner: ownerrecord._id,
+            name: name, creator: reqUser._id,
         })
 
         if (description) channel.description = description;
@@ -49,13 +66,13 @@ class ChannelServices{
         let err = null;
 
         try {
-            channel.save()
+            await channel.save()
         } catch (e) {
 
             err = e;
         }
 
-        if (err) return Service.rejectResponse(e);
+        if (err) return Service.rejectResponse(err);
 
         return Service.successResponse(channel.toObject());
     }
@@ -64,56 +81,69 @@ class ChannelServices{
 
         const channel = await Channel.findOne({ name: name });
 
-        if (!channell) return Service.rejectResponse({ message: `No channel called ${name}` })
-        
-        await channel.deleteOne({ name: name });
+        if (!channel) return Service.rejectResponse({ message: `No channel called ${name}` })
 
         // Delete messages whose only dest was the deleted channel
         const messages = await Message.find({
             destChannel: channel._id,
-            destUser: [],
-         })
+         });
 
         // delete channell from user's joined list
         const users = await User.find({ joinedChannels: channel._id });
 
-        await Promise.all(messages.map(m => {
+        await Promise.all(messages.map(async m => {
             
             m.destChannel = m.destChannel.filter(id => !id.equals(channel._id))
 
             if ((m.destChannel.length === 0) && (m.destUser.length === 0))
-                m.deleteOne()
+                return m.deleteOne()
+            
+            return await m.save();
 
-        }) + users.map(u => {
+        }) + users.map(async u => {
                 u.joinedChannels = u.joinedChannels.filter(id => !id.equals(channel._id))
-                u.save()
-            }));
+                return await u.save()
+        }));
+        
+        await channel.deleteOne({ name: name });
 
         return Service.successResponse();
     }
 
-    static async writeChannel({ name, newName=null, owner=null, description=null }) {
+    static async writeChannel({ name, newName=null, owner=null, description=null, privateChannel=null }) {
+        
+        if (!(newName || owner || description || (privateChannel === true) || (privateChannel === false))) 
+            return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
+        
         const channel = await Channel.findOne({ name: name });
 
         if (!channel) return Service.rejectResponse({ message: `No channel called ${name}` });
-
-        if(!(newName || owner || description)) return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
-
+        
         if (newName) channel.name = newName;
+        
         if (description) channel.description = description;
         
+        if ((privateChannel === true) || (privateChannel === false)) 
+            channel.privateChannel = privateChannel;
+        
         if (owner) {
-            const ownerrec = await User.find({ handle: owner });
+            let ownerrec = await User.findOne({ handle: owner });
 
             if (!ownerrec) return Service.rejectResponse({ message: `No user named ${owner} found` });
 
             channel.creator = ownerrec._id;
+
+            if (!ownerrec.joinedChannels.some(id => id.equals(channel._id))) {
+                ownerrec.joinedChannels.push(channel._id);
+
+                await ownerrec.save()
+            }
         }
 
         let err = null;
 
         try {
-            await Channel.save()
+            await channel.save()
         } catch (e)
         {
             err = e
@@ -124,6 +154,14 @@ class ChannelServices{
         return Service.successResponse(channel.toObject());
     }
 
+    static async availableChannel({ name }) {
+        if (!name) return Service.rejectResponse({ message: "Must provide a name" })
+
+        const results = await Channel.findOne({ name: name });
+
+        if (results) return Service.successResponse({ available: false })
+        else return Service.successResponse({ available: true })
+    }
 }
 
 module.exports = ChannelServices;

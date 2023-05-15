@@ -22,7 +22,7 @@ passport.use( 'basicAuth',
             let err = null, user = null;
             
             try {
-                user = await User.findOne({ handle: jwtPayload.handle }).exec();
+                user = await User.findOne({ handle: jwtPayload.handle });
             } catch (error) {
                 err = error;
             }

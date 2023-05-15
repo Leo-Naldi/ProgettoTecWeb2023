@@ -1,5 +1,4 @@
 let expect = require('chai').expect;
-const LoremIpsum = require("lorem-ipsum").LoremIpsum;
 const mongoose = require('mongoose');
 const dayjs = require('dayjs');
 let isBetween = require('dayjs/plugin/isBetween')
@@ -13,8 +12,9 @@ dayjs.extend(isSameOrAfter)
 const config = require('../config');
 const User = require('../models/User');
 const Message = require('../models/Message');
+const Channel = require('../models/Channel');
 const MessageService = require('../services/MessageServices');
-const { testUser, addMessage, UserDispatch } = require('./hooks');
+const { testUser, addMessage, UserDispatch, lorem, createChannel } = require('./hooks');
 const { getRandom, getDateWithin } = require('../utils/getDateWithin');
 const {
     checkThreshold,
@@ -30,17 +30,6 @@ const {
 
 
 const messagesCount = 30;
-
-const lorem = new LoremIpsum({
-    sentencesPerParagraph: {
-        max: 8,
-        min: 4
-    },
-    wordsPerSentence: {
-        max: 20,
-        min: 4
-    }
-});
 
 
 describe('Message Service Unit Tests', function () {
@@ -364,7 +353,89 @@ describe('Message Service Unit Tests', function () {
                 })
             });
 
-            it("Should only return messages destined to the given channel");
+            it("Should only return messages destined to the given channel", async function () {
+
+                const creator = UserDispatch.getNext();
+                const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+                const description = lorem.generateParagraphs(1);
+
+                const name = UserDispatch.getNextChannelName();
+                const name2 = UserDispatch.getNextChannelName();
+
+
+                await createChannel({
+                    name: name,
+                    ownerHandle: creator.handle,
+                    description: description,
+                })
+
+                await createChannel({
+                    name: name2,
+                    ownerHandle: creator.handle,
+                    description: description,
+                })
+
+                let crec = await Channel.findOne({ name: name });
+                let crec2 = await Channel.findOne({ name: name2 });
+
+                expect(crec).to.not.be.null;
+                expect(crec2).to.not.be.null;
+
+                await Promise.all(users.map(async u => {
+
+                    let urec = await User.findOne({ handle: u.handle });
+
+                    expect(urec).to.not.be.null;
+
+                    urec.joinedChannels.push(crec._id);
+                    urec.joinedChannels.push(crec2._id);
+                    return urec.save();
+                }))
+
+                for (let i = 0; i < users.length; i++) {
+
+                    let urec = await User.findOne({ handle: users[i].handle });
+
+                    crec.members.push(urec._id);
+                    crec2.members.push(urec._id);
+
+                    await crec.save()
+                    await crec2.save()
+                    crec = await Channel.findOne({ name: name });
+                    crec2 = await Channel.findOne({ name: name2 });
+                }
+
+                for (let i = 0; i < 10; i++) {
+
+                    await addMessage(lorem.generateSentences(2), creator.handle,
+                        users.map(u => u.handle),
+                        [name])
+
+                    await addMessage(lorem.generateSentences(2), creator.handle,
+                        users.map(u => u.handle),
+                        [name, name2])
+                    await addMessage(lorem.generateSentences(2), creator.handle,
+                        users.map(u => u.handle),
+                        [name2])
+                }
+
+                const bf = await Message.find({ destChannel: crec._id });
+
+                expect(bf).to.be.an('array').that.is.not.empty;
+
+                res = await MessageService.getMessages({ dest: '§' + name });
+
+                expect(res).to.be.an("object");
+                expect(res).to.have.property('status');
+                expect(res.status).to.equal(config.default_success_code);
+                expect(res).to.have.property('payload');
+                expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                res.payload.map(m => {
+                    expect(m.destChannel, `Expected ${m.destChannel} to include ${name}`)
+                        .to.deep.include({ name: name });
+                })
+            });
 
         });
 
@@ -585,7 +656,98 @@ describe('Message Service Unit Tests', function () {
                 })
             });
 
-            it("Should only return messages destined to the given channel");
+            it("Should only return messages destined to the given channel", async function () {
+
+                const creator = UserDispatch.getNext();
+                const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+                const description = lorem.generateParagraphs(1);
+
+                const name = UserDispatch.getNextChannelName();
+                const name2 = UserDispatch.getNextChannelName();
+
+
+                await createChannel({
+                    name: name,
+                    ownerHandle: creator.handle,
+                    description: description,
+                })
+
+                await createChannel({
+                    name: name2,
+                    ownerHandle: creator.handle,
+                    description: description,
+                })
+
+                let crec = await Channel.findOne({ name: name });
+                let crec2 = await Channel.findOne({ name: name2 });
+
+                expect(crec).to.not.be.null;
+                expect(crec2).to.not.be.null;
+
+                await Promise.all(users.map(async u => {
+
+                    let urec = await User.findOne({ handle: u.handle });
+
+                    expect(urec).to.not.be.null;
+
+                    urec.joinedChannels.push(crec._id);
+                    urec.joinedChannels.push(crec2._id);
+                    return urec.save();
+                }))
+
+                for (let i = 0; i < users.length; i++) {
+
+                    let urec = await User.findOne({ handle: users[i].handle });
+
+                    crec.members.push(urec._id);
+                    crec2.members.push(urec._id);
+
+                    await crec.save()
+                    await crec2.save()
+                    crec = await Channel.findOne({ name: name });
+                    crec2 = await Channel.findOne({ name: name2 });
+                }
+
+                for (let i = 0; i < 10; i++) {
+
+                    await addMessage(lorem.generateSentences(2), creator.handle,
+                        users.map(u => u.handle),
+                        [name])
+
+                    await addMessage(lorem.generateSentences(2), creator.handle,
+                        users.map(u => u.handle),
+                        [name, name2])
+                    await addMessage(lorem.generateSentences(2), creator.handle,
+                        users.map(u => u.handle),
+                        [name2])
+                }
+
+                const bf = await Message.find({ destChannel: crec._id });
+
+                expect(bf).to.be.an('array').that.is.not.empty;
+
+                let creatorRec = await User.findOne({ handle: creator.handle });
+                
+                expect(creatorRec).to.not.be.null;
+
+                res = await MessageService.getUserMessages({ 
+                    reqUser: creatorRec,
+                    handle: creator.handle,
+                    dest: '§' + name 
+                });
+
+                expect(res).to.be.an("object");
+                expect(res).to.have.property('status');
+                expect(res.status).to.equal(config.default_success_code);
+                expect(res).to.have.property('payload');
+                expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                res.payload.map(m => {
+                    expect(m.destChannel, `Expected ${m.destChannel} to include ${name}`)
+                        .to.deep.include({ name: name });
+                    expect(m.author).to.deep.include({ handle: creator.handle })
+                })
+            });
 
         });
     });
@@ -1159,6 +1321,163 @@ describe('Message Service Unit Tests', function () {
 
             expect(old_reactions.positive).to.equal(check.reactions.positive)
             expect(old_reactions.negative + 1).to.equal(check.reactions.negative)
+        });
+    })
+
+    describe("deleteChannelMessages Unit Tests", function(){
+
+        it("Should fail if there is no channell with the given name", async function(){
+
+            const name = UserDispatch.getNextChannelName();
+
+            res = await MessageService.deleteChannelMessages({ name: name });
+
+            expect(res).to.be.an("object");
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_client_error);
+
+        });
+
+        it("Shuld remove the channel from the dest list of all messages", async function () {
+
+            const creator = UserDispatch.getNext();
+            const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+            const description = lorem.generateParagraphs(1);
+
+            const name = UserDispatch.getNextChannelName();
+            const name2 = UserDispatch.getNextChannelName();
+
+
+            await createChannel({
+                name: name,
+                ownerHandle: creator.handle,
+                description: description,
+            })
+
+            await createChannel({
+                name: name2,
+                ownerHandle: creator.handle,
+                description: description,
+            })
+
+            let crec = await Channel.findOne({ name: name });
+            let crec2 = await Channel.findOne({ name: name2 });
+
+            expect(crec).to.not.be.null;
+            expect(crec2).to.not.be.null;
+
+            await Promise.all(users.map(async u => {
+
+                let urec = await User.findOne({ handle: u.handle });
+
+                expect(urec).to.not.be.null;
+
+                urec.joinedChannels.push(crec._id);
+                urec.joinedChannels.push(crec2._id);
+                return urec.save();
+            }))
+
+            for (let i = 0; i < users.length; i++) {
+
+                let urec = await User.findOne({ handle: users[i].handle });
+
+                crec.members.push(urec._id);
+                crec2.members.push(urec._id);
+
+                await crec.save()
+                await crec2.save()
+                crec = await Channel.findOne({ name: name });
+                crec2 = await Channel.findOne({ name: name2 });
+            }
+
+            for (let i = 0; i < 10; i++) {
+
+                await addMessage(lorem.generateSentences(2), creator.handle,
+                    users.map(u => u.handle),
+                    [name, name2])
+            }
+
+            const bf = await Message.find({ destChannel: crec._id });
+
+            expect(bf).to.be.an('array').that.is.not.empty;
+
+            res = await MessageService.deleteChannelMessages({ name: name });
+
+            expect(res).to.be.an("object");
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            const check = await Message.find({ destChannel: crec._id });
+            const check2 = await Message.find({ destChannel: crec2._id });
+
+            expect(check).to.be.an('array').that.is.empty;
+            expect(check2).to.be.an('array').that.is.not.empty;
+        });
+
+        it("Should delete messages whose sole dest was the channell", async function () {
+
+            const creator = UserDispatch.getNext();
+            const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+            const description = lorem.generateParagraphs(1);
+
+            const name = UserDispatch.getNextChannelName();
+
+
+            await createChannel({
+                name: name,
+                ownerHandle: creator.handle,
+                description: description,
+            })
+
+
+            let crec = await Channel.findOne({ name: name });
+
+            expect(crec).to.not.be.null;
+
+            await Promise.all(users.map(async u => {
+
+                let urec = await User.findOne({ handle: u.handle });
+
+                expect(urec).to.not.be.null;
+
+                urec.joinedChannels.push(crec._id);
+                return urec.save();
+            }))
+
+            for (let i = 0; i < users.length; i++) {
+
+                let urec = await User.findOne({ handle: users[i].handle });
+
+                crec.members.push(urec._id);
+
+                await crec.save()
+                crec = await Channel.findOne({ name: name });
+            }
+
+            for (let i = 0; i < 10; i++) {
+
+                await addMessage(lorem.generateSentences(2), creator.handle,
+                    [],
+                    [name])
+            }
+
+            const bf = await Message.find({ destChannel: crec._id });
+
+            expect(bf).to.be.an('array').that.is.not.empty;
+
+            res = await MessageService.deleteChannelMessages({ name: name });
+
+            expect(res).to.be.an("object");
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            const check = await Message.find({ destChannel: crec._id });
+
+            expect(check).to.be.an('array').that.is.empty;
+
+            await Promise.all(bf.map(async m => {
+                expect(await Message.findById(m._id)).to.be.null;
+            }));
         });
     })
 })

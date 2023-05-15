@@ -257,7 +257,7 @@ paths:
           description: Unauthorized operation.
         '409':
           description: Invalid handle.
-        418: 
+        '418': 
           description: User did not have enough characters left.
           
     delete:

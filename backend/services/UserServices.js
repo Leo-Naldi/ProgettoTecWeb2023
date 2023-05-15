@@ -1,18 +1,24 @@
 const { default: mongoose } = require("mongoose");
+
+const config = require('../config/index')
 const User = require("../models/User");
 const makeToken = require("../utils/makeToken");
 const Service = require("./Service");
+const Channel = require("../models/Channel");
 
 class UserService {
 
-    static async getUsers({ handle, admin, accountType, page = 1 } = {}){
+    static async getUsers({ handle, admin, accountType, page = 1 } = { page: 1}){
         let filter = new Object();
 
         if (handle) filter.handle = handle;
-        if (admin) filter.admin = admin;
+        if ((admin === true) || (admin === false)) filter.admin = admin;
         if (accountType) filter.accountType = accountType;
 
-        const users = await User.find(filter, '-_id').exec();
+        const users = await User.find(filter, '-_id')
+            .sort('meta.created')
+            .skip((page - 1) * config.results_per_page)
+            .limit(config.results_per_page);
 
         return Service.successResponse(users.map(u => u.toObject()));
     }
@@ -21,7 +27,7 @@ class UserService {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let user = await User.findOne({ handle: handle }).exec();
+        let user = await User.findOne({ handle: handle });
 
         if (!user) return Service.rejectResponse({ message: "User not found" });
 
@@ -111,7 +117,8 @@ class UserService {
     static async writeUser({ handle, username,
         email, password, name, lastName, 
         phone, gender, blocked,
-        accountType, charLeft, joinedChannels
+        accountType, charLeft, addJoinedChannels, 
+        removeJoinedChannels,
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -146,6 +153,35 @@ class UserService {
             if ((charLeft.month === 0) || (charLeft.month)) {
                 user.charLeft.month = charLeft.month;
             }
+        }
+
+        if (addJoinedChannels instanceof Array) {
+            for(let i = 0; i < addJoinedChannels.length; i++) {
+                let crec = await Channel.findOne({ name: addJoinedChannels[i] });
+
+                if(!user.joinedChannels.some(cid => cid.equals(crec._id))) {
+                    user.joinedChannels.push(crec._id);
+                    crec.members.push(user._id);
+
+                    await crec.save();
+                }
+            }
+        }
+
+        if (removeJoinedChannels instanceof Array) {
+
+            let cids = []
+
+            for (let i = 0; i < removeJoinedChannels.length; i++) {
+                let crec = await Channel.findOne({ name: removeJoinedChannels[i] });
+
+                cids.push(crec._id);
+                crec.members = crec.members.filter(uid => !uid.equals(user._id));
+                await crec.save();
+            }
+
+            user.joinedChannels = user.joinedChannels.filter(cid =>
+                !cids.some(id => id.equals(cid)));
         }
 
         let err = null;
@@ -268,6 +304,44 @@ class UserService {
 
         return Service.successResponse()
     }
+
+    static async changeManaged({ handle, reqUser, users }) {
+
+        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
+        
+        // User Fetching
+
+        let urec = reqUser;
+
+        // In theory this cant happen but oh well
+        if (urec.handle !== handle) {
+
+            urec = await User.findOne({ handle: handle });
+
+            if (!urec) return Service.rejectResponse({ message: `No user called ${handle}` })
+        }
+
+        if (users instanceof Array) {
+          
+            if (users.length > 0) {
+
+                for (let i = 0; i < users.length; i++) {
+
+                    let u = await User.findOne({ handle: users[i] });
+
+                    if ((u.smm) && (u.smm.equals(urec._id))) {
+
+                        u.smm = null;
+                        await u.save();
+                    }
+                }
+            }
+            
+        }
+
+        return Service.successResponse()
+    }
+
 }
 
 module.exports = UserService;

@@ -34,7 +34,7 @@ paths:
             example: userhandle99
         - name: admin
           in: query 
-          description: Get only Admin accounts
+          description: Get only Admin accounts (true) or non admin accounts (false)
           schema:
             type: boolean
             example: True
@@ -67,7 +67,7 @@ paths:
     put:
       tags:
         - users
-      description: Create a new user with the selected handle. It will return the user object and the token used for all further authorized comunication.
+      description: Create a new user with the selected handle (min 3 characters). It will return the user object and the token used for all further authorized comunication.
       operationId: createUser
       requestBody:
         description: New user
@@ -83,6 +83,7 @@ paths:
           required: True
           schema: 
             type: string
+            minLength: 3
             example: userHandle123
       responses:
         '200':
@@ -169,18 +170,17 @@ paths:
       tags:
         - users
       description: Change user object. A user account will 
-        only be able to modify his own password or email, an admin can also change remaining characters.
-        To add/remove a message/joinedChannel use the message/channel endpoints
+        only be able to modify his own password, email
+        or joined channells, an admin can also change remaining characters.
       operationId: writeUser
       requestBody:
         description: Data to be modified
         required: True
         content:
           application/json:
-            schema:
-              anyOf:
-                - $ref: '#/components/schemas/UserInfo'
-                - $ref: '#/components/schemas/SMMData'
+            schema: 
+              $ref: '#/components/schemas/WritableUserData'
+                
       security:
         - adminAuth: []
         - userAuth: []
@@ -251,7 +251,7 @@ paths:
     post: 
       tags:
         - "users"
-      description: Add/remove/change user's managed account
+      description: Remove some managed accounts.
       operationId: changeManaged
       parameters:
         - name: handle
@@ -262,24 +262,21 @@ paths:
             type: string
             example: userHandle123
       requestBody:
-        description: Operation Parameters 
+        description: An array of managed accounts to delete
         required: True
         content:
           application/json:
             schema:
               type: object 
               properties:
-                operation: 
-                  type: string
-                  enum: 
-                    - add 
-                    - remove 
                 users: 
                   type: array
+                  minLength: 1
                   items:
                     type: string 
+                    example: userHandle123
                   description: Array of users handles
-              required: [operation]
+              required: [users]
       responses:
         200: 
           description: Ok 
@@ -290,44 +287,12 @@ paths:
         500: 
           description: Internal server error
 
-
-  /users/{handle}/profiles:
-    get:
-      tags:
-        - users
-      description: Search a user's profile
-      parameters:
-        - name: handle
-          in: path
-          description: The user's handle
-          required: True
-          schema: 
-            type: string
-            example: userHandle123
-      security:
-        - adminAuth: []
-        - userAuth: []
-      responses:
-        '200':
-          description: User Details found
-          content:
-            application/json:
-              schema:
-                anyOf:
-                  - $ref: '#/components/schemas/UserInfo'
-        '401':
-          description: Unauthorized operation.
-        '409':
-          description: Invalid handle
-        500:
-          description: "Internal server error"
-
   /users/{handle}/grantAdmin:
     post: 
       tags:
         - admin
       description: "Make the user an admin account"
-      operationId: grantAdmin,
+      operationId: grantAdmin
       parameters:
         - name: handle
           in: path
@@ -544,6 +509,67 @@ components:
           items: 
             type: string
           example: giovannib5
+    WritableUserData:
+      type: object
+      properties:
+        username: 
+          type: string 
+          description: The new username.
+        email: 
+          type: string 
+          description: The new email.
+        password: 
+          type: string 
+          format: password
+          description: The new password.
+        name: 
+          type: string 
+          description: The new name.
+        lastName: 
+          type: string 
+          description: The new last name.
+        phone: 
+          type: string 
+          description: The new phone number.
+        gender: 
+          type: string 
+          description: The new gender.
+        blocked: 
+          type: boolean
+          description: The blocked status.
+        accountType: 
+          type: string 
+          description: The new account type.
+          enum:
+            - user 
+            - pro
+        charLeft: 
+          type: object 
+          description: The user's character quota, only an admin can set this.
+          properties:
+            day:
+              type: number
+              minimum: 0
+            week:
+              type: number
+              minimum: 0
+            month:
+              type: number
+              minimum: 0
+        addJoinedChannels: 
+          type: array
+          items:
+            type: string 
+            description: The channel's name
+          description: Array of channel names to add to the user's joined channels.
+            channels that are already joined will be ignored.
+        removeJoinedChannels: 
+          type: array
+          items:
+            type: string 
+            description: The channel's name
+          description: Array of channel names to remove from the user's joined channels.
+            channels that are not joined will be ignored.
             
   
   securitySchemes:
