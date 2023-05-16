@@ -242,15 +242,19 @@ class UserService {
         
         if (!(email || handle)) return Service.rejectResponse({ message: "Must provide either handle or email" })
 
-        let filter = { $or: [] };
+        let checkEmail, checkHandle;
+        let results = new Object();
 
-        if (handle) filter.$or.push({handle: handle});
-        if (email) filter.$or.push({ email: email });
+        if (email) {
+            checkEmail = await User.findOne({ email: email });
+            results.email = checkEmail ? false: true;
+        }
+        if (handle) {
+            checkHandle = await User.findOne({ handle: handle });
+            results.handle = checkHandle ? false : true;
+        }
         
-        const results = await User.findOne(filter).exec();
-        
-        if (results) return Service.successResponse({ available: false })
-        else return Service.successResponse({ available: true })
+        return Service.successResponse(results);
     }
 
     static async changeSmm({ handle, operation, smm }){

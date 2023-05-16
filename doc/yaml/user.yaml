@@ -331,17 +331,29 @@ paths:
         500:
           description: "Internal Server Error"
 
-  /users/registration/{handle}:
+  /users/available/:
     get:
       tags:
         - registration
-      description: make sure the handle is avalible when making registrations
-      parameters:
-        - name: handle
-          in: path
-          required: True
-          schema:
-            type: string  
+      description: make sure the handle and email ara avalible when making registrations
+      requestBody:
+        description: email and/or handle to be checked
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object 
+              properties:
+                handle: 
+                  type: string
+                  minLength: 3
+                  description: The handle whose availability is to be checked
+                  example: handle167
+                email: 
+                  type: string
+                  format: email
+                  description: The email whose availability is to be checked
+                  example: email@gmail.com
       responses:
         200:
           description: "Ok"
@@ -350,37 +362,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  available:
+                  email:
                     type: boolean
-                    description: "true if the username is available"
-                required: [available]
-        400:
-          description: "Input malformato"
-        500:
-          description: "Internal server error"
-  /users/registration/{email}:
-    get:
-      tags:
-        - registration
-      description: make sure the email is avalible when making registrations
-      parameters:
-        - name: email
-          in: path
-          required: True
-          schema:
-            type: string  
-      responses:
-        200:
-          description: "Ok"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  available:
+                    description: "true if the the given email is available. will only be present if an email was provided"
+                  handle:
                     type: boolean
-                    description: "true if the email is available"
-                required: [available]
+                    description: "true if the the given handle is available. will only be present if an handle was provided"
         400:
           description: "Input malformato"
         500:

@@ -569,7 +569,7 @@ describe('User Service Unit Tests', function () {
             expect(res.status).to.equal(config.default_client_error);
         });
 
-        it("Should return available: true if handle is available", async function () {
+        it("Should return handle: true if handle is available", async function () {
             const res = await UserService.checkAvailability({ handle: testUser(100000000).handle });
 
             expect(res).to.be.an('object');
@@ -577,11 +577,11 @@ describe('User Service Unit Tests', function () {
             expect(res.status).to.equal(config.default_success_code);
 
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object').that.has.property('available');
-            expect(res.payload.available).to.be.true;
+            expect(res.payload).to.be.an('object').that.has.property('handle');
+            expect(res.payload.handle).to.be.true;
         })
 
-        it("Should return available: true if email is available", async function () {
+        it("Should return email: true if email is available", async function () {
             const res = await UserService.checkAvailability({ email: testUser(100000000).email });
 
             expect(res).to.be.an('object');
@@ -589,65 +589,75 @@ describe('User Service Unit Tests', function () {
             expect(res.status).to.equal(config.default_success_code);
 
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object').that.has.property('available');
-            expect(res.payload.available).to.be.true;
+            expect(res.payload).to.be.an('object').that.has.property('email');
+            expect(res.payload.email).to.be.true;
         })
 
-        it("Should return available: true if email and handle are available", async function () {
-            const res = await UserService.checkAvailability({ handle: testUser(100000000).handle, email: testUser(100000000).email });
+        it("Should return email, handle: true if email and handle are available", async function () {
+            
+            const res = await UserService.checkAvailability({ 
+                handle: testUser(100000000).handle, 
+                email: testUser(100000000).email 
+            });
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
 
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object').that.has.property('available');
-            expect(res.payload.available).to.be.true;
+            expect(res.payload).to.be.an('object').that.has.property('email');
+            expect(res.payload.email).to.be.true;
+            expect(res.payload).to.have.property('handle');
+            expect(res.payload.handle).to.be.true;
+        });
+
+        it("Should return handle: false if handle is taken", async function () {
+            const res = await UserService.checkAvailability({ 
+                handle: UserDispatch.getNext().handle
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object').that.has.property('handle');
+            expect(res.payload.handle).to.be.false;
         })
 
-        it("Should return available: false if email or handle are taken", async function () {
-            const res = await UserService.checkAvailability({ handle: UserDispatch.getNext().handle, email: testUser(100000000).email });
+        it("Should return email: false if email is taken", async function () {
+            const res = await UserService.checkAvailability({
+                email: UserDispatch.getNext().email
+            });
 
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object').that.has.property('email');
+            expect(res.payload.email).to.be.false;
+        })
+
+        it("Should return email, handle: false if neither are available", async function () {
+            
             const u = UserDispatch.getNext();
+            const res = await UserService.checkAvailability({
+                handle: u.handle,
+                email: u.email
+            });
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
 
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object').that.has.property('available');
-            expect(res.payload.available).to.be.false;
+            expect(res.payload).to.be.an('object').that.has.property('email');
+            expect(res.payload.email).to.be.false;
+            expect(res.payload).to.have.property('handle');
+            expect(res.payload.handle).to.be.false;
+        });
 
-            const res2 = await UserService.checkAvailability({ handle: testUser(100000000).handle, email: u.email });
-
-            expect(res2).to.be.an('object');
-            expect(res2).to.have.property('status');
-            expect(res2.status).to.equal(config.default_success_code);
-
-            expect(res2).to.have.property('payload');
-            expect(res2.payload).to.be.an('object').that.has.property('available');
-            expect(res2.payload.available).to.be.false;
-
-            const res3 = await UserService.checkAvailability({ email: u.email });
-
-            expect(res3).to.be.an('object');
-            expect(res3).to.have.property('status');
-            expect(res3.status).to.equal(config.default_success_code);
-
-            expect(res3).to.have.property('payload');
-            expect(res3.payload).to.be.an('object').that.has.property('available');
-            expect(res3.payload.available).to.be.false;
-
-            const res4 = await UserService.checkAvailability({ handle: u.handle });
-
-            expect(res4).to.be.an('object');
-            expect(res4).to.have.property('status');
-            expect(res4.status).to.equal(config.default_success_code);
-
-            expect(res4).to.have.property('payload');
-            expect(res4.payload).to.be.an('object').that.has.property('available');
-            expect(res4.payload.available).to.be.false;
-        })
 
      });
 
