@@ -1,0 +1,16 @@
+const express = require('express');
+const passport = require('passport');
+
+const Controller = require('../controllers/Controller');
+const MessageServices = require('../services/MessageServices');
+
+
+const MessageRouter = express.Router();
+
+MessageRouter.get('/', passport.authenticate('adminAuth', { session: false }), async (req, res) => {
+    await Controller.handleRequest(req, res, MessageServices.getMessages);
+})
+
+
+
+module.exports = MessageRouter;

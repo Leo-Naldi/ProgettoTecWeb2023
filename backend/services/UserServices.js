@@ -15,7 +15,7 @@ class UserService {
         if ((admin === true) || (admin === false)) filter.admin = admin;
         if (accountType) filter.accountType = accountType;
 
-        const users = await User.find(filter, '-_id')
+        const users = await User.find(filter)
             .sort('meta.created')
             .skip((page - 1) * config.results_per_page)
             .limit(config.results_per_page);

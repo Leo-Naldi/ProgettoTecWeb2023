@@ -5,6 +5,7 @@ const User = require("../models/User");
 const Controller = require('../controllers/Controller');
 const UserService = require('../services/UserServices');
 const makeToken = require('../utils/makeToken');
+const MessageServices = require('../services/MessageServices');
 
 const UserRouter = express.Router();
 
@@ -77,6 +78,26 @@ UserRouter.post('/:handle/revokeAdmin', passport.authenticate('adminAuth', { ses
         await Controller.handleRequest(req, res, UserService.revokeAdmin);
     }
 );
+
+UserRouter.get('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    await Controller.handleRequest(req, res, MessageServices.getUserMessages);
+})
+
+UserRouter.post('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    await Controller.handleRequest(req, res, MessageServices.postUserMessage);
+})
+
+UserRouter.delete('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    await Controller.handleRequest(req, res, MessageServices.deleteUserMessages);
+})
+
+UserRouter.delete('/:handle/messages/:id', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    await Controller.handleRequest(req, res, MessageServices.deleteMessage);
+})
+
+UserRouter.post('/:handle/messages/:id', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    await Controller.handleRequest(req, res, MessageServices.postMessage);
+})
 
 UserRouter.get('/registration/',
     async (req, res) => {

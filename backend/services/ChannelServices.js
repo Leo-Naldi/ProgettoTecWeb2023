@@ -7,7 +7,7 @@ const config = require('../config');
 class ChannelServices{
 
     static async getChannels({ reqUser = null, page = 1, owner = null, postCount = -1, privateChannel=null,
-        member=null } = {
+        member=null, name=null } = {
             reqUser: null, page: 1, owner: null, postCount: -1, privateChannel: null,
             member: null
         }) {
@@ -63,10 +63,14 @@ class ChannelServices{
 
         if (description) channel.description = description;
 
+        channel.members.push(reqUser._id);
+        reqUser.joinedChannels.push(channel._id);
+
         let err = null;
 
         try {
             await channel.save()
+            await reqUser.save()
         } catch (e) {
 
             err = e;

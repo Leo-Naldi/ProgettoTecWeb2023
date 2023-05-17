@@ -22,6 +22,15 @@ describe('User Service Unit Tests', function () {
             expect(res.payload).to.be.an('array').that.is.not.empty;
         })
 
+        it('Should only return users with the given handle');
+
+        it('Should only return admin users');
+
+        ['pro', 'user'].map(t => {
+
+            it(`Should only return accounts of the given type (${t})`);
+        })
+
     });
     
     describe('getUser Unit Tests', function () { 
@@ -45,7 +54,7 @@ describe('User Service Unit Tests', function () {
             //console.log(res.payload)
         })
 
-        it('Should not return anything when the user does not exist', async function(){
+        it('Should fail when the user does not exist', async function(){
             const res = await UserService.getUser({
                 handle: 'bwernfwebgwohpeqcrbwo4gqnbdcohfb2oirfoi3urhf8745237hjdcnscjdn',
             });
@@ -305,7 +314,7 @@ describe('User Service Unit Tests', function () {
 
             expect(u.admin).to.be.true;
         })
-     });
+    });
 
     describe('revokeAdmin Unit Tests', async function () { 
         
@@ -659,9 +668,9 @@ describe('User Service Unit Tests', function () {
         });
 
 
-     });
+    });
 
-     describe("General User Services Unit Tests", function(){
+    describe("General User Services Unit Tests", function(){
 
         it("Should add the user to the managed field returned by getUser after calling changeSmm",
         async function(){
@@ -705,6 +714,6 @@ describe('User Service Unit Tests', function () {
             expect(getRes.payload.managed).to.have.deep.members([handle2]);
         });
 
-     })
+    })
         
 })
