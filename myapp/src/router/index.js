@@ -35,19 +35,35 @@ export default route(function (/* { store, ssrContext } */) {
     ),
   });
 
+
+  Router.beforeEach((to, from, next) => {
+    // switch only when token exists
+    // // console.log(from);
+    let token = localStorage.getItem("token");
+    // //console.log(token);
+    if (token || to.path === "/" || to.path === "/about" || to.path === "/login" || to.path==="/register") {
+      next();
+      // console.log(token);
+    } else {
+      alert("you must be a user to modify your user data!");
+      next("/");
+    }
+  });
   // // check before routes
   // Router.beforeEach((to, from, next) => {
   //   // switch only when token exists
-  //   // console.log(to);
-  //   // console.log(from);
-  //   let token = localStorage.getItem("token");
-  //   //console.log(token);
-  //   if (token || to.path === "/login") {
-  //     next();
-  //     // console.log(token);
-  //   } else {
-  //     next("/login");
-  //   }
+  //   console.log(to);
+  //   console.log(from);
+  //   next();
+  //   // // console.log(from);
+  //   // let token = localStorage.getItem("token");
+  //   // //console.log(token);
+  //   // if (token || to.path === "/login") {
+  //   //   next();
+  //   //   // console.log(token);
+  //   // } else {
+  //   //   next("/login");
+  //   // }
   // });
   // Router.beforeEach((to, from, next) => {
   //   if (to.matched.some(record => record.meta.requiresAuth) && !store.getters['auth/isSignedIn']) {

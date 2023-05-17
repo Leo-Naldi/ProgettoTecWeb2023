@@ -34,6 +34,12 @@ paths:
             type: integer
             minimum: 0
             example: 5000
+        - name: privacy  # optional, it will be imoplemented if there's time left
+          in: query
+          description: Only get channels that are public (if the field is true) or private (if it's false)
+          schema:
+            type: boolean
+            example: false
         - name: popular  # optional, it will be imoplemented if there's time left
           in: query
           description: Only get channels with at least the given number of popular messages
@@ -41,6 +47,13 @@ paths:
             type: integer
             minimum: 1
             example: 100
+        - name: member 
+          in: query
+          description: Only get channel that the given user is a member of.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
       description: Get all channels.
       operationId: getChannels
       responses:
@@ -60,13 +73,14 @@ paths:
       tags:
         - channels
       description: Create a new channel with the given name.
+      operationId: createChannel
       security:
         - adminAuth: []
         - userAuth: []
       parameters:
         - name: name
           in: path
-          description: The new Channel's name
+          description: The Channel's name
           required: True
           example: channelAboutMountainPictures88
           schema:
@@ -83,19 +97,27 @@ paths:
               properties:
                 owner:
                   type: string
-                  description: The owner's handle
+                  description: The new owner's handle
                   example: ownerHandle777
+                newName:
+                  type: string
+                  description: The new channel's Name
+                  example: Channel34
+                privateChannel:
+                  type: boolean
+                  description: The new channel's private field, its called like that because javascript.
+                  example: true
                 description:
                   type: string
                   description: The channel's description
                   example: This is a channel about how javascript is a great programming language and not     at all a meme
       responses:
         '200':
-          description: Channel Created Successfully
+          description: Channel Modified Successfully
         '401':
           description: Unauthorized operation.
         '409':
-          description: Channel name already taken.
+          description: Channel name already taken or new owner does not exist.
     post:
       tags:
         - channels
@@ -158,6 +180,7 @@ paths:
       tags:
         - channels
       description: Returns 200 if there is no channel with the given name, 400 otherwise.
+      operationId: availableChannel
       parameters:
         - name: name
           required: True
@@ -168,9 +191,20 @@ paths:
             example: canIUseThisName99
       responses:
         '200':
-          description: Name available
-        '400':
-          description: Name already taken
+          description: Successfully checked, answer is in body
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                    description: "true if the name is available, false otherwise"
+                required: [available]
+        '409':
+          description: Did not provide a name
+        '500':
+          description: Internal server error.
 
 components:
   schemas:

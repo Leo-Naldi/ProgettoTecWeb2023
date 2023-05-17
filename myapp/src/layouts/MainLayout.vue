@@ -93,9 +93,9 @@
           <q-item-section>
             <!-- TODO:if user have setted a username then show username, default show user handle-->
             <q-item-label class="text-weight-medium">{{
-              store.user.handle
+              store ? store.user.handle: ''
             }}</q-item-label>
-            <q-item-label caption>@{{ store.user.handle }}</q-item-label>
+            <q-item-label caption>@{{ store? store.user.handle:'' }}</q-item-label>
           </q-item-section>
           <q-item-section side top>
             <q-item-label caption
@@ -114,7 +114,7 @@
               </q-item>
               <q-item clickable v-close-popup @click="logout">
                 <q-item-section
-                  >Logout from @{{ store.user.handle }}</q-item-section
+                  >Logout from @{{ store ? store.user.handle:'' }}</q-item-section
                 >
               </q-item>
             </q-list>

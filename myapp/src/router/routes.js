@@ -1,4 +1,3 @@
-
 const routes = [
   {
     path: '/',
@@ -21,21 +20,46 @@ const routes = [
       },
       {
         path: '/login',
-        component: () => import('pages/UserLogin')
-      },
-      {
-        path: '/profile',
-        component: () => import('pages/UserProfile.vue'),
-        name: 'Profile'
-      },
-      {
-        path: '/settings',
-        component: () => import('pages/UserSettings.vue'),
-        name: 'Settings'
-      },
+        component: () => import('pages/UserLogin'),
+        name: 'Login'
+      },         
       {
         path: '/register',
-        component: () => import('pages/UserRegister')
+        component: () => import('pages/UserRegister'),
+        name: 'Register'
+      },
+    ]
+  },
+  {
+    path: '/user',
+    component: () => import('layouts/UserLayout.vue'),
+    children:[
+      {
+        path: '/profile',
+        component: () => import('pages/UserProfile')
+      },
+      {
+        path: '/posts',
+        component: () => import('pages/UserPosts')
+      },
+    ]
+  },
+  {
+    path: '/settings',
+    component: () => import('layouts/SettingsLayout.vue'),
+    name: 'Settings',
+    redirect: to => {
+      return 'Account'
+    },
+    children:[
+      {
+        path: '/account',
+        component: () => import('pages/SettingsAccount.vue'),
+        name: 'Account'
+      },
+      {
+        path: '/password',
+        component: () => import('pages/SettingsPassword.vue')
       },
     ]
   },

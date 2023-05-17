@@ -81,7 +81,10 @@ export default {
           }
         })
         .catch((err) => {
-          console.log(err);
+          if (err.response.status === 409){
+            this.$q.notify({ color: 'red', message: 'name or password not correct' }); 
+          }
+          // console.log(err);
         })
     },
   }
