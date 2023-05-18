@@ -1,0 +1,255 @@
+openapi: 3.0.3
+info:
+  title: "User/VIP/admin"
+  description: "Backend API for authentication"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+tags:
+- name: "channels"
+paths:
+  /channels/:
+    get:
+      tags:
+        - channels
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results
+          schema:
+            type: integer
+            minimum: 1
+            example: 3
+        - name: owner  # optional, it will be imoplemented if there's time left
+          in: query
+          description: Filter by owner's Handle. If no channel owned by a user with handle is found it will return an empty array
+          schema:
+            type: string
+            example: owner333
+        - name: postCount  # optional, it will be imoplemented if there's time left
+          in: query
+          description: Only get channels with at least the given number of messages
+          schema:
+            type: integer
+            minimum: 0
+            example: 5000
+        - name: privacy  # optional, it will be imoplemented if there's time left
+          in: query
+          description: Only get channels that are public (if the field is true) or private (if it's false)
+          schema:
+            type: boolean
+            example: false
+        - name: popular  # optional, it will be imoplemented if there's time left
+          in: query
+          description: Only get channels with at least the given number of popular messages
+          schema: 
+            type: integer
+            minimum: 1
+            example: 100
+        - name: member 
+          in: query
+          description: Only get channel that the given user is a member of.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+      description: Get all channels.
+      operationId: getChannels
+      responses:
+        '200':
+          description: Valid request
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation
+  
+  /channels/{name}:
+    put:
+      tags:
+        - channels
+      description: Create a new channel with the given name.
+      operationId: createChannel
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: The new channel's data. The description will be automatically generated if missig
+        content:
+          application/json: 
+            schema:
+              type: object
+              required: [owner]
+              properties:
+                owner:
+                  type: string
+                  description: The new owner's handle
+                  example: ownerHandle777
+                newName:
+                  type: string
+                  description: The new channel's Name
+                  example: Channel34
+                privateChannel:
+                  type: boolean
+                  description: The new channel's private field, its called like that because javascript.
+                  example: true
+                description:
+                  type: string
+                  description: The channel's description
+                  example: This is a channel about how javascript is a great programming language and not     at all a meme
+      responses:
+        '200':
+          description: Channel Modified Successfully
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Channel name already taken or new owner does not exist.
+    post:
+      tags:
+        - channels
+      description: Change channel data, must be either the owner or an admin.
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The new Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: The data to be changed.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: The channel's description
+                  example: This is a channel about how javascript is a great programming language and not     at all a meme
+      responses:
+        '200':
+          description: Channel Changed Successfully
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Channel name already taken.
+    delete:
+      tags:
+        - channels
+      description: Delete given channel.
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: True
+          description: The channel's name.
+          schema:
+            type: string
+            example: awesomeChannel9000
+      responses:
+        '200': 
+          description: Channel Deleted.
+        '401':
+          description: Unauthorized operation (only the logged in owner or an admin can delete channels)
+        '409':
+          description: No channel with the given name
+  /channels/{name}/available:
+    get:
+      tags:
+        - channels
+      description: Returns 200 if there is no channel with the given name, 400 otherwise.
+      operationId: availableChannel
+      parameters:
+        - name: name
+          required: True
+          in: path
+          description: The name whose availability we want to check
+          schema:
+            type: string
+            example: canIUseThisName99
+      responses:
+        '200':
+          description: Successfully checked, answer is in body
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                    description: "true if the name is available, false otherwise"
+                required: [available]
+        '409':
+          description: Did not provide a name
+        '500':
+          description: Internal server error.
+
+components:
+  schemas:
+    Channel:
+      type: object
+      required: [name, created, owner]
+      properties:
+        name: 
+          type: string
+          example: AwesomeChannel42
+        created:
+          type: string
+          format: date-time
+          description: Channel's creation timestamp
+          example: "2021-01-30T08:30:00Z"
+        owner:
+          type: string
+          description: Owner's Handle
+          example: channel3Owner
+        description: 
+          type: string
+          description: A brief description of the channel
+          example: This is a channel dedicated to pictures of fluffy kittens
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              hanlde:
+                type: string
+                description: Member's Handle
+                example: giangiovanni99
+              joined:
+                type: string
+                format: date-time
+                description: Date of user joining
+                example: "2021-01-30T08:30:00Z"
+  securitySchemes:
+    userAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Requires Requires a JWT token generated with user credentials. Even with a correctly formed JWT, a user can only alter their own account.
+    adminAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Requires a JWT token generated with admin credentials.
