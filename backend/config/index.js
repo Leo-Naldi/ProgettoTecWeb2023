@@ -26,6 +26,8 @@ const config = {
     default_client_error: 409,
     default_success_code: 200,
     results_per_page: 100,
+    reactions_reward_threshold: 100,   // increase or decrease characters every 100 pos/neg reactions
+    reactions_reward_amount: 10,   // number of chars to be added/removed
 }
 
 module.exports = config;

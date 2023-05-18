@@ -44,7 +44,7 @@ function testUser(i) {
 }
 
 // Number of dummy users and dummy admins that will be created in the test db.
-const users_count = 150;
+const users_count = 180;
 
 class UserDispatch {
     static _cur = 1;
@@ -169,7 +169,7 @@ function pseudoRandomDate() {
  */
 async function randomizedSetup(){
 
-    const randomUsersCount = getRandom(200) + 100;
+    const randomUsersCount = getRandom(200) + 50;
     const proUsers = Math.floor(randomUsersCount / 2) + getRandom(10);
     const randomChannelsCount = getRandom(Math.floor(randomUsersCount / 2)) + getRandom(20);
     const randomMessageCount = getRandom(350) + 700

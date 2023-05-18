@@ -1383,6 +1383,71 @@ describe('Message Service Unit Tests', function () {
             expect(old_reactions.negative).to.equal(check.reactions.negative)
             expect(old_reactions.positive + 1).to.equal(check.reactions.positive)
         });
+
+        it("Should change the user's character when getting enough positive reactions", async function(){
+            
+            let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+            
+            // make sure there are chars left
+            user.charLeft.day += 10000 - text.length;
+            user.charLeft.week += 10000 - text.length;
+            user.charLeft.month += 10000 - text.length;
+
+            const charCopy = {...user.toObject().charLeft};
+
+            await user.save();
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: user._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                }
+            });
+
+            await message.save()
+
+            // check characters are left unchanged
+            const res = await MessageService.addPositiveReaction({ id: message._id });
+            
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status, res?.error?.message).to.equal(config.default_success_code);
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+            
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.positive = config.reactions_reward_threshold - 1;
+
+            await message.save();
+
+            const res1 = await MessageService.addPositiveReaction({ id: message._id });
+
+            expect(res1).to.be.an('object');
+            expect(res1).to.have.property('status');
+            expect(res1.status).to.equal(config.default_success_code);
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+
+            let newChars = {...charCopy};
+
+            newChars.day += config.reactions_reward_amount;
+            newChars.week += config.reactions_reward_amount;
+            newChars.month += config.reactions_reward_amount;
+
+            expect(newChars, 'Did not characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+        })
     })
 
     describe("addNegativeReaction Unit Tests", function () {
@@ -1427,6 +1492,71 @@ describe('Message Service Unit Tests', function () {
             expect(old_reactions.positive).to.equal(check.reactions.positive)
             expect(old_reactions.negative + 1).to.equal(check.reactions.negative)
         });
+
+        it("Should change the user's character when getting enough negative reactions", async function () {
+
+            let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            user.charLeft.day += 10000 - text.length;
+            user.charLeft.week += 10000 - text.length;
+            user.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...user.toObject().charLeft };
+
+            await user.save();
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: user._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                }
+            });
+
+            await message.save()
+
+            // check characters are left unchanged
+            const res = await MessageService.addNegativeReaction({ id: message._id });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status, res?.error?.message).to.equal(config.default_success_code);
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.negative = config.reactions_reward_threshold - 1;
+
+            await message.save();
+
+            const res1 = await MessageService.addNegativeReaction({ id: message._id });
+
+            expect(res1).to.be.an('object');
+            expect(res1).to.have.property('status');
+            expect(res1.status).to.equal(config.default_success_code);
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+
+            let newChars = { ...charCopy };
+
+            newChars.day -= config.reactions_reward_amount;
+            newChars.week -= config.reactions_reward_amount;
+            newChars.month -= config.reactions_reward_amount;
+
+            expect(newChars, 'Did not characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+        })
     })
 
     describe("deleteChannelMessages Unit Tests", function(){

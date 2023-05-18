@@ -226,6 +226,7 @@ class MessageService {
     }
 
     static async addNegativeReaction({ id }){
+
         if (!mongoose.isObjectIdOrHexString(id))
             return Service.rejectResponse({ message: "Invalid message id" })
 
@@ -236,9 +237,24 @@ class MessageService {
 
         message.reactions.negative += 1;
 
+        let user = null;
+
+        if (message.reactions.negative % config.reactions_reward_threshold === 0) {
+            user = await User.findById(message.author).orFail();
+            
+            user.charLeft.day -= config.reactions_reward_amount;
+            user.charLeft.week -= config.reactions_reward_amount;
+            user.charLeft.month -= config.reactions_reward_amount;
+            
+            user.charLeft.day = Math.max(user.charLeft.day, 0);
+            user.charLeft.week = Math.max(user.charLeft.week, 0);
+            user.charLeft.month = Math.max(user.charLeft.month, 0);
+        }
+
         let err = null;
         try {
             await message.save();
+            if (user) await user.save();
         } catch (e) {
             err = e;
         }
@@ -250,7 +266,7 @@ class MessageService {
     };
 
     static async addPositiveReaction({ id }) { 
-        if (!mongoose.isObjectIdOrHexString(id))
+        if (!mongoose.isValidObjectId(id))
             return Service.rejectResponse({ message: "Invalid message id" })
 
         const message = await Message.findById(id);
@@ -260,11 +276,24 @@ class MessageService {
 
         message.reactions.positive += 1;
 
-        //console.log(message.reactions.positive)
+        let user = null;
+
+        if (message.reactions.positive % config.reactions_reward_threshold === 0) {
+
+            //console.log(message.reactions.negative % config.reactions_reward_threshold)
+            
+
+            user = await User.findById(message.author).orFail();
+
+            user.charLeft.day += config.reactions_reward_amount;
+            user.charLeft.week += config.reactions_reward_amount;
+            user.charLeft.month += config.reactions_reward_amount;
+        }
 
         let err = null;
         try {
             await message.save();
+            if(user) await user.save();
         } catch (e) {
             err = e;
         }
