@@ -14,6 +14,8 @@ class ChannelServices{
 
         const query = Channel.find();
 
+        // TODO use name as pattern
+
         if (member) {
             if (!reqUser) return Service.rejectResponse({ message: "Must be logged in to filter by membership" })
         
@@ -44,13 +46,50 @@ class ChannelServices{
         if ((privateChannel === true) || (privateChannel === false)) 
             query.find({ privateChannel: privateChannel })
 
+
         query.sort('created')
             .skip((page - 1 )*config.results_per_page)
             .limit(config.results_per_page);
 
         const res = await query;
 
-        return Service.successResponse(res.map(channel => channel.toObject()));
+        if (owner || member) {
+            return Service.successResponse(res);
+        } else {
+
+            return Service.successResponse(res.map(channel => {
+                let c = channel.toObject();
+    
+                if ((c.privateChannel) && 
+                    !(reqUser && reqUser?.joinedChannels.some(id => id.equals(channel._id)))) {
+                    
+                    // private channels can only be viewed by members
+                    delete c.messages;
+                    delete c.members;
+                }
+
+                return c;
+            }));
+        }
+
+    }
+
+    static async getChannel({ name, reqUser = null }) {
+        if (!name) return Service.rejectResponse({ message: "Must Provide a valid name" });
+
+        const channel = await Channel.findOne({ name: name });
+
+        if (!channel) return Service.rejectResponse({ message: `Channnel ${name} not found` })
+
+        let res = channel.toObject();
+
+        if ((channel.privateChannel) && (!reqUser?.joinedChannels.some(id => id.equals(channel._id)))){
+            delete res.messages;
+            delete res.members;
+            //console.log('cough')
+        }
+
+        return Service.successResponse(res);
     }
 
     static async createChannel({ name, reqUser, description='' }){
@@ -114,12 +153,13 @@ class ChannelServices{
         return Service.successResponse();
     }
 
-    static async writeChannel({ name, newName=null, owner=null, description=null, privateChannel=null }) {
+    static async writeChannel({ name, channel=null, newName=null, owner=null, description=null, privateChannel=null }) {
         
         if (!(newName || owner || description || (privateChannel === true) || (privateChannel === false))) 
             return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
         
-        const channel = await Channel.findOne({ name: name });
+        // One some endpoints it is already fetched
+        if (!channel) channel = await Channel.findOne({ name: name });
 
         if (!channel) return Service.rejectResponse({ message: `No channel called ${name}` });
         

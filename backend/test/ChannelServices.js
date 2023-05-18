@@ -59,15 +59,116 @@ describe("ChannelService Unit Tests", function(){
                 expect(c).to.be.an('object')
                 expect(c).to.have.property('_id');
                 expect(c).to.have.property('name');
-                expect(c).to.have.property('messages');
+                //expect(c).to.have.property('messages');
                 expect(c).to.have.property('creator');
-                expect(c).to.have.property('members');
+                //expect(c).to.have.property('members');
                 expect(c).to.have.property('privateChannel');
                 expect(c).to.have.property('official');
                 expect(c).to.have.property('created');
             })
 
         });
+
+        it("Should return messages and members only in public channels if called without a token", async function(){
+            const u = UserDispatch.getNext();
+            const description = lorem.generateParagraphs(1);
+
+            for (let i = 0; i < 5; i++) {
+
+                await createChannel({
+                    name: UserDispatch.getNextChannelName(),
+                    ownerHandle: u.handle,
+                    description: description,
+                    privateChannel: false,
+                })
+                await createChannel({
+                    name: UserDispatch.getNextChannelName(),
+                    ownerHandle: u.handle,
+                    description: description,
+                    privateChannel: true,
+                })
+            }
+            
+            const res = await ChannelServices.getChannels();
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.is.not.empty;
+
+            res.payload.map(c => {
+                expect(c).to.be.an('object').that.is.not.null;
+                
+                if (c.privateChannel) {
+                    expect(c).to.not.have.property('messages');
+                    expect(c).to.not.have.property('members');
+                } else {
+                    expect(c).to.have.property('messages');
+                    expect(c).to.have.property('members');
+                }
+
+            })
+        });
+
+        it('Should only return messages and members in private channels if the user is a member', async function(){
+            
+            // ensure there are both public and private channells
+            const u = UserDispatch.getNext();
+            const u2 = UserDispatch.getNext();
+            const description = lorem.generateParagraphs(1);
+
+            for (let i = 0; i < 5; i++) {
+
+                await createChannel({
+                    name: UserDispatch.getNextChannelName(),
+                    ownerHandle: u.handle,
+                    description: description,
+                    privateChannel: false,
+                })
+                await createChannel({
+                    name: UserDispatch.getNextChannelName(),
+                    ownerHandle: u.handle,
+                    description: description,
+                    privateChannel: true,
+                })
+                await createChannel({
+                    name: UserDispatch.getNextChannelName(),
+                    ownerHandle: u2.handle,
+                    description: description,
+                    privateChannel: false,
+                })
+                await createChannel({
+                    name: UserDispatch.getNextChannelName(),
+                    ownerHandle: u2.handle,
+                    description: description,
+                    privateChannel: true,
+                })
+            }
+
+            const user = await User.findOne({ handle: u.handle }).orFail();
+
+            const res = await ChannelServices.getChannels({ reqUser: user });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.is.not.empty;
+
+            res.payload.map(c => {
+                expect(c).to.be.an('object').that.is.not.null;
+
+                if ((c.privateChannel) && (!user.joinedChannels.some(id => id.equals(c._id)))) {
+                    expect(c).to.not.have.property('messages');
+                    expect(c).to.not.have.property('members');
+                } else {
+                    expect(c).to.have.property('messages');
+                    expect(c).to.have.property('members');
+                }
+
+            })
+        })
 
         it('Should return an empty array if the onwer does not exist', async function(){
             
@@ -281,6 +382,122 @@ describe("ChannelService Unit Tests", function(){
             })
 
         });
+    })
+
+    describe("getChannel Unit Tests", function(){
+
+        it("Should fail if the channel does not exist", async function(){
+            const res = await ChannelServices.getChannel({ name: UserDispatch.getNextChannelName() });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_client_error);
+        });
+
+        it('Should return the channel if it exists', async function(){
+            const u = UserDispatch.getNext();
+            const description = lorem.generateParagraphs(1);
+
+            const name = UserDispatch.getNextChannelName();
+           
+            await createChannel({
+                name: name,
+                ownerHandle: u.handle,
+                description: description,
+            })
+
+            const res = await ChannelServices.getChannel({ name: name });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object');
+
+            const check = await Channel.findOne({ name: name }).orFail();
+
+            expect(res.payload).to.deep.equal(check.toObject())
+        });
+
+        it('Should remove the message and members of a private channel if requesting user is null', async function(){
+            const u = UserDispatch.getNext();
+            const description = lorem.generateParagraphs(1);
+
+            const name = UserDispatch.getNextChannelName();
+
+            await createChannel({
+                name: name,
+                ownerHandle: u.handle,
+                description: description,
+                privateChannel: true
+            })
+
+            const res = await ChannelServices.getChannel({ name: name });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object');
+
+            expect(res.payload).to.not.have.property('members');
+            expect(res.payload).to.not.have.property('messages');
+        });
+
+        it('Should remove the message and members of a private channel if requesting user is not a member', async function(){
+            const u = UserDispatch.getNext();
+            const u2 = UserDispatch.getNext();
+            const description = lorem.generateParagraphs(1);
+
+            const name = UserDispatch.getNextChannelName();
+
+            await createChannel({
+                name: name,
+                ownerHandle: u.handle,
+                description: description,
+                privateChannel: true
+            })
+
+            const user = await User.findOne({ handle: u2.handle }).orFail()
+
+            const res = await ChannelServices.getChannel({ name: name, reqUser: user });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object');
+
+            expect(res.payload).to.not.have.property('members');
+            expect(res.payload).to.not.have.property('messages');
+        });
+
+        it("Should return the private channel normally if the user is a member", async function(){
+            const u = UserDispatch.getNext();
+            const description = lorem.generateParagraphs(1);
+
+            const name = UserDispatch.getNextChannelName();
+
+            await createChannel({
+                name: name,
+                ownerHandle: u.handle,
+                description: description,
+                privateChannel: true
+            })
+
+            const user = await User.findOne({ handle: u.handle }).orFail();
+
+            const res = await ChannelServices.getChannel({ name: name, reqUser: user });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object');
+
+            expect(res.payload).to.have.property('members');
+            expect(res.payload).to.have.property('messages');
+        })
     })
 
     describe("createChannel Unit Tests", function(){
