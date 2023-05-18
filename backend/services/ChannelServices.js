@@ -102,11 +102,11 @@ class ChannelServices{
             if ((m.destChannel.length === 0) && (m.destUser.length === 0))
                 return m.deleteOne()
             
-            return await m.save();
+            return m.save();
 
         }) + users.map(async u => {
                 u.joinedChannels = u.joinedChannels.filter(id => !id.equals(channel._id))
-                return await u.save()
+                return u.save()
         }));
         
         await channel.deleteOne({ name: name });

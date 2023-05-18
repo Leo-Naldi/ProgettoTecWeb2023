@@ -169,10 +169,10 @@ function pseudoRandomDate() {
  */
 async function randomizedSetup(){
 
-    const randomUsersCount = getRandom(100) + 50;
+    const randomUsersCount = getRandom(200) + 100;
     const proUsers = Math.floor(randomUsersCount / 2) + getRandom(10);
-    const randomChannelsCount = getRandom(Math.floor(randomUsersCount / 2)) + + getRandom(20);
-    const randomMessageCount = getRandom(150) + 50
+    const randomChannelsCount = getRandom(Math.floor(randomUsersCount / 2)) + getRandom(20);
+    const randomMessageCount = getRandom(350) + 700
 
     // managed[i] === true if user[i] has a smm
     let managed = Array.from({ length: proUsers }, (v, i) => {
@@ -326,9 +326,9 @@ async function randomizedSetup(){
         }
     }
 
-    await Promise.all(users.map(async u => await u.save()))
-    await Promise.all(channels.map(async c => await c.save()))
-    await Promise.all(messages.map(async m => await m.save()))
+    await Promise.all(users.map(async u => u.save()))
+    await Promise.all(channels.map(async c => c.save()))
+    await Promise.all(messages.map(async m => m.save()))
 }
 
 before(async function() {

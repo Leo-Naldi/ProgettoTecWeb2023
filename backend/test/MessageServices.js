@@ -31,6 +31,7 @@ const {
 const messagesCount = 30;
 
 
+
 describe('Message Service Unit Tests', function () {
 
     let all = null;
@@ -44,67 +45,115 @@ describe('Message Service Unit Tests', function () {
         *  NB this breaks the character limits, messages should be added using the service
         */
         this.timeout(7000)
-        handleauth1 = UserDispatch.getNext().handle;
-        //console.log(handleauth1)
-        recievers1 = [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
-        handleauth2 = UserDispatch.getNext().handle;
-        recievers2 = [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
+
+        let auth1 = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+        handleauth1 = auth1.handle;
+        
+        recrecors1 = [
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(), 
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail()
+        ]
+        recievers1 = recrecors1.map(u => u.handle);
+        
+        let auth2 = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+        handleauth2 = auth2.handle;
+        
+        recrecors2 = [
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail()
+        ]
+        recievers2 = recrecors2.map(u => u.handle);
+
+        let accounts = [auth1, auth2].concat(recrecors1).concat(recrecors2);
+
+        let messages = [];
+
         // Random Messages
         for (let i = 0; i < messagesCount; i++) {
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth1,
-                [recievers1[0]],
-            );
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth1,
-                [recievers1[1]],
-            )
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth2,
-                [recievers2[0]],
-                [],
-                dayjs().subtract(2, 'day'),
-                {
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: auth1._id,
+                destUser: [recrecors1[0]._id],
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                }
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: auth1._id,
+                destUser: [recrecors1[1]._id],
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                }
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: auth2._id,
+                destUser: [recrecors2[0]._id],
+                meta: {
+                    created: dayjs().subtract(2, 'day')
+                },
+                reactions: {
                     positive: getRandom(3000),
                     negative: getRandom(20),
                 }
-            )
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth2,
-                [recievers2[1]],
-                [],
-                dayjs().subtract(2, 'month'),
-                {
-                    negative: getRandom(3000),
-                    positive: getRandom(20),
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: auth2._id,
+                destUser: [recrecors2[1]._id],
+                meta: {
+                    created: dayjs().subtract(2, 'month'),
+                },
+                reactions: {
+                    positive: getRandom(3000),
+                    negative: getRandom(20),
                 }
-            )
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth2,
-                [recievers2[1]],
-                [],
-                dayjs().subtract(2, 'year'),
-                {
-                    negative: getRandom(3000),
-                    positive: getRandom(20),
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: auth2._id,
+                destUser: [recrecors2[1]._id],
+                meta: {
+                    created: dayjs().subtract(2, 'year'),
+                },
+                reactions: {
+                    positive: getRandom(3000),
+                    negative: getRandom(20),
                 }
-            )
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth1,
-                [recievers2[1]],
-                [],
-                dayjs().subtract(2, 'year'),
-                {
-                    negative: getRandom(3000),
-                    positive: getRandom(20),
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: auth2._id,
+                destUser: [recrecors2[1]._id],
+                meta: {
+                    created: dayjs().subtract(2, 'year'),
+                },
+                reactions: {
+                    positive: getRandom(3000),
+                    negative: getRandom(20),
                 }
-            )
+            }))
         }
         // Ensure there are messages for every fame configuration and every time frame
         const getPopular = () => ({
@@ -133,72 +182,129 @@ describe('Message Service Unit Tests', function () {
         });
         const periods = ['today', 'week', 'month', 'year'];
         const maxMessages = 20;
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getPopular(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getUnpopular(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getControversial(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getRiskPopular(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getRiskUnpopular(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getRiskControversial(),
-                )
-        }))
+        
+        periods.map(p => {
+            for (let i = 0; i < getRandom(maxMessages) + 1; i++){
+
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: auth1._id,
+                    destUser: recrecors2.map(u => u._id),
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getPopular()
+                }));
+        
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: auth1._id,
+                    destUser: recrecors2.map(u => u._id),
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getUnpopular()
+                }));
+                
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: auth1._id,
+                    destUser: recrecors2.map(u => u._id),
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getControversial()
+                }))
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: auth1._id,
+                    destUser: recrecors2.map(u => u._id),
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getRiskPopular()
+                }))
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: auth1._id,
+                    destUser: recrecors2.map(u => u._id),
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getRiskUnpopular()
+                }))
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: auth1._id,
+                    destUser: recrecors2.map(u => u._id),
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getRiskControversial()
+                }))
+            }
+        })
+
+        const times = [
+            dayjs().startOf('day'),
+            dayjs().startOf('week'),
+            dayjs().startOf('month'),
+            dayjs().startOf('year'),
+        ];
+        
+        times.map(d => {
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: auth1._id,
+                destUser: recrecors2.map(u => u._id),
+                meta: {
+                    created: d.subtract(1, 'hour'),
+                },
+                reactions: {
+                    positive: 20,
+                    negative: 20,
+                }
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: auth1._id,
+                destUser: recrecors2.map(u => u._id),
+                meta: {
+                    created: d.add(1, 'hour'),
+                },
+                reactions: {
+                    positive: 20,
+                    negative: 20,
+                }
+            }))
+        })
+
+        await Promise.all(messages.map(m => m.save()));
+        messages.map(m => {
+            const ind = accounts.findIndex(a => a._id.equals(m.author));
+            
+            accounts[ind].messages.push(m._id);
+        })
+        
+        //console.log(accounts)
+        await Promise.all(accounts.map(async u => u.save()));
 
         all = await Message.find();
         author = await User.findOne({ handle: handleauth1 });

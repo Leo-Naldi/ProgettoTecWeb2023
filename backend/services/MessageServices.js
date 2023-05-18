@@ -125,10 +125,10 @@ class MessageService {
             }, 418);
 
         const destUser = await Promise.all(dest.filter(h => h.charAt(0) === '@').map(async handle => {
-            return await User.findOne({ handle: handle.slice(1) });
+            return User.findOne({ handle: handle.slice(1) });
         }));
         const destChannel = await Promise.all(dest.filter(h => h.charAt(0) === '§').map(async name => {
-            return await Channel.findOne({ name: name });
+            return Channel.findOne({ name: name });
         }));
 
         const message = new Message({ content, author: user._id, destUser, destChannel });
@@ -292,7 +292,7 @@ class MessageService {
             if ((m.destChannel.length === 0) && (m.destUser.length === 0))
                 return m.deleteOne()
 
-            return await m.save();
+            return m.save();
 
         }));
 
