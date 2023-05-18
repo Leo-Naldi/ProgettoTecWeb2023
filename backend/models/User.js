@@ -16,21 +16,18 @@ const CharQuotaSchema = new mongoose.Schema({
     day: {
         type: Number,
         default: config.daily_quote,
-        max: config.daily_quote,
         min: 0,
         required: true,
     },
     week: {
         type: Number,
         default: config.weekly_quote,
-        max: config.weekly_quote,
         min: 0,
         required: true,
     },
     month: {
         type: Number,
         default: config.monthly_quote,
-        max: config.monthly_quote,
         min: 0,
         required: true,
     },
@@ -127,7 +124,7 @@ UserSchema.pre('deleteOne', { document: true }, async function(){
     
     const updates = (await this.constructor.find({ smm: this._id })).map(async u => {
         u.smm = null;
-        await u.save();
+        return u.save();
     })
 
     await Promise.all(updates);
