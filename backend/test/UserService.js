@@ -22,13 +22,42 @@ describe('User Service Unit Tests', function () {
             expect(res.payload).to.be.an('array').that.is.not.empty;
         })
 
-        it('Should only return users with the given handle');
+        it('Should only return users with the given handle', async function(){
+            const user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
 
-        it('Should only return admin users');
+            const res = await UserService.getUsers({ handle: user.handle });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.has.lengthOf(1);
+            expect(res.payload[0]).to.deep.equal(user.toObject());
+        });
+
+        it('Should only return admin users', async function(){
+            const res = await UserService.getUsers({ admin: true });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.is.not.empty;
+            expect(res.payload.every(u => u.admin)).to.be.true;
+        });
 
         ['pro', 'user'].map(t => {
 
-            it(`Should only return accounts of the given type (${t})`);
+            it(`Should only return accounts of the given type (${t})`, async function(){
+                const res = await UserService.getUsers({ accountType: t });
+
+                expect(res).to.be.an('object');
+                expect(res).to.have.property('status');
+                expect(res.status).to.equal(config.default_success_code);
+                expect(res).to.have.property('payload');
+                expect(res.payload).to.be.an('array').that.is.not.empty;
+                expect(res.payload.every(u => u.accountType === t)).to.be.true;
+            });
         })
 
     });
