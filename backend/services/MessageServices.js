@@ -117,26 +117,37 @@ class MessageService {
             if (!user) return Service.rejectResponse({ message: "Invalid user handle" })
         }
 
-        const min_left = Math.min(user.charLeft.day, user.charLeft.week, user.charLeft.month);
+        let min_left = Math.min(...Object.values(user.toObject().charLeft));
 
         if (content.text && (min_left < content.text.length)) 
             return Service.rejectResponse({ 
                 message: `Attempted posting a message of ${content.text.length} characters with ${min_left} characters remaining`, 
             }, 418);
 
-        const destUser = await Promise.all(dest.filter(h => h.charAt(0) === '@').map(async handle => {
-            return User.findOne({ handle: handle.slice(1) });
-        }));
-        const destChannel = await Promise.all(dest.filter(h => h.charAt(0) === '§').map(async name => {
-            return Channel.findOne({ name: name });
-        }));
+        //let destUser = await Promise.all(dest.filter(h => h.charAt(0) === '@').map(async handle => {
+        //    return User.findOne({ handle: handle.slice(1) });
+        //}));
 
-        const message = new Message({ content, author: user._id, destUser, destChannel });
+        let destUser = await User.find()
+            .where('handle')
+            .in(dest.filter(h => h.charAt(0) === '@').map(h => h.slice(1)))
+
+        let destChannel = await Channel.find()
+            .where('name')
+            .in(dest.filter(h => h.charAt(0) === '§').map(h => h.slice(1)))
+
+        //let destChannel = await Promise.all(dest.filter(h => h.charAt(0) === '§').map(async name => {
+        //    return Channel.findOne({ name: name });
+        //}));
+
+        let message = new Message({ content: content, author: user._id, 
+            destUser: destUser.map(u => u._id), 
+            destChannel: destChannel.map(c => c._id) });
 
         let err = null;
 
         try {
-            await message.save();
+            
             user.messages.push(message._id);
             if (content.text) {
                 user.charLeft.day -= content.text.length;
@@ -144,6 +155,7 @@ class MessageService {
                 user.charLeft.month -= content.text.length;
             }
             await user.save();
+            message = await message.save();
         } catch (e) {
             err = e;
         }

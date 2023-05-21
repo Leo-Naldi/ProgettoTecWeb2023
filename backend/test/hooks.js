@@ -183,13 +183,13 @@ async function randomizedSetup(){
     if (!managed.some(v => v)) managed[getRandom(managed.length)] = true;
 
     // make the random users
-    let users = await Promise.all(Array.from({ length: randomUsersCount }).map(async (v, i) => {
+    let users = Array.from({ length: randomUsersCount }).map((v, i) => {
         const u = testUser(-i-1);
 
         if (i < proUsers) u.accountType = 'pro';
 
         return u;
-    }));
+    });
 
     // users[i].smm = users[smms[i]], lets say a user can manage himself cos lazy 
     const smms = shuffle(Array.from({ length: proUsers }, (v, i) => i));
@@ -326,9 +326,9 @@ async function randomizedSetup(){
         }
     }
 
-    await Promise.all(users.map(async u => u.save()))
-    await Promise.all(channels.map(async c => c.save()))
-    await Promise.all(messages.map(async m => m.save()))
+    await Promise.all(users.map(u => u.save()))
+    await Promise.all(channels.map(c => c.save()))
+    await Promise.all(messages.map(m => m.save()))
 }
 
 before(async function() {
@@ -361,19 +361,21 @@ before(async function() {
         admins[i - 1].admin = true;
     }
 
-    await Promise.all(users.map(async (u) => await u.save()))
-    await Promise.all(admins.map(async (u) => await u.save()))
+    await Promise.all(users.map(async (u) => u.save()))
+    await Promise.all(admins.map(async (u) => u.save()))
 
     await randomizedSetup();
     console.log('================= Setup Done =================')
-    console.log('\n\nDB Stats: \n\n');
+    console.log('\n\nDB Stats: \n');
     const ucount = await User.find().count(), 
         ccount = await Channel.find().count(),
         mcount = await Message.find().count();
-
+    
     console.log(`   Users Count: ${ucount}`)
     console.log(`   Channels Count: ${ccount}`)
     console.log(`   Messages Count: ${mcount}\n\n`)
+    console.log('==============================================\n')
+    
 });
 
 // Runs after every other hook and test

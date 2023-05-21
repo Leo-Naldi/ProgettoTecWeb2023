@@ -17,8 +17,11 @@ class AuthService {
         if (!user)
             return Service.rejectResponse({ message: "Handle not found or incorrect password" });
 
-        if (user.password === password)
-                return Service.successResponse({ 
+        if (user.password === password) {
+            user.lastLoggedin = new Date();
+
+            user = await user.save();
+            return Service.successResponse({ 
                 user: user.toObject(),
                 token: makeToken({
                     handle: user.handle,
@@ -26,7 +29,7 @@ class AuthService {
                     admin: user.admin
                 }) 
             });
-        else {
+        } else {
             return Service.rejectResponse({message: 'passwords did not match'})
         }
     }
@@ -45,7 +48,10 @@ class AuthService {
         if (!user)
             return Service.rejectResponse({ message: "Handle not found or incorrect password" });
 
-        if (user.password === password)
+        if (user.password === password) {
+            user.lastLoggedin = new Date();
+
+            user = await user.save();
             return Service.successResponse({
                 user: user.toObject(),
                 token: makeToken({
@@ -54,7 +60,7 @@ class AuthService {
                     admin: user.admin
                 })
             });
-        else {
+        } else {
             return Service.rejectResponse({ message: 'passwords did not match' })
         }
     }
@@ -73,7 +79,10 @@ class AuthService {
         if (!user)
             return Service.rejectResponse({ message: "Handle not found or incorrect password" });
 
-        if (user.password === password)
+        if (user.password === password) {
+            user.lastLoggedin = new Date();
+
+            user = await user.save();
             return Service.successResponse({
                 user: user.toObject(),
                 token: makeToken({
@@ -82,7 +91,7 @@ class AuthService {
                     admin: user.admin
                 })
             });
-        else {
+        } else {
             return Service.rejectResponse({ message: 'passwords did not match' })
         }
     }

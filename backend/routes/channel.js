@@ -15,7 +15,7 @@ ChannelRouter.get('/', passport.authenticate('basicAuth', { session: false }), a
     await Controller.handleRequest(req, res, ChannelServices.getChannels);
 })
 
-// TODO add to api
+
 ChannelRouter.get('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.getChannel);

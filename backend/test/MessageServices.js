@@ -320,7 +320,8 @@ describe('Message Service Unit Tests', function () {
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            expect(res.payload).to.be.an('array')
+            expect(res.payload).to.not.be.empty;
 
             res.payload.map(m => {
                 expect(m).to.be.an('object');
@@ -347,7 +348,8 @@ describe('Message Service Unit Tests', function () {
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            expect(res.payload).to.be.an('array')
+            expect(res.payload).to.not.be.empty;
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
@@ -370,7 +372,8 @@ describe('Message Service Unit Tests', function () {
                         expect(res).to.have.property('status');
                         expect(res.status).to.equal(config.default_success_code);
                         expect(res).to.have.property('payload');
-                        expect(res.payload).to.be.an('array').that.is.not.empty;
+                        expect(res.payload).to.be.an('array')
+                        expect(res.payload).to.not.be.empty;
 
                         res.payload.map(m => {
                             expect(checkFame(m.reactions, fame)).to.be.true;
@@ -390,7 +393,8 @@ describe('Message Service Unit Tests', function () {
                     expect(res).to.have.property('status');
                     expect(res.status).to.equal(config.default_success_code);
                     expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    expect(res.payload).to.be.an('array')
+                    expect(res.payload).to.not.be.empty;
 
                     res.payload.map(m => {
                         expect(checkRiskOfFame(m.reactions, fame)).to.be.true;
@@ -411,7 +415,8 @@ describe('Message Service Unit Tests', function () {
                     expect(res).to.have.property('status');
                     expect(res.status).to.equal(config.default_success_code);
                     expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    expect(res.payload).to.be.an('array')
+                    expect(res.payload).to.not.be.empty;
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrBefore(d, 'second')).to.be.true;
@@ -432,7 +437,8 @@ describe('Message Service Unit Tests', function () {
                     expect(res).to.have.property('status');
                     expect(res.status).to.equal(config.default_success_code);
                     expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    expect(res.payload).to.be.an('array')
+                    expect(res.payload).to.not.be.empty;
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrAfter(d, 'second')).to.be.true;
@@ -450,7 +456,8 @@ describe('Message Service Unit Tests', function () {
                 expect(res).to.have.property('status');
                 expect(res.status).to.equal(config.default_success_code);
                 expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                expect(res.payload).to.be.an('array')
+                expect(res.payload).to.not.be.empty;
 
                 res.payload.map(m => {
                     expect(m.destUser, `Expected ${m.destUser} to include ${handle}`)
@@ -534,7 +541,8 @@ describe('Message Service Unit Tests', function () {
                 expect(res).to.have.property('status');
                 expect(res.status).to.equal(config.default_success_code);
                 expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                expect(res.payload).to.be.an('array');
+                expect(res.payload).to.not.be.empty;
 
                 res.payload.map(m => {
                     expect(m.destChannel, `Expected ${m.destChannel} to include ${name}`)
@@ -948,10 +956,16 @@ describe('Message Service Unit Tests', function () {
                     .map(handle => '@' + handle)
     
                 const u = UserDispatch.getNext();
-                const urecord = await User.findOne({ handle: u.handle });
-    
+                let urecord = await User.findOne({ handle: u.handle });
+                
+                urecord.charLeft = {
+                    day: text.length * 10,
+                    week: text.length * 10,
+                    month: text.length * 10,
+                }
+
                 urecord.charLeft[p] = text.length - 1;
-                await urecord.save()
+                urecord = await urecord.save()
     
                 const res = await MessageService.postUserMessage({
                     reqUser: urecord,
@@ -969,10 +983,11 @@ describe('Message Service Unit Tests', function () {
         }))
 
         it("Should add the message to the user messages list", async function(){
+            
             const u = UserDispatch.getNext();
-            const urecord = await User.findOne({ handle: u.handle });
+            let urecord = await User.findOne({ handle: u.handle }).orFail();
 
-            await urecord.save();
+            //await urecord.save();
 
             let res = null;
 
@@ -997,7 +1012,8 @@ describe('Message Service Unit Tests', function () {
 
                 expect(res).to.be.an('object');
                 expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
+                expect(res.status, res?.error?.message)
+                    .to.equal(config.default_success_code);
                 expect(res).to.have.property('payload');
                 expect(res.payload).to.be.an('object');
                 expect(res.payload).to.have.property('_id');
@@ -1010,16 +1026,83 @@ describe('Message Service Unit Tests', function () {
                     month: 500,
                 }
 
-                await urecord.save()
+                urecord = await urecord.save()
             }
 
-            const u1 = await User.findOne({ handle: u.handle });
+            const u1 = await User.findOne({ handle: u.handle }).orFail();
 
             expect(u1.toObject().messages).to.be.an('array').that.is.not.empty;
 
             added.map(id => {
                 expect(u1.toObject().messages.some(m => m.equals(id))).to.be.true
             })
+        });
+
+        it("Should parse channel destinations correctly", async function(){
+
+            let u = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            let chdests = await Promise.all(Array.from({length: 10}, (v, i) => {
+                const channel = new Channel({
+                    name: UserDispatch.getNextChannelName(),
+                    creator: u._id
+                })
+
+                return channel.save()
+            }));
+
+            chdestsNames = chdests.map(c => '§' + c.name);
+
+            u.joinedChannels.push(...chdests.map(c => c._id));
+
+            u = await u.save();
+
+            const res = await MessageService.postUserMessage({
+                reqUser: u,
+                handle: u.handle,
+                content: { text: lorem.generateWords(5) },
+                dest: chdestsNames,
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object');
+            expect(res.payload).to.have.property('destChannel');
+            expect(res.payload.destChannel).to.be.an('array');
+            expect(res.payload.destChannel).to.not.be.empty;
+            expect(res.payload.destChannel.every(cid => chdests.some(c =>  c._id.equals(cid))))
+                .to.be.true;
+        });
+
+        it("Should parse user destinations correctly", async function () {
+
+            let u = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            let udests = await Promise.all(Array.from({ length: 10 }, (v, i) => {
+                return User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            }));
+
+            udestsHandles = udests.map(c => '@' + c.handle);
+
+            const res = await MessageService.postUserMessage({
+                reqUser: u,
+                handle: u.handle,
+                content: { text: lorem.generateWords(5) },
+                dest: udestsHandles,
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object');
+            expect(res.payload).to.have.property('destUser');
+            expect(res.payload.destUser).to.be.an('array');
+            expect(res.payload.destUser).to.not.be.empty;
+            expect(res.payload.destUser.every(uid => udests.some(u => u._id.equals(uid))))
+                .to.be.true;
         });
     });
 

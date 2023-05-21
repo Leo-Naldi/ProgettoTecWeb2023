@@ -68,7 +68,7 @@ class UserService {
             return a;
         }, {});
 
-        const new_user = new User({
+        let new_user = new User({
             handle: handle,
             email: email,
             password: password,
@@ -80,7 +80,7 @@ class UserService {
         });
 
         try{
-            await new_user.save();
+            new_user = await new_user.save();
         } catch (err) {
             creation_error = err;
         }
@@ -187,7 +187,7 @@ class UserService {
         let err = null;
 
         try {
-            await user.save()
+            user = await user.save()
         } catch(e) {
             err = e;
         }

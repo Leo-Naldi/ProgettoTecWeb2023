@@ -33,7 +33,7 @@ const CharQuotaSchema = new mongoose.Schema({
     },
 }, { _id: false });
 
-// TODO add lastloggedin field;
+
 const UserSchema = mongoose.Schema(
     {
         handle: {
@@ -99,7 +99,7 @@ const UserSchema = mongoose.Schema(
             default: () => ({}),  // To actually trigger the created default 
             required: true,
         },
-        charLeft: {  // TODO definire i pay plan e aggiornare i max di conseguenza
+        charLeft: {  // TODO definire i pay plan 
             type: CharQuotaSchema,
             required: true,
             default: () => ({}),
@@ -110,6 +110,7 @@ const UserSchema = mongoose.Schema(
             type: mongoose.ObjectId, 
             ref: 'User',
         },
+        lastLoggedin: Date,
         // Account per cui fa da smms
     }, {
         statics: {

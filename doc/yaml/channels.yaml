@@ -118,6 +118,34 @@ paths:
           description: Unauthorized operation.
         '409':
           description: Channel name already taken or new owner does not exist.
+    get:
+      tags:
+        - channels
+      description: Create a new channel with the given name.
+      operationId: createChannel
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      responses:
+        '200':
+          description: Request Successful 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Channel not found.
     post:
       tags:
         - channels

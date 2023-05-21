@@ -33,7 +33,9 @@ passport.use( 'basicAuth',
             if (!user) 
                 return done(null, false);
             
-            return done(null, user);
+            user.lastLoggedin = new Date();
+
+            return done(null, await user.save());
         }
     )
 );
@@ -65,8 +67,10 @@ passport.use('adminAuth',
                 return done(err);
             if (!user)
                 return done(null, false);
+            
+            user.lastLoggedin = new Date();
 
-            return done(null, user);
+            return done(null, await user.save());
         }
     )
 );

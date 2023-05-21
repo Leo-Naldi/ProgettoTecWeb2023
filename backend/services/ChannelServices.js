@@ -108,7 +108,7 @@ class ChannelServices{
         let err = null;
 
         try {
-            await channel.save()
+            channel = await channel.save()
             await reqUser.save()
         } catch (e) {
 
@@ -187,7 +187,7 @@ class ChannelServices{
         let err = null;
 
         try {
-            await channel.save()
+            channel = await channel.save();
         } catch (e)
         {
             err = e

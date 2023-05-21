@@ -108,7 +108,8 @@ describe('User Service Unit Tests', function () {
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            expect(res.status, res?.error?.message)
+                .to.equal(config.default_success_code);
             expect(found).to.not.be.null;
             expect(found).to.be.an.instanceOf(User);
             expect(found).to.have.property('handle');
