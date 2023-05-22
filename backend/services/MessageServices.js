@@ -42,17 +42,40 @@ class MessageService {
         }
 
 
-        if (dest) {
-            if (dest.charAt(0) === '@') {
-                const destUser = await User.findOne({ handle: dest.slice(1) }).select('_id');
+        if (dest instanceof Array) {
 
-                query.find({ destUser: destUser._id });
+            if (dest.length) {
 
-            } else if (dest.charAt(0) === '§') {
-                const destChannel = await Channel.findOne({ name: dest.slice(1) }).select('_id');
+                const handles = dest.filter(h => h.charAt(0) === '@');
 
-                query.find({ destChannel: destChannel._id });
+                if (handles.length) {
+
+                    const uids = await User.find().where('handle').in(handles.map(h => h.slice(1)));
+
+                    query.where('destUser').in(uids.map(u => u._id));
+                }
+                
+                const chnames = dest.filter(h => h.charAt(0) === '§');
+
+                if (chnames.length) {
+
+                    const cids = await Channel.find().where('name').in(chnames.map(c => c.slice(1)));
+
+                    query.where('destChannel').in(cids.map(c => c._id));
+                }
+                
             }
+
+            //if (dest.charAt(0) === '@') {
+            //    const destUser = await User.findOne({ handle: dest.slice(1) }).select('_id');
+            //
+            //    query.find({ destUser: destUser._id });
+            //
+            //} else if (dest.charAt(0) === '§') {
+            //    const destChannel = await Channel.findOne({ name: dest.slice(1) }).select('_id');
+            //
+            //    query.find({ destChannel: destChannel._id });
+            //}
         }
 
         query.sort('meta.created')
@@ -75,7 +98,6 @@ class MessageService {
             before, after, dest, page
         })
 
-        
         const res = await query;
 
         return Service.successResponse(res.map(m => m.toObject()));

@@ -448,9 +448,9 @@ describe('Message Service Unit Tests', function () {
 
             it("Should only return messages destined to the given user", async function(){
 
-                const handle = recievers1[0];
+                const handles = recievers1;
 
-                const res = await MessageService.getMessages({ dest: '@' + handle })
+                const res = await MessageService.getMessages({ dest: handles.map(h => '@' + h) })
 
                 expect(res).to.be.an('object');
                 expect(res).to.have.property('status');
@@ -460,13 +460,14 @@ describe('Message Service Unit Tests', function () {
                 expect(res.payload).to.not.be.empty;
 
                 res.payload.map(m => {
-                    expect(m.destUser, `Expected ${m.destUser} to include ${handle}`)
-                        .to.deep.include({ handle: handle });
+                    expect(m.destUser.some(u => handles.findIndex(h => h === u.handle) !== -1))
+                        .to.be.true;
                 })
             });
 
             it("Should only return messages destined to the given channel", async function () {
 
+                // Setup
                 const creator = UserDispatch.getNext();
                 const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
                 const description = lorem.generateParagraphs(1);
@@ -487,11 +488,8 @@ describe('Message Service Unit Tests', function () {
                     description: description,
                 })
 
-                let crec = await Channel.findOne({ name: name });
-                let crec2 = await Channel.findOne({ name: name2 });
-
-                expect(crec).to.not.be.null;
-                expect(crec2).to.not.be.null;
+                let crec = await Channel.findOne({ name: name }).orFail();
+                let crec2 = await Channel.findOne({ name: name2 }).orFail();
 
                 await Promise.all(users.map(async u => {
 
@@ -535,7 +533,7 @@ describe('Message Service Unit Tests', function () {
 
                 expect(bf).to.be.an('array').that.is.not.empty;
 
-                res = await MessageService.getMessages({ dest: '§' + name });
+                res = await MessageService.getMessages({ dest: ['§' + name] });
 
                 expect(res).to.be.an("object");
                 expect(res).to.have.property('status');
@@ -548,10 +546,23 @@ describe('Message Service Unit Tests', function () {
                     expect(m.destChannel, `Expected ${m.destChannel} to include ${name}`)
                         .to.deep.include({ name: name });
                 })
+
+                res = await MessageService.getMessages({ dest: ['§' + name, '§' + name2] });
+
+                expect(res).to.be.an("object");
+                expect(res).to.have.property('status');
+                expect(res.status).to.equal(config.default_success_code);
+                expect(res).to.have.property('payload');
+                expect(res.payload).to.be.an('array');
+                expect(res.payload).to.not.be.empty;
+
+                res.payload.map(m => {
+                    expect(m.destChannel.some(n => (n.name === name) || (n.name === name2)))
+                        .to.be.true;
+                })
             });
 
         });
-
     });
 
     describe("getUserMessages Unit Tests", function(){
@@ -743,15 +754,15 @@ describe('Message Service Unit Tests', function () {
                 }));
             })
 
-            it("Should only return messages destined to the given user", async function () {
+            it("Should only return messages destined to the given users", async function () {
 
-                const handle = recievers1[0];
+                const handles = recievers1;
 
                 let params = new Object();
 
                 expect(author).to.not.be.null;
 
-                params.dest = '@' + handle;
+                params.dest = handles.map(h => '@' + h);
                 params.handle = author.handle;
                 params.reqUser = author;
 
@@ -764,12 +775,13 @@ describe('Message Service Unit Tests', function () {
                 expect(res.payload).to.be.an('array').that.is.not.empty;
 
                 res.payload.map(m => {
-                    expect(m.destUser, `Expected ${m.destUser} to include ${handle}`)
-                        .to.deep.include({ handle: handle });
+                    expect(m.destUser.some(u => handles.find(h => h === u.handle) !== -1))
+                        .to.be.true;
+                    expect(m.author.handle).to.equal(author.handle);
                 })
             });
 
-            it("Should only return messages destined to the given channel", async function () {
+            it("Should only return messages destined to the given channels", async function () {
 
                 const creator = UserDispatch.getNext();
                 const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
@@ -791,11 +803,8 @@ describe('Message Service Unit Tests', function () {
                     description: description,
                 })
 
-                let crec = await Channel.findOne({ name: name });
-                let crec2 = await Channel.findOne({ name: name2 });
-
-                expect(crec).to.not.be.null;
-                expect(crec2).to.not.be.null;
+                let crec = await Channel.findOne({ name: name }).orFail();
+                let crec2 = await Channel.findOne({ name: name2 }).orFail();
 
                 await Promise.all(users.map(async u => {
 
@@ -846,7 +855,7 @@ describe('Message Service Unit Tests', function () {
                 res = await MessageService.getUserMessages({ 
                     reqUser: creatorRec,
                     handle: creator.handle,
-                    dest: '§' + name 
+                    dest: ['§' + name]
                 });
 
                 expect(res).to.be.an("object");
@@ -856,9 +865,26 @@ describe('Message Service Unit Tests', function () {
                 expect(res.payload).to.be.an('array').that.is.not.empty;
 
                 res.payload.map(m => {
-                    expect(m.destChannel, `Expected ${m.destChannel} to include ${name}`)
-                        .to.deep.include({ name: name });
-                    expect(m.author).to.deep.include({ handle: creator.handle })
+                    expect(m.destChannel.some(ch => ch.name === name)).to.be.true;
+                    expect(m.author.handle).to.equal(creator.handle)
+                })
+
+                res = await MessageService.getUserMessages({
+                    reqUser: creatorRec,
+                    handle: creator.handle,
+                    dest: ['§' + name, '§' + name2]
+                });
+
+                expect(res).to.be.an("object");
+                expect(res).to.have.property('status');
+                expect(res.status).to.equal(config.default_success_code);
+                expect(res).to.have.property('payload');
+                expect(res.payload).to.be.an('array').that.is.not.empty;
+
+                res.payload.map(m => {
+                    expect(m.destChannel.some(ch => (ch.name === name) || (ch.name === name2)))
+                        .to.be.true;
+                    expect(m.author.handle).to.equal(creator.handle)
                 })
             });
 
