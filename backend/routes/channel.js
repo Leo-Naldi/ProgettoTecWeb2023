@@ -12,17 +12,22 @@ const ChannelRouter = express.Router();
 
 ChannelRouter.get('/', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
+    // Lists of messages and members is removed from private channels if the user
+    // is not an admin or a member
     await Controller.handleRequest(req, res, ChannelServices.getChannels);
 })
 
 
 ChannelRouter.get('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
+    // Lists of messages and members is removed from private channels if the user
+    // is not an admin or a member
     await Controller.handleRequest(req, res, ChannelServices.getChannel);
 })
 
 ChannelRouter.put('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
+    // TODO if the channel is official the creator should be an admin
     await Controller.handleRequest(req, res, ChannelServices.createChannel);
 })
 

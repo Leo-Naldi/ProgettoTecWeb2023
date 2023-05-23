@@ -41,7 +41,7 @@ const UserSchema = mongoose.Schema(
             trim: true,
             unique: true,
             required: true,
-            minLength: 3
+            minLength: 1
         },
         username: {
             type: String,

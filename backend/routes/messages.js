@@ -7,7 +7,8 @@ const MessageServices = require('../services/MessageServices');
 
 const MessageRouter = express.Router();
 
-MessageRouter.get('/', passport.authenticate('adminAuth', { session: false }), async (req, res) => {
+MessageRouter.get('/', passport.authenticate(['basicUser', 'anonymous']), async (req, res) => {
+    
     await Controller.handleRequest(req, res, MessageServices.getMessages);
 })
 

@@ -30,5 +30,13 @@ async function makeDefaultUsers() {
         email: 'mail@mail.com',
         password: pw,
     });
+    await Promise.all([
+        user1.save(),
+        user2.save(),
+        user3.save(),
+        user4.save(),
+    ])
 
 }
+
+module.exports = { makeDefaultUsers }

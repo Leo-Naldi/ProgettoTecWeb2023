@@ -31,7 +31,9 @@ const ChannelSchema = new mongoose.Schema(
             type: Date,
             required: true,
             default: Date.now,
-        }
+        },
+        // TODO add a waiting list of people who want to join
+        // TODO differentiate between people who can only read and people who can rw
     }
 );
 

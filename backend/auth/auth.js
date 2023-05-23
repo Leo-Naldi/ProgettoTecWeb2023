@@ -3,6 +3,7 @@ const passportJwt = require("passport-jwt");
 const ExtractJwt = passportJwt.ExtractJwt;
 const StrategyJwt = passportJwt.Strategy;
 const mongoose = require('mongoose');
+const AnonymousStrategy = require('passport-anonymous').Strategy;
 
 const User = require('../models/User');
 const config = require('../config/index');
@@ -107,3 +108,5 @@ passport.use('proAuth',
         }
     )
 );
+
+passport.use(new AnonymousStrategy())

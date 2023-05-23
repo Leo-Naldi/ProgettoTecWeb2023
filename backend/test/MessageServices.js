@@ -28,6 +28,15 @@ const {
 } = require('../utils/fameUtils');
 
 
+const {
+    checkErrorCode,
+    checkSuccessCode,
+    checkPayloadArray,
+    checkPayloadObject,
+    checkObject,
+    checkArray,
+} = require('../utils/testingUtils');
+
 const messagesCount = 30;
 
 
@@ -316,24 +325,25 @@ describe('Message Service Unit Tests', function () {
         it("Should return an array of messages", async function(){
             const res = await MessageService.getMessages();
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array')
-            expect(res.payload).to.not.be.empty;
+            checkSuccessCode(res);
+            checkPayloadArray(res);
 
             res.payload.map(m => {
-                expect(m).to.be.an('object');
-                expect(m).to.have.property('content');
-                expect(m).to.have.property('reactions');
-                expect(m).to.have.property('meta');
-                expect(m.meta).to.be.an('object').that.has.property('created');
-                expect(m).to.have.property('author');
-                expect(m).to.have.property('destChannel');
-                expect(m.destChannel).to.be.an('array');
-                expect(m).to.have.property('destUser');
-                expect(m.destChannel).to.be.an('array');
+
+                checkObject(m, [
+                    'content',
+                    'reactions',
+                    'meta',
+                    'author',
+                    'destChannel',
+                    'destUser',
+                ])
+
+                checkObject(m.meta, ['created']);
+                checkArray(m.destChannel, true);
+                checkArray(m.destUser, true);
+                checkObject(m.content);
+                checkObject(m.reactions, ['positive', 'negative']);
             })
         });
 
@@ -342,14 +352,9 @@ describe('Message Service Unit Tests', function () {
             const res = await MessageService.getMessages();
             const num_messages = await Message.find().count();
 
-            //console.log(num_messages);
-
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array')
-            expect(res.payload).to.not.be.empty;
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+            
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
@@ -368,12 +373,8 @@ describe('Message Service Unit Tests', function () {
 
                         const res = await MessageService.getMessages(params);
 
-                        expect(res).to.be.an('object');
-                        expect(res).to.have.property('status');
-                        expect(res.status).to.equal(config.default_success_code);
-                        expect(res).to.have.property('payload');
-                        expect(res.payload).to.be.an('array')
-                        expect(res.payload).to.not.be.empty;
+                        checkSuccessCode(res)
+                        checkPayloadArray(res)
 
                         res.payload.map(m => {
                             expect(checkFame(m.reactions, fame)).to.be.true;
@@ -389,12 +390,8 @@ describe('Message Service Unit Tests', function () {
 
                     const res = await MessageService.getMessages({ risk: fame });
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array')
-                    expect(res.payload).to.not.be.empty;
+                    checkSuccessCode(res)
+                    checkPayloadArray(res)
 
                     res.payload.map(m => {
                         expect(checkRiskOfFame(m.reactions, fame)).to.be.true;
@@ -411,12 +408,8 @@ describe('Message Service Unit Tests', function () {
 
                     const res = await MessageService.getMessages({ before: d.toString() })
                     
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array')
-                    expect(res.payload).to.not.be.empty;
+                    checkSuccessCode(res)
+                    checkPayloadArray(res)
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrBefore(d, 'second')).to.be.true;
@@ -433,12 +426,8 @@ describe('Message Service Unit Tests', function () {
 
                     const res = await MessageService.getMessages({ after: d.toString() })
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array')
-                    expect(res.payload).to.not.be.empty;
+                    checkSuccessCode(res)
+                    checkPayloadArray(res)
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrAfter(d, 'second')).to.be.true;
@@ -452,12 +441,8 @@ describe('Message Service Unit Tests', function () {
 
                 const res = await MessageService.getMessages({ dest: handles.map(h => '@' + h) })
 
-                expect(res).to.be.an('object');
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array')
-                expect(res.payload).to.not.be.empty;
+                checkSuccessCode(res)
+                checkPayloadArray(res)
 
                 res.payload.map(m => {
                     expect(m.destUser.some(u => handles.findIndex(h => h === u.handle) !== -1))
@@ -533,14 +518,11 @@ describe('Message Service Unit Tests', function () {
 
                 expect(bf).to.be.an('array').that.is.not.empty;
 
+                // Test
                 res = await MessageService.getMessages({ dest: ['§' + name] });
 
-                expect(res).to.be.an("object");
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array');
-                expect(res.payload).to.not.be.empty;
+                checkSuccessCode(res)
+                checkPayloadArray(res)
 
                 res.payload.map(m => {
                     expect(m.destChannel, `Expected ${m.destChannel} to include ${name}`)
@@ -549,12 +531,8 @@ describe('Message Service Unit Tests', function () {
 
                 res = await MessageService.getMessages({ dest: ['§' + name, '§' + name2] });
 
-                expect(res).to.be.an("object");
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array');
-                expect(res.payload).to.not.be.empty;
+                checkSuccessCode(res)
+                checkPayloadArray(res)
 
                 res.payload.map(m => {
                     expect(m.destChannel.some(n => (n.name === name) || (n.name === name2)))
@@ -576,11 +554,8 @@ describe('Message Service Unit Tests', function () {
                 reqUser: author
             });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            checkSuccessCode(res)
+            checkPayloadArray(res)
 
             res.payload.map(m => {
                 expect(m.author).to.deep.equal({ handle: author.handle });
@@ -596,23 +571,25 @@ describe('Message Service Unit Tests', function () {
                 reqUser: author
             });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            checkSuccessCode(res)
+            checkPayloadArray(res)
 
             res.payload.map(m => {
-                expect(m).to.be.an('object');
-                expect(m).to.have.property('content');
-                expect(m).to.have.property('reactions');
-                expect(m).to.have.property('meta');
-                expect(m.meta).to.be.an('object').that.has.property('created');
-                expect(m).to.have.property('author');
-                expect(m).to.have.property('destChannel');
-                expect(m.destChannel).to.be.an('array');
-                expect(m).to.have.property('destUser');
-                expect(m.destChannel).to.be.an('array');
+
+                checkObject(m, [
+                    'content',
+                    'reactions',
+                    'meta',
+                    'author',
+                    'destChannel',
+                    'destUser',
+                ])
+
+                checkObject(m.meta, ['created']);
+                checkArray(m.destChannel, true);
+                checkArray(m.destUser, true);
+                checkObject(m.content);
+                checkObject(m.reactions, ['positive', 'negative']);
             })
         });
 
@@ -629,11 +606,9 @@ describe('Message Service Unit Tests', function () {
 
             //console.log(num_messages);
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
@@ -656,11 +631,8 @@ describe('Message Service Unit Tests', function () {
 
                         const res = await MessageService.getUserMessages(params);
 
-                        expect(res).to.be.an('object');
-                        expect(res).to.have.property('status');
-                        expect(res.status).to.equal(config.default_success_code);
-                        expect(res).to.have.property('payload');
-                        expect(res.payload).to.be.an('array').that.is.not.empty;
+                        checkSuccessCode(res);
+                        checkPayloadArray(res);
 
                         res.payload.map(m => {
                             expect(checkFame(m.reactions, fame)).to.be.true;
@@ -684,11 +656,8 @@ describe('Message Service Unit Tests', function () {
 
                     const res = await MessageService.getUserMessages(params);
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res);
+                    checkPayloadArray(res);
 
                     res.payload.map(m => {
                         expect(checkRiskOfFame(m.reactions, fame)).to.be.true;
@@ -713,11 +682,8 @@ describe('Message Service Unit Tests', function () {
 
                     const res = await MessageService.getUserMessages(params);
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res);
+                    checkPayloadArray(res);
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrBefore(d, 'second')).to.be.true;
@@ -742,11 +708,8 @@ describe('Message Service Unit Tests', function () {
 
                     const res = await MessageService.getUserMessages(params);
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res);
+                    checkPayloadArray(res);
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrAfter(d, 'second')).to.be.true;
@@ -768,11 +731,8 @@ describe('Message Service Unit Tests', function () {
 
                 const res = await MessageService.getUserMessages(params);
 
-                expect(res).to.be.an('object');
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                checkSuccessCode(res);
+                checkPayloadArray(res);
 
                 res.payload.map(m => {
                     expect(m.destUser.some(u => handles.find(h => h === u.handle) !== -1))
@@ -858,11 +818,8 @@ describe('Message Service Unit Tests', function () {
                     dest: ['§' + name]
                 });
 
-                expect(res).to.be.an("object");
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                checkSuccessCode(res);
+                checkPayloadArray(res);
 
                 res.payload.map(m => {
                     expect(m.destChannel.some(ch => ch.name === name)).to.be.true;
@@ -875,11 +832,8 @@ describe('Message Service Unit Tests', function () {
                     dest: ['§' + name, '§' + name2]
                 });
 
-                expect(res).to.be.an("object");
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                checkSuccessCode(res);
+                checkPayloadArray(res);
 
                 res.payload.map(m => {
                     expect(m.destChannel.some(ch => (ch.name === name) || (ch.name === name2)))
@@ -909,9 +863,7 @@ describe('Message Service Unit Tests', function () {
                 dest: recievers2.map(h => '@' + h)
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
 
         });
 
@@ -935,9 +887,7 @@ describe('Message Service Unit Tests', function () {
                 dest: recievers2.map(handle => '@' + handle)
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
         });
 
         it("Should adjust the author's remaining characters", async function () {
@@ -962,9 +912,7 @@ describe('Message Service Unit Tests', function () {
                     .map(handle => '@' + handle)
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             const checkUser = await User.findOne({ handle: u.handle });
             expect(checkUser.charLeft.day).to.equal(cur_chars.day - text.length)
@@ -1013,7 +961,13 @@ describe('Message Service Unit Tests', function () {
             const u = UserDispatch.getNext();
             let urecord = await User.findOne({ handle: u.handle }).orFail();
 
-            //await urecord.save();
+            urecord.charLeft = {
+                day: 10000,
+                week: 10000,
+                month: 10000,
+            }
+
+            urecord = await urecord.save();
 
             let res = null;
 
@@ -1036,13 +990,8 @@ describe('Message Service Unit Tests', function () {
                     dest: dests,
                 });
 
-                expect(res).to.be.an('object');
-                expect(res).to.have.property('status');
-                expect(res.status, res?.error?.message)
-                    .to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('object');
-                expect(res.payload).to.have.property('_id');
+                checkSuccessCode(res);
+                checkPayloadObject(res, ['_id']);
 
                 added.push(res.payload._id);
 
@@ -1055,12 +1004,10 @@ describe('Message Service Unit Tests', function () {
                 urecord = await urecord.save()
             }
 
-            const u1 = await User.findOne({ handle: u.handle }).orFail();
-
-            expect(u1.toObject().messages).to.be.an('array').that.is.not.empty;
+            expect(urecord.toObject().messages).to.be.an('array').that.is.not.empty;
 
             added.map(id => {
-                expect(u1.toObject().messages.some(m => m.equals(id))).to.be.true
+                expect(urecord.toObject().messages.some(m => m.equals(id))).to.be.true
             })
         });
 
@@ -1090,14 +1037,12 @@ describe('Message Service Unit Tests', function () {
                 dest: chdestsNames,
             });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object');
-            expect(res.payload).to.have.property('destChannel');
-            expect(res.payload.destChannel).to.be.an('array');
-            expect(res.payload.destChannel).to.not.be.empty;
+
+            checkSuccessCode(res);
+            checkPayloadObject(res, ['destChannel']);
+            //console.log(res.status)
+            checkArray(res.payload.destChannel);
+
             expect(res.payload.destChannel.every(cid => chdests.some(c =>  c._id.equals(cid))))
                 .to.be.true;
         });
@@ -1119,14 +1064,10 @@ describe('Message Service Unit Tests', function () {
                 dest: udestsHandles,
             });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object');
-            expect(res.payload).to.have.property('destUser');
-            expect(res.payload.destUser).to.be.an('array');
-            expect(res.payload.destUser).to.not.be.empty;
+            checkSuccessCode(res);
+            checkPayloadObject(res, ['destUser']);
+            checkArray(res.payload.destUser);
+
             expect(res.payload.destUser.every(uid => udests.some(u => u._id.equals(uid))))
                 .to.be.true;
         });
@@ -1142,9 +1083,7 @@ describe('Message Service Unit Tests', function () {
             u.handle += 'sjjdhbcskfbveurvbsjdc wjnjuejrvn'
             const res = await MessageService.deleteUserMessages({ reqUser: urecord, handle: u.handle });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should succeed if the handle exists", async function(){
@@ -1154,9 +1093,7 @@ describe('Message Service Unit Tests', function () {
 
             const res = await MessageService.deleteUserMessages({ reqUser: urecord, handle: u.handle });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
         });
 
         it('Should actually delete the messages', async function(){
@@ -1185,9 +1122,7 @@ describe('Message Service Unit Tests', function () {
 
             const res = await MessageService.deleteUserMessages({ reqUser: urecord, handle: u.handle });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             await Promise.all(
                 messagesIds.map(async m => {
@@ -1218,9 +1153,7 @@ describe('Message Service Unit Tests', function () {
 
             const res = await MessageService.deleteUserMessages({ reqUser: urecord, handle: u.handle });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             const u1 = await User.findOne({ handle: u.handle });
 
@@ -1236,9 +1169,7 @@ describe('Message Service Unit Tests', function () {
                 id: 'thisisavalididipromise',
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should remove the message", async function(){
@@ -1256,8 +1187,7 @@ describe('Message Service Unit Tests', function () {
 
             const message = await Message.findOne({ author: urecord._id });
 
-            expect(message).to.not.be.null;
-            expect(message).to.be.an('object').that.has.property('_id');
+            checkObject(message, ['_id']);
 
             const id = message._id;
 
@@ -1265,9 +1195,7 @@ describe('Message Service Unit Tests', function () {
                 id: message.toObject()._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             const check = await Message.findById(id);
 
@@ -1297,8 +1225,7 @@ describe('Message Service Unit Tests', function () {
 
             const message = await Message.findOne({ author: urecord._id });
 
-            expect(message).to.not.be.null;
-            expect(message).to.be.an('object').that.has.property('_id');
+            checkObject(message, ['_id']);
             
             const id = message._id;
 
@@ -1306,15 +1233,12 @@ describe('Message Service Unit Tests', function () {
                 id: message.toObject()._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res)
 
             const check = await await User.findOne({ handle: u.handle });
 
-            expect(check).to.not.be.null;
-            expect(check).to.have.property('messages');
-            expect(check.messages).to.be.an('array');
+            checkObject(check, ['messages'])
+            checkArray(check.messages, true);
 
             expect(check.messages.some(mid => mid.equals(id))).to.be.false;
         });
@@ -1333,9 +1257,7 @@ describe('Message Service Unit Tests', function () {
                 }
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should fail if reactions is missing", async function(){
@@ -1356,9 +1278,7 @@ describe('Message Service Unit Tests', function () {
                 id: message._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should fail if reactions is not in the correct form", async function(){
@@ -1405,12 +1325,10 @@ describe('Message Service Unit Tests', function () {
 
                 const res = await MessageService.postMessage({
                     id: message._id,
-                    reactions: malformed
+                    reactions: reaction
                 })
 
-                expect(res).to.be.an('object');
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_client_error);
+                checkErrorCode(res);
             }))
 
         });
@@ -1438,9 +1356,7 @@ describe('Message Service Unit Tests', function () {
                 reactions: reactions,
             })
             
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
             
             urecord = await User.findOne({ handle: u.handle });
             message = await Message.findOne({ author: urecord._id });
@@ -1458,9 +1374,7 @@ describe('Message Service Unit Tests', function () {
                 id: 'supervalidId',
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should actually change the reaction object", async function () {
@@ -1482,9 +1396,7 @@ describe('Message Service Unit Tests', function () {
                 id: message._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res)
 
             urecord = await User.findOne({ handle: u.handle });
             const check = await Message.findOne({ author: urecord._id });
@@ -1526,9 +1438,7 @@ describe('Message Service Unit Tests', function () {
             // check characters are left unchanged
             const res = await MessageService.addPositiveReaction({ id: message._id });
             
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status, res?.error?.message).to.equal(config.default_success_code);
+            checkSuccessCode(res)
 
             user = await User.findOne({ handle: user.handle }).orFail();
             expect(charCopy, 'Changed characters when it shouldnt have')
@@ -1542,9 +1452,7 @@ describe('Message Service Unit Tests', function () {
 
             const res1 = await MessageService.addPositiveReaction({ id: message._id });
 
-            expect(res1).to.be.an('object');
-            expect(res1).to.have.property('status');
-            expect(res1.status).to.equal(config.default_success_code);
+            checkSuccessCode(res1)
 
             user = await User.findOne({ handle: user.handle }).orFail();
 
@@ -1567,9 +1475,7 @@ describe('Message Service Unit Tests', function () {
                 id: 'supervalidId',
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should actually change the reaction object", async function () {
@@ -1591,9 +1497,7 @@ describe('Message Service Unit Tests', function () {
                 id: message._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             urecord = await User.findOne({ handle: u.handle });
             const check = await Message.findOne({ author: urecord._id });
@@ -1635,9 +1539,7 @@ describe('Message Service Unit Tests', function () {
             // check characters are left unchanged
             const res = await MessageService.addNegativeReaction({ id: message._id });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status, res?.error?.message).to.equal(config.default_success_code);
+            checkSuccessCode(res)
 
             user = await User.findOne({ handle: user.handle }).orFail();
             expect(charCopy, 'Changed characters when it shouldnt have')
@@ -1651,9 +1553,7 @@ describe('Message Service Unit Tests', function () {
 
             const res1 = await MessageService.addNegativeReaction({ id: message._id });
 
-            expect(res1).to.be.an('object');
-            expect(res1).to.have.property('status');
-            expect(res1.status).to.equal(config.default_success_code);
+            checkSuccessCode(res1);
 
             user = await User.findOne({ handle: user.handle }).orFail();
 
@@ -1676,9 +1576,7 @@ describe('Message Service Unit Tests', function () {
 
             res = await MessageService.deleteChannelMessages({ name: name });
 
-            expect(res).to.be.an("object");
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
 
         });
 
@@ -1747,15 +1645,13 @@ describe('Message Service Unit Tests', function () {
 
             res = await MessageService.deleteChannelMessages({ name: name });
 
-            expect(res).to.be.an("object");
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             const check = await Message.find({ destChannel: crec._id });
             const check2 = await Message.find({ destChannel: crec2._id });
 
-            expect(check).to.be.an('array').that.is.empty;
-            expect(check2).to.be.an('array').that.is.not.empty;
+            checkArray(check, true); expect(check).to.be.empty;
+            checkArray(check2);
         });
 
         it("Should delete messages whose sole dest was the channell", async function () {
@@ -1811,9 +1707,7 @@ describe('Message Service Unit Tests', function () {
 
             res = await MessageService.deleteChannelMessages({ name: name });
 
-            expect(res).to.be.an("object");
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res)
 
             const check = await Message.find({ destChannel: crec._id });
 

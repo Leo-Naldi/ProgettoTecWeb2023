@@ -52,7 +52,8 @@ const MessageSchema = new mongoose.Schema({
             type: MessageMetaSchema,
             default: () => ({}),
             required: true,
-        }
+        },
+        // TODO add public bool field
     }, {
         virtuals: {
             // Le info ridondanti possono essere messe come virtual

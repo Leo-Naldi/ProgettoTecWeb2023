@@ -17,7 +17,11 @@ class MessageService {
      *  Aux function to build a mongoose query chain query paramenters.
     */
     static async _addQueryChains({ query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest, page = 1 } = { query: Message.find(), page: 1 }) {
+        before, after, dest, page = 1, official=null, mentions=[] } = 
+        { query: Message.find(), page: 1, official: null, mentions: [] }) {
+
+        // TODO mentions => only get messages that mention a channel/keyword/user
+        // TODO official => only get messages destined to official/unofficial channels
 
         if(controversial) {
 
@@ -89,10 +93,20 @@ class MessageService {
         return query;
     }
 
-    static async getMessages({ page=1, popular, unpopular, controversial, risk,
-        before, after, dest }={ page: 1 }) {
+    static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
+        before, after, dest }={ page: 1, reqUser: null }) {
 
         page = Math.max(1, page);  // page numbers can only be >= 1
+
+        // TODO if reqUser and dest are both set remove all private channels the user is not
+        // a member of (unless reqUser is an admin)
+
+
+        // TODO remove private messages not addressed to reqUser, or remove 
+        
+        // TODO if reqUser is null only return messages from public channels
+        // (this will break a lotoftests methinks)
+
         let query = MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
             before, after, dest, page
@@ -114,6 +128,9 @@ class MessageService {
 
         if (handle !== user) {
             user = await User.findOne({ handle: handle });
+
+            // TODO if dest is set remove the private channels reqUser is not
+            // a member of (unless reqUser is the smm)
         }
         let messagesQuery = Message.find({ author: user._id });
 
@@ -235,17 +252,23 @@ class MessageService {
     static async postMessage({ id, reactions=null }) {
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
-
-        if(!reactions) return Service.rejectResponse({ 
-            message: "Must provide a reaction object" });
-
-        const message = await Message.findById(id);
         
-        if (!message) 
-            return Service.rejectResponse({ message: "Id not found" });
+        if (!reactions) return Service.rejectResponse({
+            message: "Must provide a reaction object"
+        });
+        
+        if (!(reactions.hasOwnProperty('positive') && (Number.isInteger(reactions.positive))))
+            return Service.rejectResponse({ message: 'reactions.positive missing or malformed' })
+
+        if (!(reactions.hasOwnProperty('negative') && (Number.isInteger(reactions.negative))))
+            return Service.rejectResponse({ message: 'reactions.negative missing or malformed' })
+    
+        const message = await Message.findById(id);
+
+        if (!message) return Service.rejectResponse({ message: 'Message not found' })
 
         message.reactions = reactions;
-        
+
         let err = null;
         try{
             await message.save();

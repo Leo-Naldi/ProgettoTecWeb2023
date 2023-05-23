@@ -16,26 +16,26 @@ UserRouter.get('/', passport.authenticate('adminAuth', {session: false}), async 
 UserRouter.get('/:handle', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
 
-        // passport.authenticate controlla che il token sia valido e mette
-        // l'utente il propietario del token in req.user
-        if ((!req.user.admin) && (req.params.handle !== req.user.handle)) 
-            res.sendStatus(401)
-        //console.log('Got here pt 2');
+        // TODO a user can only get full ifo about themselves and their managed accounts
 
         await Controller.handleRequest(req, res, UserService.getUser);
     })
 
 UserRouter.put('/:handle', async (req, res) => {
         
-        await Controller.handleRequest(req, res, UserService.createUser);
+
+    await Controller.handleRequest(req, res, UserService.createUser);
 
 })
 
 UserRouter.post('/:handle', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
         
-        if ((req.body?.charLeft) && (!req.user.admin)) 
+        // Some fields can only be modified by an admin
+        if (((req.body?.charLeft) || req.body?.blocked) 
+            && (!req.user.admin)) 
             res.sendStatus(401);
+        // TODO a user can only modify himself or his managed accounts
 
         await Controller.handleRequest(req, res, UserService.writeUser);
     }
@@ -54,12 +54,16 @@ UserRouter.delete('/:handle', passport.authenticate('basicAuth', { session: fals
 UserRouter.post('/:handle/smm', passport.authenticate('proAuth', { session: false }),
     async (req, res) => {
 
+        // TODO a user can only modify his own smm
+
         await Controller.handleRequest(req, res, UserService.changeSmm);
     }
 );
 
 UserRouter.post('/:handle/managed', passport.authenticate('proAuth', { session: false }),
     async (req, res) => {
+
+        // TODO a user can only modify his own managed
 
         await Controller.handleRequest(req, res, UserService.changeManaged);
     }
@@ -80,22 +84,38 @@ UserRouter.post('/:handle/revokeAdmin', passport.authenticate('adminAuth', { ses
 );
 
 UserRouter.get('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    
+    // this way you can see any user's messages
+    
     await Controller.handleRequest(req, res, MessageServices.getUserMessages);
 })
 
 UserRouter.post('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    
+    // TODO posting to a channel can only be done if the user is a write member
+    // TODO add fetched destchannels to postUserMessage
+    
     await Controller.handleRequest(req, res, MessageServices.postUserMessage);
 })
 
 UserRouter.delete('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    
+    // TODO a user can only delete his own squeals
+    
     await Controller.handleRequest(req, res, MessageServices.deleteUserMessages);
 })
 
 UserRouter.delete('/:handle/messages/:id', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    
+    // TODO a user can only delete his own squeals
+    
     await Controller.handleRequest(req, res, MessageServices.deleteMessage);
 })
 
 UserRouter.post('/:handle/messages/:id', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    
+    // TODO a user can only modify his own messages or the ones from the users he manages
+    
     await Controller.handleRequest(req, res, MessageServices.postMessage);
 })
 
