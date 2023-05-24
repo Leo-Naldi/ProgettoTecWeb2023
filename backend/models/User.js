@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const config = require('../config/index');
+const Plan = require('./Plan')
 const Message = require('./Message')
 
 
@@ -104,7 +105,10 @@ const UserSchema = mongoose.Schema(
             required: true,
             default: () => ({}),
         },
-        proPlan: mongoose.ObjectId,  // TODO change quando i piani sono definiti
+        proPlan: {
+            type: mongoose.ObjectId,
+            ref: 'Plan',
+        },
         smm: { 
             // Id del social media manager
             type: mongoose.ObjectId, 

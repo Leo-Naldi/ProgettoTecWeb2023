@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');4
+const mongoose = require('mongoose');
 const dayjs = require('dayjs'); 
 
 const config = require('../config/index');
@@ -53,7 +53,11 @@ const MessageSchema = new mongoose.Schema({
             default: () => ({}),
             required: true,
         },
-        // TODO add public bool field
+        publicMessage: { 
+            type: Boolean, 
+            required: true, 
+            default: true 
+        }
     }, {
         virtuals: {
             // Le info ridondanti possono essere messe come virtual

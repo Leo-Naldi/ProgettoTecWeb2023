@@ -1,4 +1,4 @@
-// TODO add cron jobs to the db to reset the charLeft
+
 const CronJob = require('cron').CronJob;
 const {
     resetDaily,
@@ -12,13 +12,13 @@ const dailyCharsJob = new CronJob(
 );
 
 const weeklyCharsJob = new CronJob(
-    '00 00 00 * * 1', // Monday
-    resetDaily,
+    '00 00 00 * * 1', // Every Monday at midnight
+    resetWeekly,
 );
 
 const monthlyCharsJob = new CronJob(
-    '00 00 00 1 * *', // 1st of every month
-    resetDaily,
+    '00 00 00 1 * *', // 1st of every month at midnight
+    resetMonthly,
 );
 
 module.exports = {

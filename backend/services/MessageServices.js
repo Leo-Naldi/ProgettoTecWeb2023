@@ -17,8 +17,8 @@ class MessageService {
      *  Aux function to build a mongoose query chain query paramenters.
     */
     static async _addQueryChains({ query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest, page = 1, official=null, mentions=[] } = 
-        { query: Message.find(), page: 1, official: null, mentions: [] }) {
+        before, after, dest, page = 1, official=null, mentions=[], reqUser=null } = 
+        { query: Message.find(), page: 1, official: null, mentions: [], reqUser: null }) {
 
         // TODO mentions => only get messages that mention a channel/keyword/user
         // TODO official => only get messages destined to official/unofficial channels
@@ -45,10 +45,10 @@ class MessageService {
             if (after) query.where('meta.created').gte(after);
         }
 
+        // TODO this changed so rewrite tests
 
-        if (dest instanceof Array) {
-
-            if (dest.length) {
+        if (dest?.length) {
+            if (reqUser) {
 
                 const handles = dest.filter(h => h.charAt(0) === '@');
 
@@ -56,31 +56,63 @@ class MessageService {
 
                     const uids = await User.find().where('handle').in(handles.map(h => h.slice(1)));
 
-                    query.where('destUser').in(uids.map(u => u._id));
+                    // Public messages or messages where the user whas also a dest
+                    query.and({
+                        $or: [
+                            { publicMessage: true },
+                            { destUser: reqUser._id },    
+                        ],
+                        destUser: { $in: uids.map(u => u._id)},
+                    })
+                    //query.where('destUser').in(uids.map(u => u._id));
                 }
-                
+
                 const chnames = dest.filter(h => h.charAt(0) === '§');
 
                 if (chnames.length) {
 
-                    const cids = await Channel.find().where('name').in(chnames.map(c => c.slice(1)));
+                    let cids = await Channel.find().where('name').in(chnames.map(c => c.slice(1)));
 
+                    if (!reqUser.admin) {
+
+                        cids = cids.filter(c => {
+
+                            if (!c.publicChannel) {
+                                return c.members.some(id => reqUser._id.equals(id));
+                            }
+
+                            return true;
+                        })
+                    }
                     query.where('destChannel').in(cids.map(c => c._id));
                 }
-                
-            }
 
-            //if (dest.charAt(0) === '@') {
-            //    const destUser = await User.findOne({ handle: dest.slice(1) }).select('_id');
-            //
-            //    query.find({ destUser: destUser._id });
-            //
-            //} else if (dest.charAt(0) === '§') {
-            //    const destChannel = await Channel.findOne({ name: dest.slice(1) }).select('_id');
-            //
-            //    query.find({ destChannel: destChannel._id });
-            //}
+
+            } else {
+
+                // Non logged users can only see public channels
+                const chnames = dest.filter(h => h.charAt(0) === '§');
+
+                if (chnames.length) {
+
+                    const channels = await Channel.find({ name: { $in: chnames } })
+                    query.and([
+                        { publicChannel: true },
+                        {
+                            destChannel: {
+                                $in: channels.map(c => c._id)
+                            }
+                        }
+                    ]);
+                } else {
+
+                    const publicChannels = await Channel.find({ publicChannel: true });
+                    query.find({ destChannel: publicChannels.map(c => c._id) })
+                }
+            }
         }
+
+        
 
         query.sort('meta.created')
             .select('-__v')
@@ -98,18 +130,18 @@ class MessageService {
 
         page = Math.max(1, page);  // page numbers can only be >= 1
 
+       
         // TODO if reqUser and dest are both set remove all private channels the user is not
         // a member of (unless reqUser is an admin)
 
-
-        // TODO remove private messages not addressed to reqUser, or remove 
+        // TODO remove private messages not addressed to reqUser 
         
         // TODO if reqUser is null only return messages from public channels
         // (this will break a lotoftests methinks)
 
         let query = MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
-            before, after, dest, page
+            before, after, dest, page, reqUser,
         })
 
         const res = await query;
@@ -146,7 +178,7 @@ class MessageService {
         
     }
 
-    static async postUserMessage({ reqUser, handle, content, dest=[] }) {
+    static async postUserMessage({ reqUser, handle, content, dest=[], publicMessage=true }) {
         if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
         let user = reqUser;
@@ -163,10 +195,6 @@ class MessageService {
                 message: `Attempted posting a message of ${content.text.length} characters with ${min_left} characters remaining`, 
             }, 418);
 
-        //let destUser = await Promise.all(dest.filter(h => h.charAt(0) === '@').map(async handle => {
-        //    return User.findOne({ handle: handle.slice(1) });
-        //}));
-
         let destUser = await User.find()
             .where('handle')
             .in(dest.filter(h => h.charAt(0) === '@').map(h => h.slice(1)))
@@ -175,13 +203,12 @@ class MessageService {
             .where('name')
             .in(dest.filter(h => h.charAt(0) === '§').map(h => h.slice(1)))
 
-        //let destChannel = await Promise.all(dest.filter(h => h.charAt(0) === '§').map(async name => {
-        //    return Channel.findOne({ name: name });
-        //}));
 
         let message = new Message({ content: content, author: user._id, 
             destUser: destUser.map(u => u._id), 
-            destChannel: destChannel.map(c => c._id) });
+            destChannel: destChannel.map(c => c._id),
+            publicMessage: publicMessage,
+        });
 
         let err = null;
 

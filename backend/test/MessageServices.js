@@ -48,6 +48,7 @@ describe('Message Service Unit Tests', function () {
     let new_author =  null;
     let handleauth1 = null, handleauth2 = null;
     let recievers1 = [], recievers2 = [];
+    let admin = null, official_channels = null;
 
     before(async function () {
         /*
@@ -315,14 +316,67 @@ describe('Message Service Unit Tests', function () {
         //console.log(accounts)
         await Promise.all(accounts.map(async u => u.save()));
 
+        author = await User.findOne({ handle: handleauth1 }).orFail();
+        new_author = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+        const ad = await User.findOne({ handle: UserDispatch.getNextAdmin().handle }).orFail();
+
+        official_channels = [
+            new Channel({
+                name: UserDispatch.getNextChannelName().toUpperCase(),
+                description: lorem.generateParagraphs(1),
+                creator: ad._id,
+                members: [ad._id],
+                official: true,
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName().toUpperCase(),
+                description: lorem.generateParagraphs(1),
+                creator: ad._id,
+                members: [ad._id],
+                official: true,
+            }), 
+            new Channel({
+                name: UserDispatch.getNextChannelName().toUpperCase(),
+                description: lorem.generateParagraphs(1),
+                creator: ad._id,
+                members: [ad._id],
+                official: true,
+            })
+        ]
+
+        let official_messages = []
+        for (let i = 0; i < 20; i++) {
+            official_messages.push(
+                new Message({
+                    content: {
+                        text: lorem.generateSentences(3),
+                    },
+                    author: ad._id, 
+                    destChannel: [official_channels[i % 3]],
+                })
+            )
+
+            official_channels[i % 3].messages.push(
+                official_messages.at(-1)._id
+            )
+
+            ad.messages.push(official_messages.at(-1)._id)
+        }
+
+        official_channels = await Promise.all(official_channels.map(c => c.save()));
+        await Promise.all(official_messages.map(m => m.save()));
+        admin = await ad.save();
+
         all = await Message.find();
-        author = await User.findOne({ handle: handleauth1 });
-        new_author = await User.findOne({ handle: UserDispatch.getNext().handle });
     })
 
-    describe("getMessages Unit Tests", function(){
+    describe.only("getMessages Unit Tests", function(){
 
         it("Should return an array of messages", async function(){
+
+            const ad = await User.findOne({ handle: UserDispatch.getNextAdmin().handle }).orFail();
+
             const res = await MessageService.getMessages();
 
             checkSuccessCode(res);
@@ -370,6 +424,7 @@ describe('Message Service Unit Tests', function () {
                         let params = new Object();
 
                         params[fame] = timeframe;
+                        params.reqUser = author;
 
                         const res = await MessageService.getMessages(params);
 
@@ -406,7 +461,10 @@ describe('Message Service Unit Tests', function () {
                     dayjs().startOf('year'),
                 ].map(async d => {
 
-                    const res = await MessageService.getMessages({ before: d.toString() })
+                    const res = await MessageService.getMessages({ 
+                        before: d.toString(),
+                        reqUser: author,
+                    })
                     
                     checkSuccessCode(res)
                     checkPayloadArray(res)
@@ -424,7 +482,10 @@ describe('Message Service Unit Tests', function () {
                     dayjs().startOf('year'),
                 ].map(async d => {
 
-                    const res = await MessageService.getMessages({ after: d.toString() })
+                    const res = await MessageService.getMessages({ 
+                        after: d.toString(),
+                        reqUser: author,
+                    })
 
                     checkSuccessCode(res)
                     checkPayloadArray(res)
@@ -439,13 +500,16 @@ describe('Message Service Unit Tests', function () {
 
                 const handles = recievers1;
 
-                const res = await MessageService.getMessages({ dest: handles.map(h => '@' + h) })
+                const res = await MessageService.getMessages({
+                    reqUser: author,
+                    dest: handles.map(h => '@' + h) 
+                })
 
                 checkSuccessCode(res)
                 checkPayloadArray(res)
 
                 res.payload.map(m => {
-                    expect(m.destUser.some(u => handles.findIndex(h => h === u.handle) !== -1))
+                    expect(m.destUser.some(u => handles.find(h => h === u.handle)))
                         .to.be.true;
                 })
             });
@@ -518,8 +582,14 @@ describe('Message Service Unit Tests', function () {
 
                 expect(bf).to.be.an('array').that.is.not.empty;
 
+                // channels used are all public so
+                const rnad = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
                 // Test
-                res = await MessageService.getMessages({ dest: ['§' + name] });
+                res = await MessageService.getMessages({ 
+                    reqUser: rnad,
+                    dest: ['§' + name] 
+                });
 
                 checkSuccessCode(res)
                 checkPayloadArray(res)
@@ -529,7 +599,7 @@ describe('Message Service Unit Tests', function () {
                         .to.deep.include({ name: name });
                 })
 
-                res = await MessageService.getMessages({ dest: ['§' + name, '§' + name2] });
+                res = await MessageService.getMessages({ reqUser: rnad, dest: ['§' + name, '§' + name2] });
 
                 checkSuccessCode(res)
                 checkPayloadArray(res)
@@ -539,6 +609,10 @@ describe('Message Service Unit Tests', function () {
                         .to.be.true;
                 })
             });
+
+            it("Should not return private messages not addressed to the user");
+
+            it('Should not return messages from a private channel the user is not a member of');
 
         });
     });
