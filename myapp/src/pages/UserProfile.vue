@@ -1,12 +1,12 @@
 <template>
   <q-page padding>
     <!-- content -->
-    This is the user {{store.user.handle}}'s profile page.
+    This is the user {{ store.user.handle }}'s profile page.
   </q-page>
 </template>
 
 <script>
-import { useUserStore } from 'stores/user';
+import { useUserStore } from "stores/user";
 
 export default {
   setup() {

@@ -13,6 +13,7 @@
     "build": "quasar build"
   },
   "dependencies": {
+    "@fawmi/vue-google-maps": "^0.9.79",
     "@quasar/extras": "^1.0.0",
     "axios": "^1.2.1",
     "core-js": "^3.6.5",

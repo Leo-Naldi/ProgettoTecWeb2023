@@ -1,5 +1,5 @@
 <template>
-    <div class="demo form-bg">
+  <div class="demo form-bg">
     <q-card class="form-card">
       <q-card-section>
         <div class="text-h6" align="center">Reset your password</div>
@@ -7,7 +7,6 @@
 
       <q-card-section>
         <q-form @submit="resetPassword" class="q-gutter-md">
-
           <q-card-actions align="center">
             <q-btn
               label="Reset"
@@ -102,7 +101,7 @@ export default {
     };
   },
   methods: {
-    resetPassword(){
+    resetPassword() {
       var getToken = this.store.getUserToken;
       api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
       var getUser = this.store.getUser.handle;
@@ -118,7 +117,7 @@ export default {
         .catch((err) => {
           console.log(err);
         });
-      alert("You've just reset your password to 123456!")
+      alert("You've just reset your password to 123456!");
     },
     verifyPassword() {
       var getToken = this.store.getUserToken;
@@ -132,8 +131,7 @@ export default {
             res = this.form.oldPassword === response.data.password;
           }
         })
-        .catch((err) => {
-        });
+        .catch((err) => {});
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           resolve(res || "password not correct!");

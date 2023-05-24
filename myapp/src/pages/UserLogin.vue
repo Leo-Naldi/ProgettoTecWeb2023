@@ -2,8 +2,6 @@
   <div class="demo form-bg">
     <div class="logo">
       <p style="font-size: 35px"><strong>logo</strong></p>
-
-
     </div>
 
     <q-card class="form-card">
@@ -13,27 +11,59 @@
 
       <q-card-section>
         <q-form @submit="login" class="q-gutter-md">
-          <q-input filled v-model="form.handle" label="account" lazy-rules icon="person"
-            :rules="[(val) => (val && val.length > 0) || 'please input username']">
+          <q-input
+            filled
+            v-model="form.handle"
+            label="account"
+            lazy-rules
+            icon="person"
+            :rules="[
+              (val) => (val && val.length > 0) || 'please input username',
+            ]"
+          >
             <template v-slot:before>
               <q-icon name="person" class="on-left" />
             </template>
           </q-input>
 
-          <q-input filled v-model="form.password" label="password" lazy-rules
-            :rules="[(val) => (val && val.length > 0) || 'please input password']">
+          <q-input
+            filled
+            v-model="form.password"
+            label="password"
+            lazy-rules
+            :rules="[
+              (val) => (val && val.length > 0) || 'please input password',
+            ]"
+          >
             <template v-slot:before>
               <q-icon name="lock" class="on-left" />
             </template>
           </q-input>
           <q-card-actions align="center">
-            <q-btn label="Login" type="submit" color="primary" size="md" style="width: 100px" />
+            <q-btn
+              label="Login"
+              type="submit"
+              color="primary"
+              size="md"
+              style="width: 100px"
+            />
           </q-card-actions>
 
           <q-card-actions align="between">
-            <q-btn label="Register" to="/register" @click="onRegistere" color="grey-5" flat />
+            <q-btn
+              label="Register"
+              to="/register"
+              @click="onRegistere"
+              color="grey-5"
+              flat
+            />
 
-            <q-btn label="Forget password?" @click="onForget" color="grey-5" flat />
+            <q-btn
+              label="Forget password?"
+              @click="onForget"
+              color="grey-5"
+              flat
+            />
           </q-card-actions>
         </q-form>
       </q-card-section>
@@ -42,25 +72,22 @@
 </template>
 
 <script>
-
 import { useUserStore } from "stores/user";
 
-
-
 export default {
-
   data() {
     return {
-      store:useUserStore(),
+      store: useUserStore(),
       form: {
-        handle: '',
-        password: ''
+        handle: "",
+        password: "",
       },
-    }
+    };
   },
   methods: {
     login() {
-      api.post('auth/login', this.form)
+      api
+        .post("auth/login", this.form)
         .then((response) => {
           if (response.status === 200) {
             // console.log(response.data);
@@ -73,30 +100,28 @@ export default {
             this.store.setUser(response.data.user);
             this.store.setUserToken(response.data.token);
             // console.log(this.store.getUserToken);
-            
+
             // console.log(response.data.user);
             localStorage.setItem("token", token);
             this.$router.push("/");
-
           }
         })
         .catch((err) => {
-          if (err.response.status === 409){
-            this.$q.notify({ color: 'red', message: 'name or password not correct' }); 
+          if (err.response.status === 409) {
+            this.$q.notify({
+              color: "red",
+              message: "name or password not correct",
+            });
           }
           // console.log(err);
-        })
+        });
     },
-  }
-}
-
-
+  },
+};
 </script>
 
 <script setup>
-
-import { api } from 'boot/axios'
-
+import { api } from "boot/axios";
 
 const onRegistere = () => {
   console.log("registere");

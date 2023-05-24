@@ -10,10 +10,22 @@ const ReactionSchema = new mongoose.Schema({
     negative: { type: Number, default: 0, min: 0 },
 }, { _id: false });
 
+const pointSchema = new mongoose.Schema({
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true
+    },
+    coordinates: {
+      type: [Number],
+      required: true
+    }
+  });
+
 const MessageMetaSchema = new mongoose.Schema({
     created: { type: Date, default: Date.now },
     lastModified: { type: Date, default: Date.now },
-    geo: {},  // any, TODO una volta che e' definito
+    geo: { type: pointSchema},  // any, TODO una volta che e' definito
 }, { _id: false });
 
 const ContentSchema = new mongoose.Schema({

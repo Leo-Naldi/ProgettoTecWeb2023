@@ -19,6 +19,33 @@
                 />
               </q-avatar>
             </template>
+            <q-img
+              :src="this.newQweetImage"
+              v-if="this.newQweetImage"
+              spinner-color="white"
+              style="height: 140px; max-width: 150px"
+            />
+            <GMapMap
+              v-if="this.coord"
+              :center="this.center"
+              :zoom="18"
+              map-type-id="satellite"
+              style="width: 300px; height: 100px"
+            >
+              <GMapMarker
+                :key="marker.id"
+                v-for="marker in this.markers"
+                :position="marker.position"
+              />
+            </GMapMap>
+            <q-btn
+              flat
+              round
+              color="grey"
+              icon="fas fa-map-marker-alt"
+              size="sm"
+              @click="getGeo()"
+            />
           </q-input>
         </div>
         <div class="col col-shrink">
@@ -61,9 +88,9 @@
                 class="text-subtitle1 flex justify-between items-start"
               >
                 <div>
-                  <strong>{{store ? store.user.username: ''}}</strong>
+                  <strong>{{ store ? store.user.username : "" }}</strong>
                   <span class="text-grey-7 text-caption q-ml-sm"
-                    >@{{store ? store.user.handle: ''}}</span
+                    >@{{ store ? store.user.handle : "" }}</span
                   >
                   <q-item-label caption>
                     <!-- <span class="text-grey-7"
@@ -76,6 +103,36 @@
               <q-item-label class="qweet-content text-body1">{{
                 qweet.content.text
               }}</q-item-label>
+
+              <q-img
+                :src="qweet.content.image"
+                v-if="qweet.content.image"
+                spinner-color="white"
+                style="height: 140px; max-width: 150px"
+              />
+              <GMapMap
+                v-if="
+                  qweet.meta &&
+                  qweet.meta.geo &&
+                  qweet.meta.geo.coordinates[0] != null &&
+                  qweet.meta.geo.coordinates[0] != -1 &&
+                  qweet.meta.geo.coordinates[1] != -1
+                "
+                :center="{
+                  lat: qweet.meta.geo.coordinates[0],
+                  lng: qweet.meta.geo.coordinates[1],
+                }"
+                :zoom="15"
+                map-type-id="terrain"
+                style="width: 500px; height: 300px"
+              >
+                <GMapMarker
+                  :position="{
+                    lat: qweet.meta.geo.coordinates[0],
+                    lng: qweet.meta.geo.coordinates[1],
+                  }"
+                />
+              </GMapMap>
               <div class="qweet-icons row justify-between q-mt-sm">
                 <!-- <q-btn
                   flat
@@ -129,25 +186,11 @@ export default {
     return {
       store: useUserStore(),
       newQweetContent: "",
-      qweets: [
-        // {
-        //   id: "ID1",
-        //   content: "dsgadgasdgsdgsdagd",
-        //   date: 1611653238221,
-        //   liked:false,
-        //   disliked:true,
-        //   //TODO:
-        // },
-        // {
-        //   id: "ID2",
-        //   content:
-        //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed feugiat justo id viverra consequat. Integer feugiat lorem faucibus est ornare scelerisque. Donec tempus, nunc vitae semper sagittis, odio magna semper ipsum, et laoreet sapien mauris vitae arcu.",
-        //   date: 1611653252444,
-        //   liked:true,
-        //   disliked:false,
-        //   //TODO:
-        // },
-      ],
+      newQweetImage: "",
+      coord: null, //[-122.5, 37.7]
+      center: {}, //{lat: 51.093048, lng: 6.842120}
+      markers: [],
+      qweets: [],
       submitting: false,
     };
   },
@@ -165,11 +208,28 @@ export default {
       // };
       // this.qweets.unshift(newTweet);
       console.log("add new qweet");
-      let newQweet = {
-        content: {
-          text: this.newQweetContent,
-        },
-      };
+      let newQweet = {};
+      if (this.coord) {
+        newQweet = {
+          content: {
+            text: this.newQweetContent,
+            image: this.newQweetImage,
+          },
+          meta: {
+            geo: {
+              type: "Point",
+              coordinates: this.coord,
+            },
+          },
+        };
+      } else {
+        newQweet = {
+          content: {
+            text: this.newQweetContent,
+            image: this.newQweetImage,
+          },
+        };
+      }
       var getToken = this.store.getUserToken;
       api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
       var getUser = this.store.getUser.handle;
@@ -179,7 +239,11 @@ export default {
           if (response.status === 200) {
             console.log("qweet added successfully!");
             this.qweets.unshift(newQweet);
-            this.newQweetContent = " ";
+            this.newQweetContent = "";
+            this.newQweetImage = "";
+            this.coord = null;
+            this.center = {};
+            this.markers = [];
           }
         })
         .catch((err) => {
@@ -206,12 +270,37 @@ export default {
               (qweet) => qweet._id === toDelete
             );
             this.qweets.splice(index, 1);
-            this.newQweetContent = " ";
+            this.newQweetContent = "";
+            this.newQweetImage = "";
+            this.coord = null;
+            this.center = {};
+            this.markers = [];
           }
         })
         .catch((err) => {
           console.log(err);
         });
+    },
+    addMarker() {
+      if (this.coord) {
+        const marker = {
+          lat: this.coord[0],
+          lng: this.coord[1],
+        };
+        this.markers.push({ position: marker });
+        this.center = marker;
+      }
+    },
+    getGeo() {
+      navigator.geolocation.getCurrentPosition((position) => {
+        this.center = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        this.coord = [position.coords.latitude, position.coords.longitude];
+        this.addMarker();
+      });
+
     },
     toggleDisliked(qweet) {
       console.log("qweet disliked");
@@ -221,8 +310,23 @@ export default {
       let index = this.qweets.find((qweet) => qweet.date === dateToDelete);
       index.liked = true;
 
-      console.log(this.qweets);
       console.log("qweet liked");
+    },
+    uploadImage(file) {
+      var formData = new FormData();
+      formData.append("files", file);
+      var getUser = this.store.getUser.handle;
+      api
+        .post("image/upload/" + getUser, formData)
+        .then((response) => {
+          if (response.status === 200) {
+            this.newQweetImage =
+              "http://localhost:8000/" + getUser + "/" + response.data;
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     },
   },
   mounted() {
@@ -235,32 +339,47 @@ export default {
       .get("user/" + getUser + "/messages")
       .then((response) => {
         if (response.status === 200) {
-          // console.log(response.data);
           qweet_tmp = response.data;
-          // this.qweets = qweet_tmp;
-          // console.log(this.qweets)
 
           qweet_tmp.forEach(function (element) {
             if (!element.content) {
               let tt = element;
-              tt.content = { text: "" };
+              tt.content = { text: "", image: "" };
+              tt.meta.geo = { types: "Point", coordinates: [] };
               tmp.unshift(tt);
             } else {
               tmp.unshift(element);
             }
-            // console.log(element);
           });
-
-          //   console.log(response.data[9].reactions.positive);
-          // console.log(response.data[9].reactions.negative);
-          // console.log(response.data[9].meta.created);
-          // var t1 = response.data[0].content? response.data[0].content : ""
-          // console.log(t1);
         }
       })
       .catch((err) => {
         console.log(err);
       });
+    //TODO:listen only on form
+    document.addEventListener("paste", async (e) => {
+      e.preventDefault();
+      const clipboardItems =
+        typeof navigator?.clipboard?.read === "function"
+          ? await navigator.clipboard.read()
+          : e.clipboardData.files;
+
+      for (const clipboardItem of clipboardItems) {
+        let blob;
+        if (clipboardItem.type?.startsWith("image/")) {
+          blob = clipboardItem;
+          this.uploadImage(blob);
+        } else {
+          const imageTypes = clipboardItem.types?.filter((type) =>
+            type.startsWith("image/")
+          );
+          for (const imageType of imageTypes) {
+            blob = await clipboardItem.getType(imageType);
+            this.uploadImage(blob);
+          }
+        }
+      }
+    });
   },
   filters: {
     relativeDate(value) {

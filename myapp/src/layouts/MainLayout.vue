@@ -62,7 +62,9 @@
                   class="flex items-center"
                 >
                   <q-icon :name="item.icon" class="q-mr-sm" />
-                  <q-item-section @click="gotoPage(item)">{{ item.lable }}</q-item-section>
+                  <q-item-section @click="gotoPage(item)">{{
+                    item.lable
+                  }}</q-item-section>
                 </q-item>
               </q-list>
             </q-menu>
@@ -93,9 +95,11 @@
           <q-item-section>
             <!-- TODO:if user have setted a username then show username, default show user handle-->
             <q-item-label class="text-weight-medium">{{
-              store ? store.user.handle: ''
+              store ? store.user.handle : ""
             }}</q-item-label>
-            <q-item-label caption>@{{ store? store.user.handle:'' }}</q-item-label>
+            <q-item-label caption
+              >@{{ store ? store.user.handle : "" }}</q-item-label
+            >
           </q-item-section>
           <q-item-section side top>
             <q-item-label caption
@@ -110,11 +114,15 @@
           <q-menu v-model="showing">
             <q-list style="min-width: 100px">
               <q-item clickable v-close-popup to="/login">
-                <q-item-section>Add an existing account (for now: login)</q-item-section>
+                <q-item-section
+                  >Add an existing account (for now: login)</q-item-section
+                >
               </q-item>
               <q-item clickable v-close-popup @click="logout">
                 <q-item-section
-                  >Logout from @{{ store ? store.user.handle:'' }}</q-item-section
+                  >Logout from @{{
+                    store ? store.user.handle : ""
+                  }}</q-item-section
                 >
               </q-item>
             </q-list>
@@ -172,7 +180,6 @@
         </q-list>
         <PageTrend />
       </div>
-
     </q-drawer>
 
     <q-page-container>
@@ -194,17 +201,16 @@ export default {
       right: false,
     };
   },
-  methods:{
-    logout(){
-      if (localStorage.getItem("token") != null){
-        localStorage.clear(),
-        window.location.reload()
+  methods: {
+    logout() {
+      if (localStorage.getItem("token") != null) {
+        localStorage.clear(), window.location.reload();
       }
     },
     gotoPage(item) {
-      this.$router.push({name: item.address})
-    }
-  }
+      this.$router.push({ name: item.address });
+    },
+  },
 };
 </script>
 
@@ -215,22 +221,22 @@ const moreList = reactive([
   {
     lable: "Topics",
     icon: "assistant_photo",
-    address: ''
+    address: "",
   },
   {
     lable: "Twitter for Professionals",
     icon: "rocket_launch",
-    address: ''
+    address: "",
   },
   {
     lable: "Analytics",
     icon: "equalizer",
-    address: ''
+    address: "",
   },
   {
     lable: "Settings",
     icon: "verified_user",
-    address: 'Settings'
+    address: "Settings",
     // only this page is clickable
   },
 ]);

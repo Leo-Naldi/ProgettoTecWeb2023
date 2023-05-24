@@ -52,7 +52,6 @@
 
       <q-card-section>
         <q-form @submit="deleteAccount" class="q-gutter-md">
-
           <q-card-actions align="center">
             <q-btn
               label="Delete"
@@ -90,7 +89,6 @@ export default {
   },
   methods: {
     refreshWin() {
-      
       this.$router.push("/");
 
       location.reload();
@@ -113,7 +111,6 @@ export default {
         .catch((err) => {
           console.log(err);
         });
-
     },
     getSubmit() {
       if (this.form.username === "") {

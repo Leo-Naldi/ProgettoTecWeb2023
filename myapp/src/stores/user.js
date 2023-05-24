@@ -4,13 +4,13 @@ export const useUserStore = defineStore("user", {
   state: () => ({
     isAuthenticated: false,
     user: {},
-    userToken : '',
+    userToken: "",
   }),
 
   getters: {
     getAuthenticated: (state) => state.isAuthenticated,
     getUser: (state) => state.user,
-    getUserToken: (state) =>state.userToken,
+    getUserToken: (state) => state.userToken,
   },
 
   actions: {
@@ -32,7 +32,7 @@ export const useUserStore = defineStore("user", {
       if (userToken) {
         this.userToken = userToken;
       } else {
-        this.userToken = '';
+        this.userToken = "";
       }
     },
   },

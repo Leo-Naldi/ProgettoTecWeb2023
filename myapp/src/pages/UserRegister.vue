@@ -111,8 +111,11 @@ export default {
           }
         })
         .catch((err) => {
-          if (err.response.status === 409){
-            this.$q.notify({ color: 'red', message: 'username has already registered!' }); 
+          if (err.response.status === 409) {
+            this.$q.notify({
+              color: "red",
+              message: "username has already registered!",
+            });
           }
           // console.log(err);
         });

@@ -35,13 +35,18 @@ export default route(function (/* { store, ssrContext } */) {
     ),
   });
 
-
   Router.beforeEach((to, from, next) => {
     // switch only when token exists
     // // console.log(from);
     let token = localStorage.getItem("token");
     // //console.log(token);
-    if (token || to.path === "/" || to.path === "/about" || to.path === "/login" || to.path==="/register") {
+    if (
+      token ||
+      to.path === "/" ||
+      to.path === "/about" ||
+      to.path === "/login" ||
+      to.path === "/register"
+    ) {
       next();
       // console.log(token);
     } else {
