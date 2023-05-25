@@ -17,8 +17,8 @@ class MessageService {
      *  Aux function to build a mongoose query chain query paramenters.
     */
     static async _addQueryChains({ query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest, page = 1, official=null, mentions=[], reqUser=null } = 
-        { query: Message.find(), page: 1, official: null, mentions: [], reqUser: null }) {
+        before, after, dest, page = 1, official=null, mentions=[], reqUser=null, author=null } = 
+        { query: Message.find(), page: 1, official: null, mentions: [], reqUser: null, author: null }) {
 
         // TODO mentions => only get messages that mention a channel/keyword/user
         // TODO official => only get messages destined to official/unofficial channels
@@ -40,79 +40,152 @@ class MessageService {
 
         } else if (risk) {
             query.byRisk(risk)
-        } else {
-            if (before) query.where('meta.created').lte(before);
-            if (after) query.where('meta.created').gte(after);
-        }
+        } 
+        
+        if (before) query.where('meta.created').lte(before);
+        
+        if (after) query.where('meta.created').gte(after);
+        
 
-        // TODO this changed so rewrite tests
+        if (reqUser) {
 
-        if (dest?.length) {
-            if (reqUser) {
+            let orFilter = [{ publicMessage: true }, { publicMessage: false }];
 
-                const handles = dest.filter(h => h.charAt(0) === '@');
+            let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)));
+            let names = dest?.filter(val => ((val.charAt(0) === '§') && (val.length > 1)));
+            
+            let users = [], channels =[];
 
-                if (handles.length) {
+            // only private messages you can see are the ones addressed to you or a channel you
+            // are a member of
 
-                    const uids = await User.find().where('handle').in(handles.map(h => h.slice(1)));
+            if (handles?.length) {
 
-                    // Public messages or messages where the user whas also a dest
-                    query.and({
-                        $or: [
-                            { publicMessage: true },
-                            { destUser: reqUser._id },    
-                        ],
-                        destUser: { $in: uids.map(u => u._id)},
-                    })
-                    //query.where('destUser').in(uids.map(u => u._id));
-                }
+                users = await User.find({ handle: { $in: handles.map(h => h.slice(1)) } });
 
-                const chnames = dest.filter(h => h.charAt(0) === '§');
-
-                if (chnames.length) {
-
-                    let cids = await Channel.find().where('name').in(chnames.map(c => c.slice(1)));
-
-                    if (!reqUser.admin) {
-
-                        cids = cids.filter(c => {
-
-                            if (!c.publicChannel) {
-                                return c.members.some(id => reqUser._id.equals(id));
-                            }
-
-                            return true;
-                        })
-                    }
-                    query.where('destChannel').in(cids.map(c => c._id));
-                }
-
-
-            } else {
-
-                // Non logged users can only see public channels
-                const chnames = dest.filter(h => h.charAt(0) === '§');
-
-                if (chnames.length) {
-
-                    const channels = await Channel.find({ name: { $in: chnames } })
-                    query.and([
-                        { publicChannel: true },
-                        {
-                            destChannel: {
-                                $in: channels.map(c => c._id)
-                            }
-                        }
-                    ]);
-                } else {
-
-                    const publicChannels = await Channel.find({ publicChannel: true });
-                    query.find({ destChannel: publicChannels.map(c => c._id) })
+                if (users.length) {
+                    orFilter[0].destUser = { $in: users.map(u => u._id)};
                 }
             }
-        }
 
-        
+            if (names?.length) {
+                channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } })
+
+                if (channels.length) {
+                    orFilter[0].destChannel = { $in: channels.map(c => c._id) };
+                }
+            }
+
+            // Default filters, can only see private messages addresses to you or
+            // a private channel you are a member of
+            if (!((channels?.length )|| (users?.length))) {
+                
+                orFilter[1]['$or'] = [
+                    { destUser: reqUser._id },
+                ]
+
+                if (reqUser.joinedChannels.length) {
+                    orFilter[1]['$or'].push(
+                        {
+                            destChannel: { $in: reqUser.joinedChannels },
+                        }
+                    )
+                }
+            } else if ((channels?.length) || (users?.length)) {
+
+                // no longer an or
+
+                orFilter[1]['$and'] = [
+                    {
+                        destUser: reqUser._id,
+                    },
+                    {
+                        destUser: { $in: users.map(u => u._id) }
+                    },
+                    {
+                        destChannel: { $in: reqUser.joinedChannels }
+                    },
+                    {
+                        destChannel: { $in: channels.map(c => c._id) }
+                    }
+                ]
+
+            } else if (channels?.length) {
+
+                // no longer an or
+
+                orFilter[1]['$and'] = [
+                    {
+                        destChannel: { $in: reqUser.joinedChannels }
+                    },
+                    {
+                        destChannel: { $in: channels.map(c => c._id) }
+                    }
+                ]
+
+            } else if (users?.length) {
+
+                // no longer an or
+
+                orFilter[1]['$and'] = [
+                    {
+                        destUser: { $in: users.map(u => u._id) }
+                    },
+                    {
+                        '$or': [
+                            {
+                                destUser: reqUser._id,
+                            },
+                            {
+                                destChannel: { $in: reqUser.joinedChannels }
+                            },
+                        ]
+                    }
+                ]
+
+            }
+
+            if (author) {
+                // TODO i think the filters applied before are enought but test it
+                orFilter[0].author = author._id;
+                orFilter[1].author = author._id;
+            }
+
+            query.or(orFilter);
+
+        } else {
+            let searchFilter = {
+                public: true,
+                destChannel: (await Channel.find({ publicChannel: true })).map(c => c._id),
+            }
+
+            let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)));
+            let names = dest?.filter(val => ((val.charAt(0) === '§') && (val.length > 1)));
+
+            let users = [], channels = [];
+
+            // only private messages you can see are the ones addressed to you or a channel you
+            // are a member of
+
+            if (handles?.length) {
+
+                users = await User.find({ handle: { $in: handles.map(h => h.slice(1)) } });
+            }
+
+            if (names?.length) {
+                channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } })
+            }
+
+            if (users.length) {
+                searchFilter.destUser = users.map(u => u._id);
+            }
+
+            if (channels.length) {
+                searchFilter.destChannel = searchFilter.destChannel.some(id => channels.id(id));
+            }
+
+            query.find(searchFilter);
+        }
 
         query.sort('meta.created')
             .select('-__v')
@@ -158,13 +231,24 @@ class MessageService {
         
         let user = reqUser;
 
-        if (handle !== user) {
+        if (handle !== user.handle) {
             user = await User.findOne({ handle: handle });
 
             // TODO if dest is set remove the private channels reqUser is not
             // a member of (unless reqUser is the smm)
         }
-        let messagesQuery = Message.find({ author: user._id });
+        let messagesQuery = Message.find();
+
+        if ((reqUser._id.equals(user.smm)) || (reqUser._id.equals(user._id))) {
+            messagesQuery.find({ author: user._id })
+            console.log('AAAAAAAAa')
+        } else {
+            // in theory this should return only public messages
+            messagesQuery.and([
+                { author: user._id },
+                { publicMessage: true }
+            ])
+        }
 
         messagesQuery = MessageService._addQueryChains({ 
             query: messagesQuery,
@@ -202,7 +286,9 @@ class MessageService {
         let destChannel = await Channel.find()
             .where('name')
             .in(dest.filter(h => h.charAt(0) === '§').map(h => h.slice(1)))
-
+        
+        if (!publicMessage)
+            if (destChannel.some(c => c.publicChannel)) publicMessage = true;
 
         let message = new Message({ content: content, author: user._id, 
             destUser: destUser.map(u => u._id), 

@@ -809,7 +809,7 @@ describe('Message Service Unit Tests', function () {
                 checkPayloadArray(res);
 
                 res.payload.map(m => {
-                    expect(m.destUser.some(u => handles.find(h => h === u.handle) !== -1))
+                    expect(m.destUser.some(u => handles.find(h => h === u.handle)))
                         .to.be.true;
                     expect(m.author.handle).to.equal(author.handle);
                 })
