@@ -231,4 +231,4 @@ async function randomizedSetup() {
         .concat(messages.map(m => m.save())))
 }
 
-module.exports = { randomizedSetup, testUser, lorem }
+module.exports = { randomizedSetup, testUser, lorem, shuffle }

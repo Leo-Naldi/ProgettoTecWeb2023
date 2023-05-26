@@ -6,13 +6,13 @@ const TestSchema = new mongoose.Schema(
        arrField: {
             type: Array,
             items: String,
-       }
+       },
     }
 );
 
 const Test = new mongoose.model('Test', TestSchema);
 
-describe.only('Prove a caso', async function(){
+describe.skip('Prove a caso', async function(){
 
 
     before(async function(){
@@ -69,7 +69,7 @@ describe.only('Prove a caso', async function(){
         await Test.deleteMany({})
     })
 
-    it.only('Should only return items containing ciao and one of hello or bonjour', async function(){
+    it('Should only return items containing ciao and one of hello or bonjour', async function(){
 
         const testfilter = {
             $and: [

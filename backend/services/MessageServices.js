@@ -62,101 +62,65 @@ class MessageService {
             if (handles?.length) {
 
                 users = await User.find({ handle: { $in: handles.map(h => h.slice(1)) } });
-
-                if (users.length) {
-                    orFilter[0].destUser = { $in: users.map(u => u._id)};
-                }
             }
 
             if (names?.length) {
-                channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } })
-
-                if (channels.length) {
-                    orFilter[0].destChannel = { $in: channels.map(c => c._id) };
-                }
+                channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } });
             }
 
             // Default filters, can only see private messages addresses to you or
             // a private channel you are a member of
-            if (!((channels?.length )|| (users?.length))) {
-                
-                orFilter[1]['$or'] = [
-                    { destUser: reqUser._id },
-                ]
 
-                if (reqUser.joinedChannels.length) {
-                    orFilter[1]['$or'].push(
-                        {
-                            destChannel: { $in: reqUser.joinedChannels },
-                        }
-                    )
-                }
-            } else if ((channels?.length) || (users?.length)) {
 
-                // no longer an or
+            // By default a user can only see the private messages he authored 
+            // or the ones addressed to him in some way
+            orFilter[1]['$or'] = [
+                { destUser: reqUser._id },
+                { author: reqUser._id }
+            ]
 
-                orFilter[1]['$and'] = [
+            if (reqUser.joinedChannels.length) {
+                orFilter[1]['$or'].push(
                     {
-                        destUser: reqUser._id,
-                    },
-                    {
-                        destUser: { $in: users.map(u => u._id) }
-                    },
-                    {
-                        destChannel: { $in: reqUser.joinedChannels }
-                    },
-                    {
-                        destChannel: { $in: channels.map(c => c._id) }
+                        destChannel: { $in: reqUser.joinedChannels },
                     }
-                ]
-
-            } else if (channels?.length) {
-
-                // no longer an or
-
-                orFilter[1]['$and'] = [
-                    {
-                        destChannel: { $in: reqUser.joinedChannels }
-                    },
-                    {
-                        destChannel: { $in: channels.map(c => c._id) }
-                    }
-                ]
-
-            } else if (users?.length) {
-
-                // no longer an or
-
-                orFilter[1]['$and'] = [
-                    {
-                        destUser: { $in: users.map(u => u._id) }
-                    },
-                    {
-                        '$or': [
-                            {
-                                destUser: reqUser._id,
-                            },
-                            {
-                                destChannel: { $in: reqUser.joinedChannels }
-                            },
-                        ]
-                    }
-                ]
-
+                )
             }
 
+            if (channels?.length) {
+                orFilter[1].destChannel = { 
+                    $in: channels.map(c => c._id) 
+                }
+                orFilter[0].destChannel = { $in: channels.map(c => c._id) };
+            }
+
+            if (users?.length) {
+                orFilter[1].destUser = {
+                    $in: users.map(u => u._id)
+                }
+                orFilter[0].destUser = { $in: users.map(u => u._id) };
+            }
+
+            
             if (author) {
-                // TODO i think the filters applied before are enought but test it
                 orFilter[0].author = author._id;
-                orFilter[1].author = author._id;
+
+                if (author.handle !== reqUser.handle){
+                    orFilter.pop()
+                } else {
+                    orFilter[1].author = author._id;
+                }
+
             }
 
             query.or(orFilter);
 
         } else {
             let searchFilter = {
-                public: true,
-                destChannel: (await Channel.find({ publicChannel: true })).map(c => c._id),
+                publicMessage: true,
+                destChannel: {
+                    $in: (await Channel.find({ official: true })).map(c => c._id)
+                },
             }
 
             let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)));
@@ -173,6 +137,7 @@ class MessageService {
             }
 
             if (names?.length) {
+                //console.log('aaaaaaaaaaaaaaaaaaaaaaaaa')
                 channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } })
             }
 
@@ -181,8 +146,13 @@ class MessageService {
             }
 
             if (channels.length) {
-                searchFilter.destChannel = searchFilter.destChannel.some(id => channels.id(id));
+                searchFilter.destChannel['$in'] = searchFilter.destChannel['$in']
+                    .filter(id => channels.id(id));
             }
+
+            //console.log(searchFilter);
+
+            //console.log(await Message.find(searchFilter))
 
             query.find(searchFilter);
         }
@@ -234,26 +204,14 @@ class MessageService {
         if (handle !== user.handle) {
             user = await User.findOne({ handle: handle });
 
-            // TODO if dest is set remove the private channels reqUser is not
-            // a member of (unless reqUser is the smm)
+            if (!user) Service.rejectResponse({ message: `User @${handle} not found` });
         }
         let messagesQuery = Message.find();
-
-        if ((reqUser._id.equals(user.smm)) || (reqUser._id.equals(user._id))) {
-            messagesQuery.find({ author: user._id })
-            console.log('AAAAAAAAa')
-        } else {
-            // in theory this should return only public messages
-            messagesQuery.and([
-                { author: user._id },
-                { publicMessage: true }
-            ])
-        }
 
         messagesQuery = MessageService._addQueryChains({ 
             query: messagesQuery,
             popular, unpopular, controversial, risk,
-            before, after, dest, page
+            before, after, dest, page, reqUser, author: user,
          })
 
         const res = await messagesQuery;

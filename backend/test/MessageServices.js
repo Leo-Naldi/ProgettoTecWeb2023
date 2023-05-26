@@ -39,16 +39,36 @@ const {
 
 const messagesCount = 30;
 
+const getPopular = () => ({
+    positive: getRandom(3000) + config.crit_mass,
+    negative: getRandom(20),
+});
+const getUnpopular = () => ({
+    negative: getRandom(3000) + config.crit_mass,
+    positive: getRandom(20),
+});
+const getControversial = () => ({
+    negative: getRandom(3000) + config.crit_mass,
+    positive: getRandom(3000) + config.crit_mass,
+});
+const getRiskPopular = () => ({
+    positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+    negative: getRandom(20),
+});
+const getRiskUnpopular = () => ({
+    negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+    positive: getRandom(20),
+});
+const getRiskControversial = () => ({
+    negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+    positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+});
+const periods = ['today', 'week', 'month', 'year'];
+const maxMessages = 20;
 
+describe.only('Message Service Unit Tests', function () {
 
-describe('Message Service Unit Tests', function () {
-
-    let all = null;
-    let author = null;
-    let new_author =  null;
-    let handleauth1 = null, handleauth2 = null;
-    let recievers1 = [], recievers2 = [];
-    let admin = null, official_channels = null;
+    let reqUser = null, users = [], secondAuthor = null;
 
     before(async function () {
         /*
@@ -56,25 +76,88 @@ describe('Message Service Unit Tests', function () {
         */
         this.timeout(7000)
 
-        let auth1 = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
-        handleauth1 = auth1.handle;
-        
-        recrecors1 = [
-            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(), 
-            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail()
-        ]
-        recievers1 = recrecors1.map(u => u.handle);
-        
-        let auth2 = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
-        handleauth2 = auth2.handle;
-        
-        recrecors2 = [
+        reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+        users = [
             await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
-            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail()
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
         ]
-        recievers2 = recrecors2.map(u => u.handle);
 
-        let accounts = [auth1, auth2].concat(recrecors1).concat(recrecors2);
+        let uids = users.map(u => u._id);
+
+        const publicNotJoinedChannels = [
+            // Public channels reqUser is not a member of
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(0, Math.floor(uids.length / 2)),
+                creator: uids[0],
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)),
+                creator: uids[Math.floor(uids.length / 2)]
+            }),
+        ]
+
+            // Public channels reqUser is a member of
+        const publicJoinedChannels = [    
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(0, Math.floor(uids.length / 2)).concat([reqUser._id]),
+                creator: uids[0]
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)).concat([reqUser._id]),
+                creator: uids[Math.floor(uids.length / 2)]
+            })
+        ]
+
+        const privateNotJoinedChannels = [
+            // Public channels reqUser is not a member of
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(0, Math.floor(uids.length / 2)),
+                publicChannel: false,
+                creator: uids[0]
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)),
+                publicChannel: false,
+                creator: uids[Math.floor(uids.length / 2)]
+            }),
+        ]
+
+        // Public channels reqUser is a member of
+        const privateJoinedChannels = [
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(0, Math.floor(uids.length / 2)).concat([reqUser._id]),
+                publicChannel: false,
+                creator: uids[0]
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)).concat([reqUser._id]),
+                publicChannel: false,
+                creator: uids[Math.floor(uids.length / 2)]
+            })
+        ]
 
         let messages = [];
 
@@ -85,8 +168,8 @@ describe('Message Service Unit Tests', function () {
                 content: {
                     text: lorem.generateSentences(getRandom(3) + 1),
                 },
-                author: auth1._id,
-                destUser: [recrecors1[0]._id],
+                author: reqUser._id,
+                destUser: uids,
                 reactions: {
                     positive: 10,
                     negative: 10,
@@ -97,101 +180,119 @@ describe('Message Service Unit Tests', function () {
                 content: {
                     text: lorem.generateSentences(getRandom(3) + 1),
                 },
-                author: auth1._id,
-                destUser: [recrecors1[1]._id],
+                author: reqUser._id,
+                destUser: uids,
                 reactions: {
                     positive: 10,
                     negative: 10,
-                }
+                },
+                publicMessage: false,
             }))
 
             messages.push(new Message({
                 content: {
                     text: lorem.generateSentences(getRandom(3) + 1),
                 },
-                author: auth2._id,
-                destUser: [recrecors2[0]._id],
-                meta: {
-                    created: dayjs().subtract(2, 'day')
-                },
+                author: uids[0],
+                destUser: uids.slice(1),
                 reactions: {
-                    positive: getRandom(3000),
-                    negative: getRandom(20),
-                }
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
             }))
 
             messages.push(new Message({
                 content: {
                     text: lorem.generateSentences(getRandom(3) + 1),
                 },
-                author: auth2._id,
-                destUser: [recrecors2[1]._id],
-                meta: {
-                    created: dayjs().subtract(2, 'month'),
-                },
+                author: uids[0],
+                destUser: uids.slice(1),
                 reactions: {
-                    positive: getRandom(3000),
-                    negative: getRandom(20),
-                }
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: true,
+            }))
+
+            // private messages reqUser cant see
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1),
+                destChannel: privateNotJoinedChannels.map(c => c._id),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
+
+            // private messages reqUser can see
+
+            // These can be seen since reqUser is part of the channel
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1),
+                destChannel: privateJoinedChannels.map(c => c._id),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
+
+            // These can be seen since reqUser is part of the dests
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1).concat([reqUser._id]),
+                destChannel: privateNotJoinedChannels.map(c => c._id),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
+        
+            // Public channels
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: reqUser._id,
+                destUser: uids,
+                destChannel: publicJoinedChannels.map(c => c._id),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: true,
             }))
 
             messages.push(new Message({
                 content: {
                     text: lorem.generateSentences(getRandom(3) + 1),
                 },
-                author: auth2._id,
-                destUser: [recrecors2[1]._id],
-                meta: {
-                    created: dayjs().subtract(2, 'year'),
-                },
+                author: uids[0],
+                destUser: uids.slice(1),
+                destChannel: [publicNotJoinedChannels[0]._id],
                 reactions: {
-                    positive: getRandom(3000),
-                    negative: getRandom(20),
-                }
-            }))
-
-            messages.push(new Message({
-                content: {
-                    text: lorem.generateSentences(getRandom(3) + 1),
+                    positive: 10,
+                    negative: 10,
                 },
-                author: auth2._id,
-                destUser: [recrecors2[1]._id],
-                meta: {
-                    created: dayjs().subtract(2, 'year'),
-                },
-                reactions: {
-                    positive: getRandom(3000),
-                    negative: getRandom(20),
-                }
+                publicMessage: false,
             }))
         }
-        // Ensure there are messages for every fame configuration and every time frame
-        const getPopular = () => ({
-            positive: getRandom(3000) + config.crit_mass,
-            negative: getRandom(20),
-        });
-        const getUnpopular = () => ({
-            negative: getRandom(3000) + config.crit_mass,
-            positive: getRandom(20),
-        });
-        const getControversial = () => ({
-            negative: getRandom(3000) + config.crit_mass,
-            positive: getRandom(3000) + config.crit_mass,
-        });
-        const getRiskPopular = () => ({
-            positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            negative: getRandom(20),
-        });
-        const getRiskUnpopular = () => ({
-            negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            positive: getRandom(20),
-        });
-        const getRiskControversial = () => ({
-            negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-        });
-        const periods = ['today', 'week', 'month', 'year'];
-        const maxMessages = 20;
+
+        // Ensure there are public messages for every fame configuration and every time frame
         
         periods.map(p => {
             for (let i = 0; i < getRandom(maxMessages) + 1; i++){
@@ -200,8 +301,8 @@ describe('Message Service Unit Tests', function () {
                     content: {
                         text: lorem.generateSentences(getRandom(3) + 1),
                     },
-                    author: auth1._id,
-                    destUser: recrecors2.map(u => u._id),
+                    author: reqUser._id,
+                    destUser: uids,
                     meta: {
                         created: getDateWithin(p),
                     },
@@ -212,8 +313,8 @@ describe('Message Service Unit Tests', function () {
                     content: {
                         text: lorem.generateSentences(getRandom(3) + 1),
                     },
-                    author: auth1._id,
-                    destUser: recrecors2.map(u => u._id),
+                    author: reqUser._id,
+                    destUser: uids,
                     meta: {
                         created: getDateWithin(p),
                     },
@@ -224,41 +325,44 @@ describe('Message Service Unit Tests', function () {
                     content: {
                         text: lorem.generateSentences(getRandom(3) + 1),
                     },
-                    author: auth1._id,
-                    destUser: recrecors2.map(u => u._id),
+                    author: reqUser._id,
+                    destUser: uids,
                     meta: {
                         created: getDateWithin(p),
                     },
                     reactions: getControversial()
                 }))
+
                 messages.push(new Message({
                     content: {
                         text: lorem.generateSentences(getRandom(3) + 1),
                     },
-                    author: auth1._id,
-                    destUser: recrecors2.map(u => u._id),
+                    author: reqUser._id,
+                    destUser: uids,
                     meta: {
                         created: getDateWithin(p),
                     },
                     reactions: getRiskPopular()
                 }))
+
                 messages.push(new Message({
                     content: {
                         text: lorem.generateSentences(getRandom(3) + 1),
                     },
-                    author: auth1._id,
-                    destUser: recrecors2.map(u => u._id),
+                    author: reqUser._id,
+                    destUser: uids,
                     meta: {
                         created: getDateWithin(p),
                     },
                     reactions: getRiskUnpopular()
                 }))
+
                 messages.push(new Message({
                     content: {
                         text: lorem.generateSentences(getRandom(3) + 1),
                     },
-                    author: auth1._id,
-                    destUser: recrecors2.map(u => u._id),
+                    author: reqUser._id,
+                    destUser: uids,
                     meta: {
                         created: getDateWithin(p),
                     },
@@ -279,8 +383,8 @@ describe('Message Service Unit Tests', function () {
                 content: {
                     text: lorem.generateSentences(getRandom(3) + 1),
                 },
-                author: auth1._id,
-                destUser: recrecors2.map(u => u._id),
+                author: reqUser._id,
+                destUser: uids,
                 meta: {
                     created: d.subtract(1, 'hour'),
                 },
@@ -294,8 +398,8 @@ describe('Message Service Unit Tests', function () {
                 content: {
                     text: lorem.generateSentences(getRandom(3) + 1),
                 },
-                author: auth1._id,
-                destUser: recrecors2.map(u => u._id),
+                author: reqUser._id,
+                destUser: uids,
                 meta: {
                     created: d.add(1, 'hour'),
                 },
@@ -306,18 +410,54 @@ describe('Message Service Unit Tests', function () {
             }))
         })
 
-        await Promise.all(messages.map(m => m.save()));
+        const allChannels = publicNotJoinedChannels
+            .concat(publicJoinedChannels)
+            .concat(privateJoinedChannels)
+            .concat(privateNotJoinedChannels)
+
+        const allUsers = users.concat([reqUser]);
+
+        allChannels.map(c => {           
+            for (let i = 0; i < allUsers.length; i++) {
+                if (c.members.find(id => id.equals(allUsers[i]._id))) {
+                    allUsers[i].joinedChannels.push(c._id);
+                }
+            }
+        })
+
         messages.map(m => {
-            const ind = accounts.findIndex(a => a._id.equals(m.author));
+            const ind = allUsers.findIndex(a => a._id.equals(m.author));
             
-            accounts[ind].messages.push(m._id);
+            expect(ind).to.not.equal(-1)
+
+            allUsers[ind].messages.push(m._id);
+
+            for (let i = 0; i < m.destChannel.length; i++) {
+                
+                const cind = allChannels.findIndex(c => c._id.equals(m.destChannel[i]));
+                
+                expect(cind).to.not.equal(-1)
+                allChannels[cind].messages.push(m._id);
+            }
         })
         
+        await Promise.all(messages.map(m => m.save()));
         //console.log(accounts)
-        await Promise.all(accounts.map(async u => u.save()));
+        await Promise.all(allUsers.map(u => u.save()));
+        await Promise.all(allChannels.map(u => u.save()));
 
-        author = await User.findOne({ handle: handleauth1 }).orFail();
-        new_author = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+        reqUser = await User.findById(reqUser._id).orFail();
+
+        const l = users.length;
+
+        secondAuthor = users[0];
+        
+        users = await User.find({ handle: { $in: users.map(u => u.handle) } });
+        
+        secondAuthor = users.find(u => u._id.equals(secondAuthor._id));
+
+
+        expect(users).to.be.an('array').that.has.lengthOf(l);
 
         const ad = await User.findOne({ handle: UserDispatch.getNextAdmin().handle }).orFail();
 
@@ -353,7 +493,7 @@ describe('Message Service Unit Tests', function () {
                         text: lorem.generateSentences(3),
                     },
                     author: ad._id, 
-                    destChannel: [official_channels[i % 3]],
+                    destChannel: [official_channels[i % 3]._id],
                 })
             )
 
@@ -371,11 +511,9 @@ describe('Message Service Unit Tests', function () {
         all = await Message.find();
     })
 
-    describe.only("getMessages Unit Tests", function(){
+    describe("getMessages Unit Tests", function(){
 
         it("Should return an array of messages", async function(){
-
-            const ad = await User.findOne({ handle: UserDispatch.getNextAdmin().handle }).orFail();
 
             const res = await MessageService.getMessages();
 
@@ -404,7 +542,9 @@ describe('Message Service Unit Tests', function () {
         it(`Should at most return ${config.results_per_page} messages`, async function(){
             
             const res = await MessageService.getMessages();
-            const num_messages = await Message.find().count();
+            const ofCh = await Channel.find({ official: true }); 
+            expect(ofCh).to.not.be.empty
+            const num_messages = await Message.find({ destChannel: { $in: ofCh.map(c => c._id) } }).count();
 
             checkSuccessCode(res);
             checkPayloadArray(res);
@@ -424,7 +564,7 @@ describe('Message Service Unit Tests', function () {
                         let params = new Object();
 
                         params[fame] = timeframe;
-                        params.reqUser = author;
+                        params.reqUser = reqUser;
 
                         const res = await MessageService.getMessages(params);
 
@@ -443,7 +583,7 @@ describe('Message Service Unit Tests', function () {
             fames.map(fame => {
                 it(`Should return only messages that are almost ${fame}`, async function () {
 
-                    const res = await MessageService.getMessages({ risk: fame });
+                    const res = await MessageService.getMessages({ risk: fame, reqUser: reqUser });
 
                     checkSuccessCode(res)
                     checkPayloadArray(res)
@@ -463,7 +603,7 @@ describe('Message Service Unit Tests', function () {
 
                     const res = await MessageService.getMessages({ 
                         before: d.toString(),
-                        reqUser: author,
+                        reqUser: reqUser,
                     })
                     
                     checkSuccessCode(res)
@@ -484,7 +624,7 @@ describe('Message Service Unit Tests', function () {
 
                     const res = await MessageService.getMessages({ 
                         after: d.toString(),
-                        reqUser: author,
+                        reqUser: reqUser,
                     })
 
                     checkSuccessCode(res)
@@ -498,10 +638,10 @@ describe('Message Service Unit Tests', function () {
 
             it("Should only return messages destined to the given user", async function(){
 
-                const handles = recievers1;
+                const handles = users.map(u => u.handle);
 
                 const res = await MessageService.getMessages({
-                    reqUser: author,
+                    reqUser: reqUser,
                     dest: handles.map(h => '@' + h) 
                 })
 
@@ -518,7 +658,7 @@ describe('Message Service Unit Tests', function () {
 
                 // Setup
                 const creator = UserDispatch.getNext();
-                const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+                const locUsers = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
                 const description = lorem.generateParagraphs(1);
 
                 const name = UserDispatch.getNextChannelName();
@@ -540,7 +680,7 @@ describe('Message Service Unit Tests', function () {
                 let crec = await Channel.findOne({ name: name }).orFail();
                 let crec2 = await Channel.findOne({ name: name2 }).orFail();
 
-                await Promise.all(users.map(async u => {
+                await Promise.all(locUsers.map(async u => {
 
                     let urec = await User.findOne({ handle: u.handle });
 
@@ -551,9 +691,9 @@ describe('Message Service Unit Tests', function () {
                     return urec.save();
                 }))
 
-                for (let i = 0; i < users.length; i++) {
+                for (let i = 0; i < locUsers.length; i++) {
 
-                    let urec = await User.findOne({ handle: users[i].handle });
+                    let urec = await User.findOne({ handle: locUsers[i].handle });
 
                     crec.members.push(urec._id);
                     crec2.members.push(urec._id);
@@ -567,14 +707,14 @@ describe('Message Service Unit Tests', function () {
                 for (let i = 0; i < 10; i++) {
 
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name])
 
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name, name2])
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name2])
                 }
 
@@ -610,39 +750,74 @@ describe('Message Service Unit Tests', function () {
                 })
             });
 
-            it("Should not return private messages not addressed to the user");
-
-            it('Should not return messages from a private channel the user is not a member of');
-
+            
         });
+
+        it("Should not return private messages not addressed to the user or to one of the channels he joined", async function() {
+            
+            this.timeout(30000)
+            let pageNum = 1;
+
+            let res = await MessageService.getMessages({ reqUser: reqUser });
+            let jchannels = await Channel.find({ _id: { $in: reqUser.joinedChannels } });
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+
+            let uselessTest = true;
+
+            while (res.payload.length > 0) {
+                res.payload.map(m => {
+                    if (!m.publicMessage) {
+                        uselessTest = false;
+
+                        expect(
+                            (reqUser.handle === m.author.handle) ||
+                            (m.destUser.some(u => u.handle === reqUser.handle)) ||
+                            (m.destChannel.some(c => jchannels.some(jc => jc.name === c.name)))
+                        ).to.be.true
+                    }
+                })
+
+                pageNum++;
+                res = await MessageService.getMessages({ reqUser: reqUser, page: pageNum });
+            
+                checkSuccessCode(res);
+                checkPayloadArray(res, true);
+            }
+
+            expect(uselessTest).to.be.false;
+            //console.log(pageNum)
+        }); 
     });
 
     describe("getUserMessages Unit Tests", function(){
         
         it("Should only return messages authored by the given user", async function () {
 
-            expect(author).to.not.be.null;
+            expect(reqUser).to.not.be.null;
 
             const res = await MessageService.getUserMessages({ 
-                handle: author.handle,
-                reqUser: author
+                handle: reqUser.handle,
+                reqUser: reqUser
             });
 
             checkSuccessCode(res)
             checkPayloadArray(res)
 
             res.payload.map(m => {
-                expect(m.author).to.deep.equal({ handle: author.handle });
+                expect(m.author).to.deep.equal({ handle: reqUser.handle });
             });
         });
 
         it("Should return an array of messages", async function () {
             
-            expect(author).to.not.be.null;
+            expect(reqUser).to.not.be.null;
 
             const res = await MessageService.getUserMessages({
-                handle: author.handle,
-                reqUser: author
+                handle: reqUser.handle,
+                reqUser: reqUser
             });
 
             checkSuccessCode(res)
@@ -669,14 +844,14 @@ describe('Message Service Unit Tests', function () {
 
         it(`Should at most return ${config.results_per_page} messages`, async function () {
 
-            expect(author).to.not.be.null;
+            expect(reqUser).to.not.be.null;
 
             const res = await MessageService.getUserMessages({
-                handle: author.handle,
-                reqUser: author
+                handle: reqUser.handle,
+                reqUser: reqUser
             });
 
-            const num_messages = await Message.find().count();
+            const num_messages = await Message.find({ author: reqUser._id }).count();
 
             //console.log(num_messages);
 
@@ -697,11 +872,11 @@ describe('Message Service Unit Tests', function () {
 
                         let params = new Object();
 
-                        expect(author).to.not.be.null;
+                        expect(reqUser).to.not.be.null;
 
                         params[fame] = timeframe;
-                        params.handle = author.handle;
-                        params.reqUser = author;
+                        params.handle = reqUser.handle;
+                        params.reqUser = reqUser;
 
                         const res = await MessageService.getUserMessages(params);
 
@@ -722,11 +897,11 @@ describe('Message Service Unit Tests', function () {
 
                     let params = new Object();
 
-                    expect(author).to.not.be.null;
+                    expect(reqUser).to.not.be.null;
 
                     params.risk = fame;
-                    params.handle = author.handle;
-                    params.reqUser = author;
+                    params.handle = reqUser.handle;
+                    params.reqUser = reqUser;
 
                     const res = await MessageService.getUserMessages(params);
 
@@ -748,11 +923,11 @@ describe('Message Service Unit Tests', function () {
 
                     let params = new Object();
 
-                    expect(author).to.not.be.null;
+                    expect(reqUser).to.not.be.null;
 
                     params.before = d.toString();
-                    params.handle = author.handle;
-                    params.reqUser = author;
+                    params.handle = reqUser.handle;
+                    params.reqUser = reqUser;
 
                     const res = await MessageService.getUserMessages(params);
 
@@ -774,11 +949,11 @@ describe('Message Service Unit Tests', function () {
 
                     let params = new Object();
 
-                    expect(author).to.not.be.null;
+                    expect(reqUser).to.not.be.null;
 
                     params.after = d.toString();
-                    params.handle = author.handle;
-                    params.reqUser = author;
+                    params.handle = reqUser.handle;
+                    params.reqUser = reqUser;
 
                     const res = await MessageService.getUserMessages(params);
 
@@ -793,15 +968,15 @@ describe('Message Service Unit Tests', function () {
 
             it("Should only return messages destined to the given users", async function () {
 
-                const handles = recievers1;
+                const handles = users.map(u => u.handle);
 
                 let params = new Object();
 
-                expect(author).to.not.be.null;
+                expect(reqUser).to.not.be.null;
 
                 params.dest = handles.map(h => '@' + h);
-                params.handle = author.handle;
-                params.reqUser = author;
+                params.handle = reqUser.handle;
+                params.reqUser = reqUser;
 
                 const res = await MessageService.getUserMessages(params);
 
@@ -811,14 +986,14 @@ describe('Message Service Unit Tests', function () {
                 res.payload.map(m => {
                     expect(m.destUser.some(u => handles.find(h => h === u.handle)))
                         .to.be.true;
-                    expect(m.author.handle).to.equal(author.handle);
+                    expect(m.author.handle).to.equal(reqUser.handle);
                 })
             });
 
             it("Should only return messages destined to the given channels", async function () {
 
                 const creator = UserDispatch.getNext();
-                const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+                const locUsers = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
                 const description = lorem.generateParagraphs(1);
 
                 const name = UserDispatch.getNextChannelName();
@@ -840,7 +1015,7 @@ describe('Message Service Unit Tests', function () {
                 let crec = await Channel.findOne({ name: name }).orFail();
                 let crec2 = await Channel.findOne({ name: name2 }).orFail();
 
-                await Promise.all(users.map(async u => {
+                await Promise.all(locUsers.map(async u => {
 
                     let urec = await User.findOne({ handle: u.handle });
 
@@ -867,14 +1042,14 @@ describe('Message Service Unit Tests', function () {
                 for (let i = 0; i < 10; i++) {
 
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name])
 
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name, name2])
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name2])
                 }
 
@@ -917,24 +1092,84 @@ describe('Message Service Unit Tests', function () {
             });
 
         });
+
+        it("Should only return public message if requesting user is not the user", async function(){
+            this.timeout(30000)
+            let pageNum = 1;
+
+            let res = await MessageService.getUserMessages({ reqUser: reqUser, handle: secondAuthor.handle });
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+            while (res.payload.length > 0) {
+                expect(res.payload.every(m => m.publicMessage)).to.be.true;
+
+                pageNum++;
+                res = await MessageService.getUserMessages({
+                    reqUser: reqUser, handle: secondAuthor.handle,
+                    page: pageNum
+                });
+
+                checkSuccessCode(res);
+                checkPayloadArray(res, true);
+            }
+        });
+
+        it("Should also return private messages if requesting user is the author", async function () {
+
+            this.timeout(30000)
+            let pageNum = 1;
+
+            let res = await MessageService.getUserMessages({ reqUser: reqUser, handle: reqUser.handle });
+            
+            let check = await Message.find({ author: reqUser._id, publicMessage: false });
+
+            expect(check).to.not.be.empty
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+
+            let uselessTest = true;
+
+            while (res.payload.length > 0) {
+                res.payload.map(m => {
+                    if (!m.publicMessage) {
+                        uselessTest = false;
+                        expect(reqUser.handle === m.author.handle).to.be.true;
+                    }
+                })
+
+                pageNum++;
+                res = await MessageService.getUserMessages({ reqUser: reqUser, handle: reqUser.handle,
+                    page: pageNum });
+
+                checkSuccessCode(res);
+                checkPayloadArray(res, true);
+            }
+
+            expect(uselessTest).to.be.false;
+            //console.log(pageNum)
+        });
     });
 
     describe("postUserMessage Unit Tests", async function(){
 
         it("Should fail if the handle does not exist", async function(){
             
-            const u = UserDispatch.getNext();
+            const u = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
             // console.log(u.handle);
 
             const text = lorem.generateWords(20);
 
             const res = await MessageService.postUserMessage({ 
-                reqUser: new_author,
-                handle: new_author.handle + 'ckjdfvnkdjfnoafnwjfv sjdfbu3i4ru3904uty2495y9hquvsadjnqa',
+                reqUser: u,
+                handle: u.handle + 'ckjdfvnkdjfnoafnwjfv sjdfbu3i4ru3904uty2495y9hquvsadjnqa',
                 content: {
                     text: text,
                 }, 
-                dest: recievers2.map(h => '@' + h)
+                dest: users.map(u => '@' + u.handle)
             })
 
             checkErrorCode(res);
@@ -943,22 +1178,22 @@ describe('Message Service Unit Tests', function () {
 
         it("Should allow message creation if the user has enough characters left", async function(){
             
-            const u = UserDispatch.getNext();
+            const u = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
             //console.log(u.handle);
 
             const text = lorem.generateWords(10);
-            const cur_chars = JSON.parse(JSON.stringify(new_author.charLeft));
+            const cur_chars = JSON.parse(JSON.stringify(u.charLeft));
 
             expect(Math.min(cur_chars.day, cur_chars.week, cur_chars.month) >= text.length)
                 .to.be.true;
 
             const res = await MessageService.postUserMessage({
-                reqUser: new_author,
-                handle: new_author.handle,
+                reqUser: u,
+                handle: u.handle,
                 content: {
                     text: text,
                 },
-                dest: recievers2.map(handle => '@' + handle)
+                dest: users.map(u => '@' + u.handle)
             })
 
             checkSuccessCode(res);
@@ -1657,7 +1892,7 @@ describe('Message Service Unit Tests', function () {
         it("Shuld remove the channel from the dest list of all messages", async function () {
 
             const creator = UserDispatch.getNext();
-            const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+            const locUsers = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
             const description = lorem.generateParagraphs(1);
 
             const name = UserDispatch.getNextChannelName();
@@ -1682,7 +1917,7 @@ describe('Message Service Unit Tests', function () {
             expect(crec).to.not.be.null;
             expect(crec2).to.not.be.null;
 
-            await Promise.all(users.map(async u => {
+            await Promise.all(locUsers.map(async u => {
 
                 let urec = await User.findOne({ handle: u.handle });
 
@@ -1693,9 +1928,9 @@ describe('Message Service Unit Tests', function () {
                 return urec.save();
             }))
 
-            for (let i = 0; i < users.length; i++) {
+            for (let i = 0; i < locUsers.length; i++) {
 
-                let urec = await User.findOne({ handle: users[i].handle });
+                let urec = await User.findOne({ handle: locUsers[i].handle });
 
                 crec.members.push(urec._id);
                 crec2.members.push(urec._id);
@@ -1709,7 +1944,7 @@ describe('Message Service Unit Tests', function () {
             for (let i = 0; i < 10; i++) {
 
                 await addMessage(lorem.generateSentences(2), creator.handle,
-                    users.map(u => u.handle),
+                    locUsers.map(u => u.handle),
                     [name, name2])
             }
 
@@ -1731,7 +1966,7 @@ describe('Message Service Unit Tests', function () {
         it("Should delete messages whose sole dest was the channell", async function () {
 
             const creator = UserDispatch.getNext();
-            const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+            const locUsers = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
             const description = lorem.generateParagraphs(1);
 
             const name = UserDispatch.getNextChannelName();
@@ -1748,7 +1983,7 @@ describe('Message Service Unit Tests', function () {
 
             expect(crec).to.not.be.null;
 
-            await Promise.all(users.map(async u => {
+            await Promise.all(locUsers.map(async u => {
 
                 let urec = await User.findOne({ handle: u.handle });
 
@@ -1758,9 +1993,9 @@ describe('Message Service Unit Tests', function () {
                 return urec.save();
             }))
 
-            for (let i = 0; i < users.length; i++) {
+            for (let i = 0; i < locUsers.length; i++) {
 
-                let urec = await User.findOne({ handle: users[i].handle });
+                let urec = await User.findOne({ handle: locUsers[i].handle });
 
                 crec.members.push(urec._id);
 
