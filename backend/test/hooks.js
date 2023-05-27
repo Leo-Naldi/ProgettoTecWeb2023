@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const LoremIpsum = require("lorem-ipsum").LoremIpsum;
 const dayjs = require('dayjs');
 let isBetween = require('dayjs/plugin/isBetween')
 let isSameOrBefore = require('dayjs/plugin/isSameOrBefore')
@@ -14,7 +13,7 @@ const User = require('../models/User');
 const Message = require('../models/Message');
 const Channel = require('../models/Channel');
 
-const { randomizedSetup, testUser, lorem } = require('../utils/randomDb');
+const { randomizedSetup, testUser, lorem } = require('../utils/randomUtils');
 
 /*
  * 
@@ -24,7 +23,7 @@ const { randomizedSetup, testUser, lorem } = require('../utils/randomDb');
  */
 
 // Number of dummy users and dummy admins that will be created in the test db.
-const users_count = 180;
+const users_count = 200;
 const admin_count = 20;
 
 class UserDispatch {

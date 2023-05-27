@@ -552,7 +552,7 @@ describe('Message Service Unit Tests', function () {
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
-        describe("getMessages Filters Unit Tests", function(){
+        describe("Filters Unit Tests", function(){
         
             const fames = ['popular', 'unpopular', 'controversial'];
             const timeframes = ['day', 'week', 'month', 'year'];
@@ -861,7 +861,7 @@ describe('Message Service Unit Tests', function () {
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
-        describe("getUserMessages Filters Unit Tests", function () {
+        describe("Filters Unit Tests", function () {
 
             const fames = ['popular', 'unpopular', 'controversial'];
             const timeframes = ['day', 'week', 'month', 'year'];
@@ -1199,7 +1199,7 @@ describe('Message Service Unit Tests', function () {
             checkSuccessCode(res);
         });
 
-        it("Should adjust the author's remaining characters", async function () {
+        it("Should adjust the author's remaining characters when creating a public message", async function () {
 
             const u = UserDispatch.getNext();
             const urecord = await User.findOne({ handle: u.handle });
@@ -1218,7 +1218,8 @@ describe('Message Service Unit Tests', function () {
                     text: text,
                 },
                 dest: [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
-                    .map(handle => '@' + handle)
+                    .map(handle => '@' + handle),
+                publicMessage: true,
             })
 
             checkSuccessCode(res);
@@ -1227,6 +1228,83 @@ describe('Message Service Unit Tests', function () {
             expect(checkUser.charLeft.day).to.equal(cur_chars.day - text.length)
             expect(checkUser.charLeft.week).to.equal(cur_chars.week - text.length)
             expect(checkUser.charLeft.month).to.equal(cur_chars.month - text.length)
+
+        });
+
+        it("Should adjust the author's remaining characters when creating a private message addressed to any channel", async function () {
+
+            const u = UserDispatch.getNext();
+            let urecord = await User.findOne({ handle: u.handle });
+
+            const text = lorem.generateWords(10);
+            const cur_chars = JSON.parse(JSON.stringify(urecord.charLeft));
+
+
+            expect(Math.min(cur_chars.day, cur_chars.week, cur_chars.month) >= text.length)
+                .to.be.true;
+
+            let channel = new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(2),
+                creator: urecord._id,
+                members: [urecord._id],
+                publicChannel: false,
+            })
+
+            urecord.joinedChannels.push(channel._id);
+            
+            channel = await channel.save();
+            urecord = await urecord.save();
+
+            const res = await MessageService.postUserMessage({
+                reqUser: urecord,
+                handle: u.handle,
+                content: {
+                    text: text,
+                },
+                dest: [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
+                    .map(handle => '@' + handle).concat(['§' + channel.name]),
+                publicMessage: false,
+            })
+
+            checkSuccessCode(res);
+
+            const checkUser = await User.findOne({ handle: u.handle });
+            expect(checkUser.charLeft.day).to.equal(cur_chars.day - text.length)
+            expect(checkUser.charLeft.week).to.equal(cur_chars.week - text.length)
+            expect(checkUser.charLeft.month).to.equal(cur_chars.month - text.length)
+
+        });
+
+        it("Should not adjust the author's remaining characters when creating a private message to users only", async function () {
+
+            const u = UserDispatch.getNext();
+            const urecord = await User.findOne({ handle: u.handle });
+
+            const text = lorem.generateWords(10);
+            const cur_chars = JSON.parse(JSON.stringify(urecord.charLeft));
+
+
+            expect(Math.min(cur_chars.day, cur_chars.week, cur_chars.month) >= text.length)
+                .to.be.true;
+
+            const res = await MessageService.postUserMessage({
+                reqUser: urecord,
+                handle: u.handle,
+                content: {
+                    text: text,
+                },
+                dest: [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
+                    .map(handle => '@' + handle),
+                publicMessage: false,
+            })
+
+            checkSuccessCode(res);
+
+            const checkUser = await User.findOne({ handle: u.handle });
+            expect(checkUser.charLeft.day).to.equal(cur_chars.day)
+            expect(checkUser.charLeft.week).to.equal(cur_chars.week)
+            expect(checkUser.charLeft.month).to.equal(cur_chars.month)
 
         });
 
@@ -1256,7 +1334,8 @@ describe('Message Service Unit Tests', function () {
                     content: {
                         text: text,
                     },
-                    dest: dests
+                    dest: dests,
+                    publicMessage: true,
                 })
     
                 expect(res).to.be.an('object');
@@ -1714,7 +1793,7 @@ describe('Message Service Unit Tests', function () {
             expect(old_reactions.positive + 1).to.equal(check.reactions.positive)
         });
 
-        it("Should change the user's character when getting enough positive reactions", async function(){
+        it("Should change the user's character when getting enough positive reactions if the message is public", async function(){
             
             let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
             const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
@@ -1773,7 +1852,147 @@ describe('Message Service Unit Tests', function () {
 
             expect(newChars, 'Did not characters when it shouldnt have')
                 .to.deep.equal(user.toObject().charLeft);
-        })
+        });
+
+        it("Should change the user's character when getting enough positive reactions if the message is private but destined to at least one channel", async function () {
+
+            const u = UserDispatch.getNext();
+            let urecord = await User.findOne({ handle: u.handle }).orFail();
+
+            const cur_chars = JSON.parse(JSON.stringify(urecord.charLeft));
+
+            let channel = new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(2),
+                creator: urecord._id,
+                members: [urecord._id],
+                publicChannel: false,
+            })
+
+            urecord.joinedChannels.push(channel._id);
+
+            channel = await channel.save();
+            urecord = await urecord.save();
+
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            urecord.charLeft.day += 10000 - text.length;
+            urecord.charLeft.week += 10000 - text.length;
+            urecord.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...urecord.toObject().charLeft };
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: urecord._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                }, 
+                publicMessage: false,
+                destChannel: [channel._id],
+            });
+
+            await message.save()
+
+            urecord.messages.push(message._id);
+            channel.messages.push(message._id);
+
+            urecord = await urecord.save();
+            channel = await channel.save();
+
+            // check characters are left unchanged
+            const res = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            user = await User.findOne({ handle: urecord.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.positive = config.reactions_reward_threshold - 1;
+
+            await message.save();
+
+            const res1 = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            user = await User.findOne({ handle: urecord.handle }).orFail();
+
+            let newChars = { ...charCopy };
+
+            newChars.day += config.reactions_reward_amount;
+            newChars.week += config.reactions_reward_amount;
+            newChars.month += config.reactions_reward_amount;
+
+            expect(newChars, 'Did not characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+        });
+
+        it("Should not change the user's character when getting enough positive reactions if the message is private and has no dest channels", async function () {
+
+            let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            user.charLeft.day += 10000 - text.length;
+            user.charLeft.week += 10000 - text.length;
+            user.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...user.toObject().charLeft };
+
+            await user.save();
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: user._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                },
+                publicMessage: false,
+            });
+
+            await message.save()
+
+            // check characters are left unchanged
+            const res = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.positive = config.reactions_reward_threshold - 1;
+
+            await message.save();
+
+            const res1 = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+        });
     })
 
     describe("addNegativeReaction Unit Tests", function () {
@@ -1787,35 +2006,7 @@ describe('Message Service Unit Tests', function () {
             checkErrorCode(res);
         });
 
-        it("Should actually change the reaction object", async function () {
-            const u = UserDispatch.getNext();
-            const dests = [UserDispatch.getNext().handle]
-
-            await addMessage(
-                lorem.generateSentences(4),
-                u.handle,
-                dests,
-            );
-
-            let urecord = await User.findOne({ handle: u.handle });
-            let message = await Message.findOne({ author: urecord._id });
-
-            const old_reactions = JSON.parse(JSON.stringify(message.reactions));
-
-            const res = await MessageService.addNegativeReaction({
-                id: message._id,
-            })
-
-            checkSuccessCode(res);
-
-            urecord = await User.findOne({ handle: u.handle });
-            const check = await Message.findOne({ author: urecord._id });
-
-            expect(old_reactions.positive).to.equal(check.reactions.positive)
-            expect(old_reactions.negative + 1).to.equal(check.reactions.negative)
-        });
-
-        it("Should change the user's character when getting enough negative reactions", async function () {
+        it("Should change the user's character when getting enough negative reactions if the message is public", async function () {
 
             let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
             const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
@@ -1862,7 +2053,7 @@ describe('Message Service Unit Tests', function () {
 
             const res1 = await MessageService.addNegativeReaction({ id: message._id });
 
-            checkSuccessCode(res1);
+            checkSuccessCode(res1)
 
             user = await User.findOne({ handle: user.handle }).orFail();
 
@@ -1874,7 +2065,147 @@ describe('Message Service Unit Tests', function () {
 
             expect(newChars, 'Did not characters when it shouldnt have')
                 .to.deep.equal(user.toObject().charLeft);
-        })
+        });
+
+        it("Should change the user's character when getting enough negative reactions if the message is private but destined to at least one channel", async function () {
+
+            const u = UserDispatch.getNext();
+            let urecord = await User.findOne({ handle: u.handle }).orFail();
+
+            const cur_chars = JSON.parse(JSON.stringify(urecord.charLeft));
+
+            let channel = new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(2),
+                creator: urecord._id,
+                members: [urecord._id],
+                publicChannel: false,
+            })
+
+            urecord.joinedChannels.push(channel._id);
+
+            channel = await channel.save();
+            urecord = await urecord.save();
+
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            urecord.charLeft.day += 10000 - text.length;
+            urecord.charLeft.week += 10000 - text.length;
+            urecord.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...urecord.toObject().charLeft };
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: urecord._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                },
+                publicMessage: false,
+                destChannel: [channel._id],
+            });
+
+            await message.save()
+
+            urecord.messages.push(message._id);
+            channel.messages.push(message._id);
+
+            urecord = await urecord.save();
+            channel = await channel.save();
+
+            // check characters are left unchanged
+            const res = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            user = await User.findOne({ handle: urecord.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.negative = config.reactions_reward_threshold - 1;
+
+            await message.save();
+
+            const res1 = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            user = await User.findOne({ handle: urecord.handle }).orFail();
+
+            let newChars = { ...charCopy };
+
+            newChars.day -= config.reactions_reward_amount;
+            newChars.week -= config.reactions_reward_amount;
+            newChars.month -= config.reactions_reward_amount;
+
+            expect(newChars, 'Did not characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+        });
+
+        it("Should not change the user's character when getting enough negative reactions if the message is private and has no dest channels", async function () {
+
+            let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            user.charLeft.day += 10000 - text.length;
+            user.charLeft.week += 10000 - text.length;
+            user.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...user.toObject().charLeft };
+
+            await user.save();
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: user._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                },
+                publicMessage: false,
+            });
+
+            await message.save()
+
+            // check characters are left unchanged
+            const res = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.negative = config.reactions_reward_threshold - 1;
+
+            await message.save();
+
+            const res1 = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+        });
     })
 
     describe("deleteChannelMessages Unit Tests", function(){

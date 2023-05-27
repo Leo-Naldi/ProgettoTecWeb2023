@@ -227,45 +227,63 @@ class MessageService {
         if (user.handle !== handle) {  // SMM posting for the user
             user = await User.findOne({ handle: handle });
 
-            if (!user) return Service.rejectResponse({ message: "Invalid user handle" })
+            if (!user?.smm.equals(reqUser._id))
+                return Service.rejectResponse({ message: "Invalid user handle" });
+
+            publicMessage = true;  // smm is only for public messages
         }
 
-        let min_left = Math.min(...Object.values(user.toObject().charLeft));
+        let destUser = dest?.filter(h => h.charAt(0) === '@').map(h => h.slice(1)), 
+            destChannel = dest?.filter(h => h.charAt(0) === '§').map(h => h.slice(1));
 
-        if (content.text && (min_left < content.text.length)) 
-            return Service.rejectResponse({ 
-                message: `Attempted posting a message of ${content.text.length} characters with ${min_left} characters remaining`, 
-            }, 418);
+        if (destUser?.length) {
+            destUser = await User.find()
+                .where('handle')
+                .in(destUser)
+        }
 
-        let destUser = await User.find()
-            .where('handle')
-            .in(dest.filter(h => h.charAt(0) === '@').map(h => h.slice(1)))
-
-        let destChannel = await Channel.find()
-            .where('name')
-            .in(dest.filter(h => h.charAt(0) === '§').map(h => h.slice(1)))
+        if (destChannel?.length) {
+            destChannel = await Channel.find()
+                .where('name')
+                .in(destChannel)
+        }
         
-        if (!publicMessage)
-            if (destChannel.some(c => c.publicChannel)) publicMessage = true;
+        if (destChannel?.some(c => c.publicChannel)) publicMessage = true;
+       
+        // Messaggi privati indirizzati a soli utenti non diminuiscono la quota
+        if ((publicMessage) || (destChannel?.length)) {
 
-        let message = new Message({ content: content, author: user._id, 
-            destUser: destUser.map(u => u._id), 
-            destChannel: destChannel.map(c => c._id),
+            let min_left = Math.min(...Object.values(user.toObject().charLeft));
+    
+            if (content.text && (min_left < content.text.length))
+                return Service.rejectResponse({
+                    message: `Attempted posting a message of ${content.text.length} characters with ${min_left} characters remaining`,
+                }, 418);
+
+            if (content.text) {
+                user.charLeft.day -= content.text.length;
+                user.charLeft.week -= content.text.length;
+                user.charLeft.month -= content.text.length;
+            }
+        }
+
+        let message = new Message({ 
+            content: content, 
+            author: user._id,
             publicMessage: publicMessage,
         });
+
+        if (destChannel?.length) message.destChannel = destChannel.map(c => c._id);
+        if (destUser?.length) message.destUser = destUser.map(u => u._id);
 
         let err = null;
 
         try {
             
             user.messages.push(message._id);
-            if (content.text) {
-                user.charLeft.day -= content.text.length;
-                user.charLeft.week -= content.text.length;
-                user.charLeft.month -= content.text.length;
-            }
-            await user.save();
+            
             message = await message.save();
+            await user.save();
         } catch (e) {
             err = e;
         }
@@ -367,7 +385,9 @@ class MessageService {
 
         let user = null;
 
-        if (message.reactions.negative % config.reactions_reward_threshold === 0) {
+        if ((message.reactions.negative % config.reactions_reward_threshold === 0) &&
+            ((message.publicMessage) || (message.destChannel.length))) {
+
             user = await User.findById(message.author).orFail();
             
             user.charLeft.day -= config.reactions_reward_amount;
@@ -406,9 +426,8 @@ class MessageService {
 
         let user = null;
 
-        if (message.reactions.positive % config.reactions_reward_threshold === 0) {
-
-            //console.log(message.reactions.negative % config.reactions_reward_threshold)
+        if ((message.reactions.positive % config.reactions_reward_threshold === 0) && 
+            ((message.publicMessage) || (message.destChannel.length))) {
             
 
             user = await User.findById(message.author).orFail();
