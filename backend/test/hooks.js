@@ -92,13 +92,13 @@ async function addMessage(text, authorHandle, destHandles, destChannels=[], date
     await author.save();
 }
 
-async function createChannel({ name, ownerHandle, description, privateChannel = false }) {
+async function createChannel({ name, ownerHandle, description, publicChannel = true }) {
 
     const u = await User.findOne({ handle: ownerHandle });
     const channel = new Channel({
         name: name,
         creator: u._id,
-        privateChannel: privateChannel
+        publicChannel: publicChannel
     })
 
     if (description) channel.description = description;

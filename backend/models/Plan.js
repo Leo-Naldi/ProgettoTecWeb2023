@@ -38,7 +38,7 @@ const PlanSchema = new mongoose.Schema({
     },
     period: {
         type: String,
-        enum: ['montly', 'yearly'],
+        enum: ['montly', 'yearly', 'oneTime'],
         default: 'montly',
         required: true,
     },

@@ -62,7 +62,7 @@ describe("ChannelService Unit Tests", function(){
                 //expect(c).to.have.property('messages');
                 expect(c).to.have.property('creator');
                 //expect(c).to.have.property('members');
-                expect(c).to.have.property('privateChannel');
+                expect(c).to.have.property('publicChannel');
                 expect(c).to.have.property('official');
                 expect(c).to.have.property('created');
             })
@@ -79,13 +79,13 @@ describe("ChannelService Unit Tests", function(){
                     name: UserDispatch.getNextChannelName(),
                     ownerHandle: u.handle,
                     description: description,
-                    privateChannel: false,
+                    publicChannel: true,
                 })
                 await createChannel({
                     name: UserDispatch.getNextChannelName(),
                     ownerHandle: u.handle,
                     description: description,
-                    privateChannel: true,
+                    publicChannel: false,
                 })
             }
             
@@ -100,7 +100,7 @@ describe("ChannelService Unit Tests", function(){
             res.payload.map(c => {
                 expect(c).to.be.an('object').that.is.not.null;
                 
-                if (c.privateChannel) {
+                if (!c.publicChannel) {
                     expect(c).to.not.have.property('messages');
                     expect(c).to.not.have.property('members');
                 } else {
@@ -124,25 +124,25 @@ describe("ChannelService Unit Tests", function(){
                     name: UserDispatch.getNextChannelName(),
                     ownerHandle: u.handle,
                     description: description,
-                    privateChannel: false,
+                    publicChannel: true,
                 })
                 await createChannel({
                     name: UserDispatch.getNextChannelName(),
                     ownerHandle: u.handle,
                     description: description,
-                    privateChannel: true,
+                    publicChannel: false,
                 })
                 await createChannel({
                     name: UserDispatch.getNextChannelName(),
                     ownerHandle: u2.handle,
                     description: description,
-                    privateChannel: false,
+                    publicChannel: true,
                 })
                 await createChannel({
                     name: UserDispatch.getNextChannelName(),
                     ownerHandle: u2.handle,
                     description: description,
-                    privateChannel: true,
+                    publicChannel: false,
                 })
             }
 
@@ -159,7 +159,7 @@ describe("ChannelService Unit Tests", function(){
             res.payload.map(c => {
                 expect(c).to.be.an('object').that.is.not.null;
 
-                if ((c.privateChannel) && (!user.joinedChannels.some(id => id.equals(c._id)))) {
+                if ((!c.publicChannel) && (!user.joinedChannels.some(id => id.equals(c._id)))) {
                     expect(c).to.not.have.property('messages');
                     expect(c).to.not.have.property('members');
                 } else {
@@ -342,13 +342,13 @@ describe("ChannelService Unit Tests", function(){
                     name: UserDispatch.getNextChannelName(),
                     ownerHandle: u.handle,
                     description: description,
-                    privateChannel: true
+                    publicChannel: false
                 })
                 await createChannel({
                     name: UserDispatch.getNextChannelName(),
                     ownerHandle: u.handle,
                     description: description,
-                    privateChannel: false
+                    publicChannel: true
                 })
             }
 
@@ -356,7 +356,7 @@ describe("ChannelService Unit Tests", function(){
 
             const res = await ChannelServices.getChannels({
                 reqUser: urec,
-                privateChannel: true
+                publicChannel: false
             });
 
             expect(res).to.be.an('object');
@@ -364,13 +364,13 @@ describe("ChannelService Unit Tests", function(){
             expect(res.status).to.equal(config.default_success_code);
 
             res.payload.map(c => {
-                expect(c.privateChannel).to.be.true;
+                expect(c.publicChannel).to.be.false;
             })
 
 
             const res2 = await ChannelServices.getChannels({
                 reqUser: urec,
-                privateChannel: false
+                publicChannel: true
             });
 
             expect(res2).to.be.an('object');
@@ -378,7 +378,7 @@ describe("ChannelService Unit Tests", function(){
             expect(res2.status).to.equal(config.default_success_code);
 
             res2.payload.map(c => {
-                expect(c.privateChannel).to.be.false;
+                expect(c.publicChannel).to.be.true;
             })
 
         });
@@ -429,7 +429,7 @@ describe("ChannelService Unit Tests", function(){
                 name: name,
                 ownerHandle: u.handle,
                 description: description,
-                privateChannel: true
+                publicChannel: false
             })
 
             const res = await ChannelServices.getChannel({ name: name });
@@ -455,7 +455,7 @@ describe("ChannelService Unit Tests", function(){
                 name: name,
                 ownerHandle: u.handle,
                 description: description,
-                privateChannel: true
+                publicChannel: false
             })
 
             const user = await User.findOne({ handle: u2.handle }).orFail()
@@ -482,7 +482,7 @@ describe("ChannelService Unit Tests", function(){
                 name: name,
                 ownerHandle: u.handle,
                 description: description,
-                privateChannel: true
+                publicChannel: false
             })
 
             const user = await User.findOne({ handle: u.handle }).orFail();
@@ -1023,11 +1023,11 @@ describe("ChannelService Unit Tests", function(){
             const rec = await Channel.findOne({ name: name })
 
             expect(rec).to.not.be.null;
-            expect(rec).to.have.property('privateChannel');
-            expect(rec.privateChannel).to.be.false;
+            expect(rec).to.have.property('publicChannel');
+            expect(rec.publicChannel).to.be.true;
 
             res = await ChannelServices.writeChannel({
-                name: name, privateChannel: true,
+                name: name, publicChannel: false,
             });
 
             expect(res).to.be.an("object");
@@ -1037,8 +1037,8 @@ describe("ChannelService Unit Tests", function(){
             const check = await Channel.findOne({ name: name });
 
             expect(check).to.not.be.null;
-            expect(check).to.have.property('privateChannel');
-            expect(check.privateChannel).to.be.true;
+            expect(check).to.have.property('publicChannel');
+            expect(check.publicChannel).to.be.false;
         });
     })
 

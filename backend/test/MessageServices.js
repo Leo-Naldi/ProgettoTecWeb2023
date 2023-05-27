@@ -66,7 +66,7 @@ const getRiskControversial = () => ({
 const periods = ['today', 'week', 'month', 'year'];
 const maxMessages = 20;
 
-describe.only('Message Service Unit Tests', function () {
+describe('Message Service Unit Tests', function () {
 
     let reqUser = null, users = [], secondAuthor = null;
 

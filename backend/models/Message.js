@@ -66,6 +66,11 @@ const MessageSchema = new mongoose.Schema({
                     return this.reactions.positive + this.reactions.negative
                 }
             },
+            privateMessage:  {
+                get() {
+                    return !this.publicMessage;
+                }
+            }
         },
         query: {
         

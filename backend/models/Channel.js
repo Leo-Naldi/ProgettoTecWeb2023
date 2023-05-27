@@ -34,6 +34,14 @@ const ChannelSchema = new mongoose.Schema(
         },
         // TODO add a waiting list of people who want to join
         // TODO differentiate between people who can only read and people who can rw
+    }, {
+        virtuals: {
+            privateChannel: {
+                get() {
+                    return !this.publicChannel;
+                },
+            }
+        }
     }
 );
 

@@ -46,8 +46,7 @@ class UserService {
         //console.log(result)
         //console.log('aaa')
 
-        return Service.successResponse(result);
-        
+        return Service.successResponse(result);        
     }
 
     static async createUser({ handle, email, password,
