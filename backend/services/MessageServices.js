@@ -220,7 +220,8 @@ class MessageService {
         
     }
 
-    static async postUserMessage({ reqUser, handle, content, dest=[], publicMessage=true }) {
+    static async postUserMessage({ reqUser, handle, content, dest=[], publicMessage=true,
+        answering=null }) {
         if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
         let user = reqUser;
@@ -267,6 +268,13 @@ class MessageService {
             }
         }
 
+        if (answering) {
+            const check = await Message.findById(answering);
+
+            if (!check) 
+                return Service.rejectResponse({ message: `Message ${answering} given in the answering field not found` })
+        }
+
         let message = new Message({ 
             content: content, 
             author: user._id,
@@ -275,7 +283,9 @@ class MessageService {
 
         if (destChannel?.length) message.destChannel = destChannel.map(c => c._id);
         if (destUser?.length) message.destUser = destUser.map(u => u._id);
+        if (answering) message.answering = answering;
 
+        // TODO test answering
         let err = null;
 
         try {

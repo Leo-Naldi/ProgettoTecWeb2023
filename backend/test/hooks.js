@@ -14,6 +14,7 @@ const Message = require('../models/Message');
 const Channel = require('../models/Channel');
 
 const { randomizedSetup, testUser, lorem } = require('../utils/randomUtils');
+const Plan = require('../models/Plan');
 
 /*
  * 
@@ -167,6 +168,7 @@ after(async function(){
     await User.deleteMany({});
     await Message.deleteMany({});
     await Channel.deleteMany({});
+    await Plan.deleteMany({})
 
     await mongoose.disconnect();
     

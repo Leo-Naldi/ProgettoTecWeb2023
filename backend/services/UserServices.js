@@ -27,7 +27,7 @@ class UserService {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let user = await User.findOne({ handle: handle });
+        let user = await User.findOne({ handle: handle }).select('-__v');
 
         if (!user) return Service.rejectResponse({ message: "User not found" });
 
@@ -40,11 +40,11 @@ class UserService {
 
         if (!managed) managed = [];
 
-        const result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
+        let result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
         
-        //console.log('aaa')
-        //console.log(result)
-        //console.log('aaa')
+        if (user.accountType !== 'pro') {
+            delete result.managed;
+        }
 
         return Service.successResponse(result);        
     }
@@ -308,6 +308,7 @@ class UserService {
         return Service.successResponse()
     }
 
+    // TODO change name to remove managed
     static async changeManaged({ handle, reqUser, users }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })

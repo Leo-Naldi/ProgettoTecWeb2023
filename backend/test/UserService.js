@@ -707,19 +707,19 @@ describe('User Service Unit Tests', function () {
             const handle1 = UserDispatch.getNext().handle, 
                 handle2 = UserDispatch.getNext().handle;
 
-            const u1 = await UserService.getUser({ handle: handle1 });
-
+            
+            let u1 = await User.findOne({ handle: handle1 }).orFail();
             let u2 = await User.findOne({ handle: handle2 }).orFail();
+
+            u1.accountType = 'pro';
+            u2.accountType = 'pro';
+
+            u1 = await u1.save();
+            u2 = await u2.save();
 
             // make sure u1 did not already manage u2
             expect(u1).to.be.an('object');
-            expect(u1).to.have.property('status');
-            expect(u1.status).to.equal(config.default_success_code);
-            expect(u1).to.have.property('payload');
-            expect(u1.payload).to.be.an('object');
-            expect(u1.payload).to.have.property('managed');
-            expect(u1.payload.managed).to.be.an('array');
-            expect(u1.payload.managed).to.not.have.deep.members([u2.toObject()]);
+            expect(u1._id.equals(u2.smm)).to.be.false;
 
             const res = await UserService.changeSmm({
                 handle: handle2, 
