@@ -16,15 +16,14 @@ const MessageService = require('../services/MessageServices');
 const { testUser, addMessage, UserDispatch, lorem, createChannel } = require('./hooks');
 const { getRandom, getDateWithin } = require('../utils/getDateWithin');
 const {
-    checkThreshold,
-    isPopular,
-    isUnpopular,
-    isControversial,
-    atRiskOfControversial,
-    atRiskOfPopular,
-    atRiskOfUnpopular,
     checkFame,
     checkRiskOfFame,
+    getUnpopular,
+    getControversial,
+    getRiskPopular,
+    getPopular,
+    getRiskUnpopular,
+    getRiskControversial,
 } = require('../utils/fameUtils');
 
 
@@ -39,30 +38,7 @@ const {
 
 const messagesCount = 30;
 
-const getPopular = () => ({
-    positive: getRandom(3000) + config.crit_mass,
-    negative: getRandom(20),
-});
-const getUnpopular = () => ({
-    negative: getRandom(3000) + config.crit_mass,
-    positive: getRandom(20),
-});
-const getControversial = () => ({
-    negative: getRandom(3000) + config.crit_mass,
-    positive: getRandom(3000) + config.crit_mass,
-});
-const getRiskPopular = () => ({
-    positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-    negative: getRandom(20),
-});
-const getRiskUnpopular = () => ({
-    negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-    positive: getRandom(20),
-});
-const getRiskControversial = () => ({
-    negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-    positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-});
+
 const periods = ['today', 'week', 'month', 'year'];
 const maxMessages = 20;
 
@@ -1822,6 +1798,9 @@ describe('Message Service Unit Tests', function () {
             });
 
             await message.save()
+            user.messages.push(message._id);
+
+            user = await user.save()
 
             // check characters are left unchanged
             const res = await MessageService.addPositiveReaction({ id: message._id });
@@ -1834,7 +1813,26 @@ describe('Message Service Unit Tests', function () {
             
             // check characters are changed once threshold is reached
             message = await Message.findById(message._id).orFail();
-            message.reactions.positive = config.reactions_reward_threshold - 1;
+            message.reactions.positive = config.fame_threshold - 1;
+
+            for (let i = 0; i < config.num_messages_reward - 1; i ++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: user._id,
+                    destUser: [reciever._id],
+                    reactions: {
+                        positive: config.fame_threshold + 100,
+                        negative: 0,
+                    }
+                });
+
+                await message1.save()
+                user.messages.push(message1._id);
+
+            }
+            user = await user.save()
 
             await message.save();
 
@@ -1846,16 +1844,16 @@ describe('Message Service Unit Tests', function () {
 
             let newChars = {...charCopy};
 
-            newChars.day += config.reactions_reward_amount;
-            newChars.week += config.reactions_reward_amount;
-            newChars.month += config.reactions_reward_amount;
+            newChars.day += Math.max(1, Math.ceil(config.daily_quote / 100));
+            newChars.week += Math.max(1, Math.ceil(config.weekly_quote / 100));
+            newChars.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
 
             expect(newChars, 'Did not characters when it shouldnt have')
                 .to.deep.equal(user.toObject().charLeft);
         });
 
         it("Should change the user's character when getting enough positive reactions if the message is private but destined to at least one channel", async function () {
-
+            // TODO
             const u = UserDispatch.getNext();
             let urecord = await User.findOne({ handle: u.handle }).orFail();
 
@@ -1912,30 +1910,52 @@ describe('Message Service Unit Tests', function () {
 
             checkSuccessCode(res)
 
-            user = await User.findOne({ handle: urecord.handle }).orFail();
+            urecord = await User.findOne({ handle: urecord.handle }).orFail();
             expect(charCopy, 'Changed characters when it shouldnt have')
-                .to.deep.equal(user.toObject().charLeft);
+                .to.deep.equal(urecord.toObject().charLeft);
 
             // check characters are changed once threshold is reached
             message = await Message.findById(message._id).orFail();
-            message.reactions.positive = config.reactions_reward_threshold - 1;
+            message.reactions.positive = config.fame_threshold - 1;
 
             await message.save();
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: urecord._id,
+                    destUser: [reciever._id],
+                    destChannel: [channel._id],
+                    reactions: {
+                        positive: config.fame_threshold + 100,
+                        negative: 0,
+                    }
+                });
+
+                await message1.save()
+                urecord.messages.push(message1._id);
+                channel.messages.push(message1._id);
+
+            }
+            urecord = await urecord.save();
+            channel = await channel.save();
 
             const res1 = await MessageService.addPositiveReaction({ id: message._id });
 
             checkSuccessCode(res1)
 
-            user = await User.findOne({ handle: urecord.handle }).orFail();
+            urecord = await User.findOne({ handle: urecord.handle }).orFail();
 
             let newChars = { ...charCopy };
 
-            newChars.day += config.reactions_reward_amount;
-            newChars.week += config.reactions_reward_amount;
-            newChars.month += config.reactions_reward_amount;
+            newChars.day += Math.max(1, Math.ceil(config.daily_quote / 100));
+            newChars.week += Math.max(1, Math.ceil(config.weekly_quote / 100));
+            newChars.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
 
             expect(newChars, 'Did not characters when it shouldnt have')
-                .to.deep.equal(user.toObject().charLeft);
+                .to.deep.equal(urecord.toObject().charLeft);
         });
 
         it("Should not change the user's character when getting enough positive reactions if the message is private and has no dest channels", async function () {
@@ -1968,6 +1988,9 @@ describe('Message Service Unit Tests', function () {
             });
 
             await message.save()
+            user.messages.push(message._id);
+
+            user = await user.save()
 
             // check characters are left unchanged
             const res = await MessageService.addPositiveReaction({ id: message._id });
@@ -1980,7 +2003,26 @@ describe('Message Service Unit Tests', function () {
 
             // check characters are changed once threshold is reached
             message = await Message.findById(message._id).orFail();
-            message.reactions.positive = config.reactions_reward_threshold - 1;
+            message.reactions.positive = config.fame_threshold - 1;
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: user._id,
+                    destUser: [reciever._id],
+                    reactions: {
+                        positive: config.fame_threshold + 100,
+                        negative: 0,
+                    }
+                });
+
+                await message1.save()
+                user.messages.push(message1._id);
+
+            }
+            user = await user.save()
 
             await message.save();
 
@@ -2035,6 +2077,9 @@ describe('Message Service Unit Tests', function () {
             });
 
             await message.save()
+            user.messages.push(message._id);
+
+            user = await user.save()
 
             // check characters are left unchanged
             const res = await MessageService.addNegativeReaction({ id: message._id });
@@ -2047,7 +2092,26 @@ describe('Message Service Unit Tests', function () {
 
             // check characters are changed once threshold is reached
             message = await Message.findById(message._id).orFail();
-            message.reactions.negative = config.reactions_reward_threshold - 1;
+            message.reactions.negative = config.fame_threshold - 1;
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: user._id,
+                    destUser: [reciever._id],
+                    reactions: {
+                        negative: config.fame_threshold + 100,
+                        positive: 0,
+                    }
+                });
+
+                await message1.save()
+                user.messages.push(message1._id);
+
+            }
+            user = await user.save()
 
             await message.save();
 
@@ -2059,20 +2123,22 @@ describe('Message Service Unit Tests', function () {
 
             let newChars = { ...charCopy };
 
-            newChars.day -= config.reactions_reward_amount;
-            newChars.week -= config.reactions_reward_amount;
-            newChars.month -= config.reactions_reward_amount;
+            newChars.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
+            newChars.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
+            newChars.month -= Math.max(1, Math.ceil(config.monthly_quote / 100));
+
+            newChars.day = Math.max(newChars.day, 0);
+            newChars.week = Math.max(newChars.week, 0);
+            newChars.month = Math.max(newChars.month, 0);
 
             expect(newChars, 'Did not characters when it shouldnt have')
                 .to.deep.equal(user.toObject().charLeft);
         });
 
-        it("Should change the user's character when getting enough negative reactions if the message is private but destined to at least one channel", async function () {
-
+        it("Should change the user's character when getting enough positive reactions if the message is private but destined to at least one channel", async function () {
+         
             const u = UserDispatch.getNext();
             let urecord = await User.findOne({ handle: u.handle }).orFail();
-
-            const cur_chars = JSON.parse(JSON.stringify(urecord.charLeft));
 
             let channel = new Channel({
                 name: UserDispatch.getNextChannelName(),
@@ -2125,30 +2191,56 @@ describe('Message Service Unit Tests', function () {
 
             checkSuccessCode(res)
 
-            user = await User.findOne({ handle: urecord.handle }).orFail();
+            urecord = await User.findOne({ handle: urecord.handle }).orFail();
             expect(charCopy, 'Changed characters when it shouldnt have')
-                .to.deep.equal(user.toObject().charLeft);
+                .to.deep.equal(urecord.toObject().charLeft);
 
             // check characters are changed once threshold is reached
             message = await Message.findById(message._id).orFail();
-            message.reactions.negative = config.reactions_reward_threshold - 1;
+            message.reactions.negative = config.fame_threshold - 1;
 
             await message.save();
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: urecord._id,
+                    destUser: [reciever._id],
+                    destChannel: [channel._id],
+                    reactions: {
+                        negative: config.fame_threshold + 100,
+                        positive: 0,
+                    }
+                });
+
+                await message1.save()
+                urecord.messages.push(message1._id);
+                channel.messages.push(message1._id);
+
+            }
+            urecord = await urecord.save();
+            channel = await channel.save();
 
             const res1 = await MessageService.addNegativeReaction({ id: message._id });
 
             checkSuccessCode(res1)
 
-            user = await User.findOne({ handle: urecord.handle }).orFail();
+            urecord = await User.findOne({ handle: urecord.handle }).orFail();
 
             let newChars = { ...charCopy };
 
-            newChars.day -= config.reactions_reward_amount;
-            newChars.week -= config.reactions_reward_amount;
-            newChars.month -= config.reactions_reward_amount;
+            newChars.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
+            newChars.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
+            newChars.month -= Math.max(1, Math.ceil(config.monthly_quote / 100));
+
+            newChars.day = Math.max(newChars.day, 0);
+            newChars.week = Math.max(newChars.week, 0);
+            newChars.month = Math.max(newChars.month, 0);
 
             expect(newChars, 'Did not characters when it shouldnt have')
-                .to.deep.equal(user.toObject().charLeft);
+                .to.deep.equal(urecord.toObject().charLeft);
         });
 
         it("Should not change the user's character when getting enough negative reactions if the message is private and has no dest channels", async function () {
@@ -2181,6 +2273,9 @@ describe('Message Service Unit Tests', function () {
             });
 
             await message.save()
+            user.messages.push(message._id);
+
+            user = await user.save()
 
             // check characters are left unchanged
             const res = await MessageService.addNegativeReaction({ id: message._id });
@@ -2193,7 +2288,26 @@ describe('Message Service Unit Tests', function () {
 
             // check characters are changed once threshold is reached
             message = await Message.findById(message._id).orFail();
-            message.reactions.negative = config.reactions_reward_threshold - 1;
+            message.reactions.negative = config.fame_threshold - 1;
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: user._id,
+                    destUser: [reciever._id],
+                    reactions: {
+                        negative: config.fame_threshold + 100,
+                        positive: 0,
+                    }
+                });
+
+                await message1.save()
+                user.messages.push(message1._id);
+
+            }
+            user = await user.save()
 
             await message.save();
 
@@ -2203,7 +2317,7 @@ describe('Message Service Unit Tests', function () {
 
             user = await User.findOne({ handle: user.handle }).orFail();
 
-            expect(charCopy, 'Changed characters when it shouldnt have')
+            expect(charCopy, 'Did not characters when it shouldnt have')
                 .to.deep.equal(user.toObject().charLeft);
         });
     })

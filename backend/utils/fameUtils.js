@@ -2,8 +2,33 @@ const dayjs = require('dayjs');
 let isBetween = require('dayjs/plugin/isBetween')
 dayjs.extend(isBetween)
 
-const config = require('../config');
+const { getRandom } = require('./getDateWithin');
+const config = require('../config/index');
 
+const getPopular = () => ({
+    positive: getRandom(3000) + config.fame_threshold + 10,
+    negative: getRandom(20),
+});
+const getUnpopular = () => ({
+    negative: getRandom(3000) + config.fame_threshold + 10,
+    positive: getRandom(20),
+});
+const getControversial = () => ({
+    negative: getRandom(3000) + config.fame_threshold + 10,
+    positive: getRandom(3000) + config.fame_threshold + 10,
+});
+const getRiskPopular = () => ({
+    positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+    negative: getRandom(20),
+});
+const getRiskUnpopular = () => ({
+    negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+    positive: getRandom(20),
+});
+const getRiskControversial = () => ({
+    negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+    positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
+});
 
 function checkThreshold(x, threshold = config.fame_threshold) {
     return x >= threshold;
@@ -36,8 +61,8 @@ function atRiskOfPopular(reactions) {
 
 function atRiskOfControversial(reactions) {
 
-    return checkThreshold(reactions.positive, config.danger_zone) &&
-        checkThreshold(reactions.negative, config.danger_zone) &&
+    return checkThreshold(reactions.positive, config.danger_threshold) &&
+        checkThreshold(reactions.negative, config.danger_threshold) &&
         !(isPopular(reactions) && isUnpopular(reactions));
 }
 
@@ -81,4 +106,10 @@ module.exports = {
     atRiskOfUnpopular,
     checkFame,
     checkRiskOfFame,
+    getUnpopular,
+    getPopular,
+    getControversial,
+    getRiskPopular,
+    getRiskUnpopular,
+    getRiskControversial,
 }

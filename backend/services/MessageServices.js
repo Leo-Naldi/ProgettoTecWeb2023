@@ -371,6 +371,7 @@ class MessageService {
         return Service.successResponse();
     }
 
+    // TODO fix according to slides
     static async addNegativeReaction({ id }){
 
         if (!mongoose.isObjectIdOrHexString(id))
@@ -381,18 +382,24 @@ class MessageService {
         if (!message)
             return Service.rejectResponse({ message: "Id not found" });
 
+
+        const num_inf_messages = await Message.find({ author: message.author })
+            .byPopularity('unpopular').count();
+
         message.reactions.negative += 1;
 
         let user = null;
 
-        if ((message.reactions.negative % config.reactions_reward_threshold === 0) &&
-            ((message.publicMessage) || (message.destChannel.length))) {
+        if ((message.reactions.negative === config.fame_threshold) &&
+            ((num_inf_messages + 1) % config.num_messages_reward === 0)
+            && (message.publicMessage || (message.destChannel?.length))) {
 
             user = await User.findById(message.author).orFail();
+
             
-            user.charLeft.day -= config.reactions_reward_amount;
-            user.charLeft.week -= config.reactions_reward_amount;
-            user.charLeft.month -= config.reactions_reward_amount;
+            user.charLeft.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
+            user.charLeft.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
+            user.charLeft.month -= Math.max(1, Math.ceil(config.monthly_quote / 100));
             
             user.charLeft.day = Math.max(user.charLeft.day, 0);
             user.charLeft.week = Math.max(user.charLeft.week, 0);
@@ -422,19 +429,23 @@ class MessageService {
         if (!message)
             return Service.rejectResponse({ message: "Id not found" });
 
+        const num_fam_messages = await Message.find({ author: message.author })
+            .byPopularity('popular').count();
+
         message.reactions.positive += 1;
 
         let user = null;
 
-        if ((message.reactions.positive % config.reactions_reward_threshold === 0) && 
-            ((message.publicMessage) || (message.destChannel.length))) {
-            
+        if ((message.reactions.positive === config.fame_threshold) &&
+            ((num_fam_messages + 1) % config.num_messages_reward === 0)
+            && (message.publicMessage || (message.destChannel?.length))) {
 
             user = await User.findById(message.author).orFail();
 
-            user.charLeft.day += config.reactions_reward_amount;
-            user.charLeft.week += config.reactions_reward_amount;
-            user.charLeft.month += config.reactions_reward_amount;
+
+            user.charLeft.day += Math.max(1, Math.ceil(config.daily_quote / 100));
+            user.charLeft.week += Math.max(1, Math.ceil(config.weekly_quote / 100));
+            user.charLeft.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
         }
 
         let err = null;

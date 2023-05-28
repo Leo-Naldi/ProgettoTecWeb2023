@@ -1,26 +1,24 @@
 let expect = require('chai').expect;
 
-const ValidationError = require('mongoose').Error.ValidationError;
 const LoremIpsum = require("lorem-ipsum").LoremIpsum;
 const dayjs = require('dayjs');
 let isBetween = require('dayjs/plugin/isBetween')
 dayjs.extend(isBetween)
 
-const config = require('../config');
+
 const Message = require('../models/Message');
-const User = require('../models/User');
-const { testUser, addMessage, UserDispatch } = require('./hooks');
+
+const { addMessage, UserDispatch } = require('./hooks');
 const { getRandom, getDateWithin } = require('../utils/getDateWithin');
 const {
-    checkThreshold,
-    isPopular,
-    isUnpopular,
-    isControversial,
-    atRiskOfControversial,
-    atRiskOfPopular,
-    atRiskOfUnpopular,
     checkFame,
     checkRiskOfFame,
+    getUnpopular,
+    getPopular,
+    getControversial,
+    getRiskPopular,
+    getRiskUnpopular,
+    getRiskControversial,
 } = require('../utils/fameUtils');
 
 
@@ -98,31 +96,7 @@ describe('Message Model Unit Tests', function(){
                 }
             )
         }
-        // Ensure there are messages for every fame configuration and every time frame
-        const getPopular = () => ({
-            positive: getRandom(3000) + config.crit_mass,
-            negative: getRandom(20),
-        });
-        const getUnpopular = () => ({
-            negative: getRandom(3000) + config.crit_mass,
-            positive: getRandom(20),
-        });
-        const getControversial = () => ({
-            negative: getRandom(3000) + config.crit_mass,
-            positive: getRandom(3000) + config.crit_mass,
-        });
-        const getRiskPopular = () => ({
-            positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            negative: getRandom(20),
-        });
-        const getRiskUnpopular = () => ({
-            negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            positive: getRandom(20),
-        });
-        const getRiskControversial = () => ({
-            negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-        });
+        
         const periods = ['today', 'week', 'month', 'year'];
         const maxMessages = 20;
         await Promise.all(periods.map(async p => {

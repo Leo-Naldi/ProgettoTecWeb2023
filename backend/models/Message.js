@@ -100,13 +100,19 @@ const MessageSchema = new mongoose.Schema({
 
                 if (popularity === 'popular') {
 
-                    return this.where('reactions.positive').gte(config.danger_threshold).lt(config.fame_threshold)
-                        .where('reactions.negative').lt(config.danger_threshold);
+                    return this
+                        .where('reactions.positive')
+                            .gte(config.danger_threshold).lt(config.fame_threshold)
+                        .where('reactions.negative')
+                            .lt(config.danger_threshold);
 
                 } else if (popularity === 'unpopular') {
 
-                    return this.where('reactions.negative').gte(config.danger_threshold).lt(config.fame_threshold)
-                        .where('reactions.positive').lt(config.danger_threshold);
+                    return this
+                        .where('reactions.negative')
+                            .gte(config.danger_threshold).lt(config.fame_threshold)
+                        .where('reactions.positive')
+                            .lt(config.danger_threshold);
 
                 } else if (popularity === 'controversial') {
 
