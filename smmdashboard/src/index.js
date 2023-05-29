@@ -4,10 +4,20 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+import { ThemeProvider } from '@emotion/react';
+import { Theme } from './context/ThemeContext';
+import AccountContextProvider from './context/CurrentAccountContext';
+import { CssBaseline } from '@mui/material';
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider theme={Theme}>
+        <AccountContextProvider>
+          <CssBaseline />
+          <App />
+        </AccountContextProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );
 
