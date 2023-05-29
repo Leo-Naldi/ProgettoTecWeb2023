@@ -29,13 +29,30 @@ export default function SignIn() {
             password: data.get('password'),
         });
 
-        //fetch(`http://${process.env.BACKEND_URL}/login`, {
-        //    method: "post",
-        //    headers: {
-        //        'Content-Type': 'application/json'
-        //    },
-        //    body: JSON.stringify(data)
-        //})
+        setFetching(true);
+
+        fetch(`http://localhost:8000/auth/login/smm`, {
+            method: "post",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                handle: data.get('handle'),
+                password: data.get('password'),
+            })
+        })
+        .then(res => {
+            setFetching(false);
+            if (res.status === 200)
+                return res.json().then(data => {
+                    console.log(data);
+                })
+            else {
+                setErrorMessage("Incorrect Handle or password");
+                setShowError(true)
+            }
+        })
+        .catch(err => console.log(err));
 
         // set fetching to true
             // send data to backend
