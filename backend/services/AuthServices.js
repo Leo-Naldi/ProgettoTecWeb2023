@@ -2,18 +2,16 @@ const User = require('../models/User');
 const Service = require('./Service');
 const makeToken = require('../utils/makeToken');
 
-class AuthService {
+class AuthServices {
     static async login({ handle, password }) {
-        let err = null, user = null;
+        let user = null;
 
-        try {
-            user = await User.findOne({ handle: handle });
-        } catch (error) {
-            err = error;
-        }
+        if (!((handle) && (password))) 
+            return Service.rejectResponse({ message: "Must Provide both a handle and a password" })
 
-        if (err)
-            return Service.rejectResponse(err);
+        user = await User.findOne({ handle: handle }).select('-__v');
+        
+
         if (!user)
             return Service.rejectResponse({ message: "Handle not found or incorrect password" });
 
@@ -35,16 +33,13 @@ class AuthService {
     }
 
     static async loginPro({ handle, password }) {
-        let err = null, user = null;
+        let user = null;
 
-        try {
-            user = await User.findOne({ handle: handle, accountType: 'pro' });
-        } catch (error) {
-            err = error;
-        }
+        if (!((handle) && (password)))
+            return Service.rejectResponse({ message: "Must Provide both a handle and a password" })
 
-        if (err)
-            return Service.rejectResponse(err);
+        user = await User.findOne({ handle: handle, accountType: 'pro' }).select('-__v');
+
         if (!user)
             return Service.rejectResponse({ message: "Handle not found or incorrect password" });
 
@@ -66,16 +61,13 @@ class AuthService {
     }
 
     static async loginAdmin({ handle, password }) {
-        let err = null, user = null;
+        let user = null;
 
-        try {
-            user = await User.findOne({ handle: handle, admin: true });
-        } catch (error) {
-            err = error;
-        }
+        if (!((handle) && (password)))
+            return Service.rejectResponse({ message: "Must Provide both a handle and a password" })
 
-        if (err)
-            return Service.rejectResponse(err);
+        user = await User.findOne({ handle: handle, admin: true }).select('-__v');
+
         if (!user)
             return Service.rejectResponse({ message: "Handle not found or incorrect password" });
 
@@ -97,4 +89,4 @@ class AuthService {
     }
 }
 
-module.exports = AuthService;
+module.exports = AuthServices;
