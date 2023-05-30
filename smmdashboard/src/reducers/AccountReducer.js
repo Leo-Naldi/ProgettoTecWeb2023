@@ -2,12 +2,22 @@ export default function accountReducer(state, action) {
 
     switch (action.type) {
         case ('USER_CHANGED'): {
-            return {
+
+            const newUser = {
                 ...state,
-                ...action.user,
+                ...action.payload.user,
+                loggedIn: true,
+                token: action.payload.token,
             };
+
+            localStorage.setItem('smmDashboardUser', JSON.stringify(newUser));
+
+            return newUser;
         }
         case 'USER_LOGOUT': {
+
+            localStorage.removeItem('smmDashboardUser');
+
             return {
                 loggedIn: false,
                 token: null,

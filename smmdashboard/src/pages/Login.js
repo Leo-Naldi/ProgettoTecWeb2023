@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -12,10 +12,13 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import Copyright from '../components/Copiright';
-import { CircularProgress } from '@mui/material';
+import { Alert, CircularProgress } from '@mui/material';
+import { useDispatchAccount } from '../context/CurrentAccountContext';
 
 
 export default function SignIn() {
+
+    const userDispatch = useDispatchAccount();
 
     const [fetching, setFetching] = useState(false);
     const [showError, setShowError] = useState(false);
@@ -46,6 +49,13 @@ export default function SignIn() {
             if (res.status === 200)
                 return res.json().then(data => {
                     console.log(data);
+                    userDispatch({
+                        type: 'USER_CHANGED',
+                        payload: {
+                            user: data.user,
+                            token: data.token,
+                        }
+                    })
                 })
             else {
                 setErrorMessage("Incorrect Handle or password");
@@ -53,15 +63,7 @@ export default function SignIn() {
             }
         })
         .catch(err => console.log(err));
-
-        // set fetching to true
-            // send data to backend
-                // success set fetching to false and dispatch new user
-                // fail set fetching to false and give a warning
     };
-
-    // when is fetching display a spinner or some shit like that
-
 
     // TODO if user is already logged in redirect to homepage
 
@@ -94,6 +96,7 @@ export default function SignIn() {
                     Sign in
                 </Typography>
                 <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+                    {showError ? <Alert severity='error'>{errorMessage}</Alert> : null}
                     <TextField
                         margin="normal"
                         required

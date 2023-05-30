@@ -8,7 +8,11 @@ const AccountDispatchContext = createContext(null);
 
 export function AccountContextProvider({ children }) {
 
-    const [user, accountDispatch] = useReducer(accountReducer, {
+    let mem = localStorage.getItem('smmDashboardUser');
+
+    if (mem) mem = JSON.parse(mem);
+
+    const [user, accountDispatch] = useReducer(accountReducer, mem ?? {
         loggedIn: false, 
         token: null,
     });
