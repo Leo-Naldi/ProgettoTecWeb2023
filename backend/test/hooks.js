@@ -24,7 +24,7 @@ const Plan = require('../models/Plan');
  */
 
 // Number of dummy users and dummy admins that will be created in the test db.
-const users_count = 200;
+const users_count = 230;
 const admin_count = 20;
 
 class UserDispatch {

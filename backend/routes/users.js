@@ -69,6 +69,15 @@ UserRouter.post('/:handle/managed', passport.authenticate('proAuth', { session: 
     }
 );
 
+UserRouter.get('/:handle/managed', passport.authenticate('proAuth', { session: false }),
+    async (req, res) => {
+
+        // TODO a user can only modify his own managed
+
+        await Controller.handleRequest(req, res, UserService.getManaged);
+    }
+);
+
 UserRouter.post('/:handle/grantAdmin', passport.authenticate('adminAuth', { session: false }),
     async (req, res) => {
 
