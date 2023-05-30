@@ -2,7 +2,7 @@ import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 
 import Login from '../pages/Login'
-import Dashboard from '../pages/Dashboard';
+import DashboardPage from '../pages/Dashboard';
 
 
 export const routerData = [
@@ -12,7 +12,7 @@ export const routerData = [
     },
     {
         path: '/dashboard',
-        element: <Dashboard />,
+        element: <DashboardPage />,
     }
 ];
 
