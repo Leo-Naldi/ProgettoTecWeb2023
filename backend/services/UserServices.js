@@ -16,6 +16,7 @@ class UserService {
         if (accountType) filter.accountType = accountType;
 
         const users = await User.find(filter)
+            .select('-__v -password')
             .sort('meta.created')
             .skip((page - 1) * config.results_per_page)
             .limit(config.results_per_page);
@@ -27,7 +28,7 @@ class UserService {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let user = await User.findOne({ handle: handle }).select('-__v');
+        let user = await User.findOne({ handle: handle }).select('-__v -password');
 
         if (!user) return Service.rejectResponse({ message: "User not found" });
 
@@ -35,16 +36,9 @@ class UserService {
             user = await user.populate('messages');
         }
 
-        let managed = await User.findManaged(user._id);
-        //console.log(managed)
-
-        if (!managed) managed = [];
+        let managed = await User.find({ smm: user._id }).select('-password -messages');
 
         let result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
-        
-        if (user.accountType !== 'pro') {
-            delete result.managed;
-        }
 
         return Service.successResponse(result);        
     }
@@ -346,6 +340,22 @@ class UserService {
         return Service.successResponse()
     }
 
+    static async getManaged({ handle, reqUser }) {
+
+        if (!((handle) && (reqUser))) 
+            return Service.rejectResponse({ message: "Must provide a valid handle" })
+        
+        let user = reqUser;
+        if (user.handle !== handle){
+            user = await User.findOne({ handle: handle });
+
+            if (!user) return Service.rejectResponse({ message: "Must provide a valid handle" })
+        }
+
+        const res = await User.find({ smm: user._id }).select('-__v -password');
+
+        return Service.successResponse(res.map( u => u.toObject()));
+    }
 }
 
 module.exports = UserService;

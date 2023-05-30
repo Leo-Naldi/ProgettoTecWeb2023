@@ -7,6 +7,14 @@ const Message = require('../models/Message');
 const Channel = require('../models/Channel');
 const UserService = require('../services/UserServices');
 const { testUser, UserDispatch, lorem, createChannel } = require('./hooks');
+const {
+    checkErrorCode,
+        checkSuccessCode,
+        checkPayloadArray,
+        checkPayloadObject,
+        checkObject,
+        checkArray,
+} = require('../utils/testingUtils')
 
 describe('User Service Unit Tests', function () {
 
@@ -32,7 +40,12 @@ describe('User Service Unit Tests', function () {
             expect(res.status).to.equal(config.default_success_code);
             expect(res).to.have.property('payload');
             expect(res.payload).to.be.an('array').that.has.lengthOf(1);
-            expect(res.payload[0]).to.deep.equal(user.toObject());
+
+            let expected = user.toObject();
+            delete expected.__v;
+            delete expected.password;
+
+            expect(res.payload[0]).to.deep.equal(expected);
         });
 
         it('Should only return admin users', async function(){
@@ -745,5 +758,86 @@ describe('User Service Unit Tests', function () {
         });
 
     })
-        
+    
+    describe("getManaged Unit Testst", function(){
+
+        it("Should fail if no handle is provided", async function(){
+
+            const reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const res = await UserService.getManaged({ reqUser: reqUser });
+
+            checkErrorCode(res);
+        });
+
+        it("Should fail if an invalid handle is provided", async function () {
+
+            const reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const res = await UserService.getManaged({ reqUser: reqUser, handle: 'jfvnwejfn' });
+
+            checkErrorCode(res);
+        });
+
+        it("Should return an array of users", async function () {
+
+            const reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const managed = [
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            ]
+
+            for (let i = 0; i < managed.length; i++) {
+                managed[i].smm = reqUser._id;
+            }
+
+            await Promise.all(managed.map(u => u.save()));
+
+            const res = await UserService.getManaged({ reqUser: reqUser, handle: reqUser.handle });
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+            res.payload.map(u => {
+                checkObject(u, ['handle']);
+                expect(u).to.not.have.property('password');
+            })
+        });
+
+        it("Should return only the users managed by the given user", async function () {
+
+            const reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const managed = [
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            ]
+
+            for (let i = 0; i < managed.length; i++) {
+                managed[i].smm = reqUser._id;
+            }
+
+            await Promise.all(managed.map(u => u.save()));
+
+            const res = await UserService.getManaged({ reqUser: reqUser, handle: reqUser.handle });
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+            res.payload.map(u => {
+                checkObject(u, ['handle', 'smm']);
+                expect(u).to.not.have.property('password');
+                expect(reqUser._id.equals(u.smm)).to.be.true;
+            })
+        });
+    })
 })
