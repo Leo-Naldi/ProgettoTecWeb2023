@@ -25,6 +25,8 @@ class UserService {
     }
 
     static async getUser({ handle }) {
+        
+        //console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
@@ -37,6 +39,8 @@ class UserService {
         }
 
         let managed = await User.find({ smm: user._id }).select('-password -messages');
+
+        //console.log(managed)
 
         let result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
 

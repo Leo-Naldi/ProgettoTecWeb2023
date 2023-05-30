@@ -27,7 +27,8 @@ async function makeDefaultUsers() {
         handle: 'fvSMM',
         username: 'fvSMM',
         email: 'mailSMM@mail.com',
-        password: 'abc123456',
+        password: pw,
+        accountType: 'pro',
         admin: true,
     });
 
@@ -36,6 +37,7 @@ async function makeDefaultUsers() {
         username: 'fvMod',
         email: 'mailMod@mail.com',
         password: pw,
+        admin: true,
     });
 
     const user5 = new User({
@@ -238,6 +240,8 @@ async function makeDefaultUsers() {
         user2.save(),
         user3.save(),
         user4.save(),
+        user5.save(),
+        user6.save(),
     ].concat(answering_users.map(u => u.save())));
 
     await Promise.all(messages.concat(answers).map(m => m.save()));

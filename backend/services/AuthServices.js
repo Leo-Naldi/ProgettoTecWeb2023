@@ -18,9 +18,17 @@ class AuthServices {
         if (user.password === password) {
             user.lastLoggedin = new Date();
 
+            let managed = await User.find({ smm: user._id })
+                .select('-password -messages');
+
             user = await user.save();
+
+            let ures = { ...user.toObject(), managed: managed.map(u => u.handle) };
+
+            delete ures.password;
+
             return Service.successResponse({ 
-                user: user.toObject(),
+                user: ures,
                 token: makeToken({
                     handle: user.handle,
                     accountType: user.accountType,
@@ -46,9 +54,17 @@ class AuthServices {
         if (user.password === password) {
             user.lastLoggedin = new Date();
 
+            let managed = await User.find({ smm: user._id })
+                .select('-password -messages');
+
             user = await user.save();
+
+            let ures = { ...user.toObject(), managed: managed.map(u => u.handle) };
+
+            delete ures.password;
+
             return Service.successResponse({
-                user: user.toObject(),
+                user: ures,
                 token: makeToken({
                     handle: user.handle,
                     accountType: user.accountType,
@@ -74,9 +90,17 @@ class AuthServices {
         if (user.password === password) {
             user.lastLoggedin = new Date();
 
+            let managed = await User.find({ smm: user._id })
+                .select('-password -messages');
+
             user = await user.save();
+
+            let ures = { ...user.toObject(), managed: managed.map(u => u.handle) };
+
+            delete ures.password;
+
             return Service.successResponse({
-                user: user.toObject(),
+                user: ures,
                 token: makeToken({
                     handle: user.handle,
                     accountType: user.accountType,
