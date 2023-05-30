@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+import router from './routes/Router';
+import { RouterProvider } from 'react-router-dom';
 import { ThemeProvider } from '@emotion/react';
 import { Theme } from './context/ThemeContext';
 import AccountContextProvider from './context/CurrentAccountContext';
@@ -15,7 +16,7 @@ root.render(
     <ThemeProvider theme={Theme}>
         <AccountContextProvider>
           <CssBaseline />
-          <App />
+            <RouterProvider router={router} />
         </AccountContextProvider>
     </ThemeProvider>
   </React.StrictMode>
