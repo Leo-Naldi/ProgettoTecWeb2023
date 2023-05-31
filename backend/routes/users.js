@@ -92,6 +92,13 @@ UserRouter.post('/:handle/revokeAdmin', passport.authenticate('adminAuth', { ses
     }
 );
 
+UserRouter.get('/:handle/messages/stats', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+
+    // this way you can see any user's messages
+
+    await Controller.handleRequest(req, res, MessageServices.getMessagesStats);
+})
+
 UserRouter.get('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
     
     // this way you can see any user's messages
