@@ -2,7 +2,6 @@ const express = require('express');
 const passport = require('passport');
 
 const Controller = require('../controllers/Controller');
-const Channel = require('../models/Channel');
 const ChannelServices = require('../services/ChannelServices');
 const MessageServices = require('../services/MessageServices');
 const Channel = require('../models/Channel');
@@ -61,4 +60,4 @@ ChannelRouter.delete('/:name/messages', passport.authenticate('basicAuth', { ses
 })
 
 
-module.exports = MessageRouter;
+module.exports = ChannelRouter;

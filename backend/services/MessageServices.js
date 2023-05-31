@@ -11,17 +11,52 @@ const config = require('../config');
     Refer to doc/yaml/messages.yaml
 */
 
+const allowedSortFields = [
+    'meta.created',
+    'created',
+    'reactions.positive',
+    'positive',
+    'reactions.negative',
+    'negative',
+    // TODO number of reactions
+]
+
 class MessageService {
 
     /*
      *  Aux function to build a mongoose query chain query paramenters.
     */
-    static async _addQueryChains({ query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest, page = 1, official=null, mentions=[], reqUser=null, author=null } = 
-        { query: Message.find(), page: 1, official: null, mentions: [], reqUser: null, author: null }) {
+    static async _addQueryChains({ 
+        query=Message.find(), popular, unpopular, controversial, risk,
+        before, after, dest, page = 1, official=null, mentions=[], 
+        reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false } = 
+        { query: Message.find(), page: 1, 
+            official: null, mentions: [], 
+            reqUser: null, author: null, 
+            sortField: null, filterOnly: false,
+            publicMessage: null }) {
 
         // TODO mentions => only get messages that mention a channel/keyword/user
         // TODO official => only get messages destined to official/unofficial channels
+
+
+        if (reqUser) {
+            query.or([
+                    { author: reqUser._id },
+                    { destUser: reqUser._id },
+                    { publicMessage: true },
+                    { destChannel: { $in: reqUser.joinedChannels } },
+            ])
+        } else {
+            query.and([
+                {
+                    publicMessage: true,
+                },
+                {
+                    destChannel: { $in: (await Channel.find({ official: true })).map(c => c._id) }
+                }
+            ])
+        }
 
         if(controversial) {
 
@@ -45,11 +80,8 @@ class MessageService {
         if (before) query.where('meta.created').lte(before);
         
         if (after) query.where('meta.created').gte(after);
-        
 
-        if (reqUser) {
-
-            let orFilter = [{ publicMessage: true }, { publicMessage: false }];
+        if (dest) {
 
             let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)));
             let names = dest?.filter(val => ((val.charAt(0) === '§') && (val.length > 1)));
@@ -68,110 +100,63 @@ class MessageService {
                 channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } });
             }
 
-            // Default filters, can only see private messages addresses to you or
-            // a private channel you are a member of
-
-
-            // By default a user can only see the private messages he authored 
-            // or the ones addressed to him in some way
-            orFilter[1]['$or'] = [
-                { destUser: reqUser._id },
-                { author: reqUser._id }
-            ]
-
-            if (reqUser.joinedChannels.length) {
-                orFilter[1]['$or'].push(
-                    {
-                        destChannel: { $in: reqUser.joinedChannels },
-                    }
-                )
-            }
-
             if (channels?.length) {
-                orFilter[1].destChannel = { 
-                    $in: channels.map(c => c._id) 
-                }
-                orFilter[0].destChannel = { $in: channels.map(c => c._id) };
+                 query.where('destChannel').in(channels.map(c => c._id));
             }
 
             if (users?.length) {
-                orFilter[1].destUser = {
-                    $in: users.map(u => u._id)
-                }
-                orFilter[0].destUser = { $in: users.map(u => u._id) };
+                query.where('destUser').in(users.map(u => u._id));
             }
 
             
-            if (author) {
-                orFilter[0].author = author._id;
-
-                if (author.handle !== reqUser.handle){
-                    orFilter.pop()
-                } else {
-                    orFilter[1].author = author._id;
-                }
-
-            }
-
-            query.or(orFilter);
-
-        } else {
-            let searchFilter = {
-                publicMessage: true,
-                destChannel: {
-                    $in: (await Channel.find({ official: true })).map(c => c._id)
-                },
-            }
-
-            let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)));
-            let names = dest?.filter(val => ((val.charAt(0) === '§') && (val.length > 1)));
-
-            let users = [], channels = [];
-
-            // only private messages you can see are the ones addressed to you or a channel you
-            // are a member of
-
-            if (handles?.length) {
-
-                users = await User.find({ handle: { $in: handles.map(h => h.slice(1)) } });
-            }
-
-            if (names?.length) {
-                //console.log('aaaaaaaaaaaaaaaaaaaaaaaaa')
-                channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } })
-            }
-
-            if (users.length) {
-                searchFilter.destUser = users.map(u => u._id);
-            }
-
-            if (channels.length) {
-                searchFilter.destChannel['$in'] = searchFilter.destChannel['$in']
-                    .filter(id => channels.id(id));
-            }
-
-            //console.log(searchFilter);
-
-            //console.log(await Message.find(searchFilter))
-
-            query.find(searchFilter);
+            
+        } 
+        
+        if (author) {
+            query.where('author').equals(author._id);
         }
 
-        query.sort('meta.created')
+        if ((publicMessage === true) || (publicMessage === false)) {
+            query.find({ publicMessage: publicMessage })
+        }
+
+        if (filterOnly) return query.getFilter()
+
+        query
             .select('-__v')
             .populate('author', 'handle -_id')
             .populate('destUser', 'handle -_id')
-            .populate('destChannel', 'name -_id')
-            .skip((page - 1) * config.results_per_page)
+            .populate('destChannel', 'name -_id');
+        
+        if (allowedSortFields.find(elem => elem === sortField)) {
+
+            switch (sortField) {
+                case 'created':
+                    query.sort('meta.created')
+                    break;
+                case 'positive':
+                    query.sort('reactions.positive')
+                    break;
+                case 'negative':
+                    query.sort('reactions.negative')
+                    break;
+                default:
+                    query.sort(sortField);
+                    break;
+            }
+        } else {
+            query.sort('meta.created')
+        }
+
+        if (page > 0)
+            query.skip((page - 1) * config.results_per_page)
             .limit(config.results_per_page);
 
         return query;
     }
 
     static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
-        before, after, dest }={ page: 1, reqUser: null }) {
-
-        page = Math.max(1, page);  // page numbers can only be >= 1
+        before, after, dest, publicMessage }={ page: 1, reqUser: null }) {
 
        
         // TODO if reqUser and dest are both set remove all private channels the user is not
@@ -182,9 +167,9 @@ class MessageService {
         // TODO if reqUser is null only return messages from public channels
         // (this will break a lotoftests methinks)
 
-        let query = MessageService._addQueryChains({ query: Message.find(),
+        let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
-            before, after, dest, page, reqUser,
+            before, after, dest, page, reqUser, publicMessage
         })
 
         const res = await query;
@@ -193,31 +178,71 @@ class MessageService {
     }
 
     static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
-        before, after, dest }){
+        before, after, dest, publicMessage }){
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
-
-        page = Math.max(1, page);  // page numbers can only be >= 1
         
         let user = reqUser;
 
         if (handle !== user.handle) {
             user = await User.findOne({ handle: handle });
 
-            if (!user) Service.rejectResponse({ message: `User @${handle} not found` });
+            if (!user) return Service.rejectResponse({ message: `User @${handle} not found` });
         }
         let messagesQuery = Message.find();
 
-        messagesQuery = MessageService._addQueryChains({ 
+        messagesQuery = await MessageService._addQueryChains({ 
             query: messagesQuery,
             popular, unpopular, controversial, risk,
             before, after, dest, page, reqUser, author: user,
+            publicMessage
          })
 
         const res = await messagesQuery;
 
         return Service.successResponse(res.map(m => m.toObject()));
         
+    }
+
+    static async getMessagesStats({ reqUser, handle, popular, unpopular, controversial, risk,
+        before, after, dest, publicMessage }) {
+        
+        let author = null;
+
+        if (reqUser && handle) {
+
+            author = reqUser;
+    
+            if (handle !== author.handle) {
+                author = await User.findOne({ handle: handle });
+    
+                if (!author) return Service.rejectResponse({ message: `User @${handle} not found` });
+            }
+        }
+
+        let messagesQuery = Message.find();
+
+        let messagesFilter = await MessageService._addQueryChains({
+            query: messagesQuery,
+            popular, unpopular, controversial, risk,
+            before, after, dest, reqUser, author: author,
+            publicMessage, page: -1, filterOnly: true,
+        })
+        //console.log(messagesFilter)
+
+        let aggregation = Message.aggregate()
+            .match(messagesFilter)
+            .group({
+                _id: null,
+                positive: { $sum: "$reactions.positive" },
+                negative: { $sum: "$reactions.negative" },
+                total: { $count: { } },
+            })
+        const res = await aggregation;
+
+        if (res.length !== 1) console.log(messagesFilter)
+
+        return Service.successResponse(res[0]);
     }
 
     static async postUserMessage({ reqUser, handle, content, dest=[], publicMessage=true,

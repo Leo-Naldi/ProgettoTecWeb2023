@@ -96,7 +96,14 @@ describe('Message Service Unit Tests', function () {
                 description: lorem.generateParagraphs(1),
                 members: uids.slice(Math.floor(uids.length / 2)).concat([reqUser._id]),
                 creator: uids[Math.floor(uids.length / 2)]
-            })
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)).concat([reqUser._id]),
+                creator: uids[Math.floor(uids.length / 2)],
+                official: true,
+            }),
         ]
 
         const privateNotJoinedChannels = [
@@ -528,6 +535,28 @@ describe('Message Service Unit Tests', function () {
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
+        it('Should return all available messages when page is -1', async function () {
+
+            this.timeout(20000)
+
+            const res = await MessageService.getMessages({ page: -1, reqUser });
+            
+            
+            const num_messages = await Message.find({ 
+                $or: [
+                    {author: reqUser._id},
+                    {destUser: reqUser._id},
+                    {publicMessage: true},
+                    {destChannel: { $in: reqUser.joinedChannels }},
+                ]
+             }).count();
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+            expect(res.payload).to.have.lengthOf(num_messages)
+        });
+
         describe("Filters Unit Tests", function(){
         
             const fames = ['popular', 'unpopular', 'controversial'];
@@ -837,6 +866,23 @@ describe('Message Service Unit Tests', function () {
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
+        it("Should return all messages when page is a negative number", async function(){
+            const res = await MessageService.getUserMessages({
+                handle: reqUser.handle,
+                reqUser: reqUser,
+                page: -1,
+            });
+
+            const num_messages = await Message.find({ author: reqUser._id }).count();
+
+            //console.log(num_messages);
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+            expect(res.payload).to.have.lengthOf(num_messages)
+        })
+
         describe("Filters Unit Tests", function () {
 
             const fames = ['popular', 'unpopular', 'controversial'];
@@ -1002,9 +1048,9 @@ describe('Message Service Unit Tests', function () {
                     return urec.save();
                 }))
 
-                for (let i = 0; i < users.length; i++) {
+                for (let i = 0; i < locUsers.length; i++) {
 
-                    let urec = await User.findOne({ handle: users[i].handle });
+                    let urec = await User.findOne({ handle: locUsers[i].handle });
 
                     crec.members.push(urec._id);
                     crec2.members.push(urec._id);
@@ -1069,17 +1115,59 @@ describe('Message Service Unit Tests', function () {
 
         });
 
-        it("Should only return public message if requesting user is not the user", async function(){
+        it("Should only return public messages when setting the public field to true", async function(){
             this.timeout(30000)
             let pageNum = 1;
 
-            let res = await MessageService.getUserMessages({ reqUser: reqUser, handle: secondAuthor.handle });
+            let res = await MessageService.getUserMessages({ 
+                reqUser: reqUser, 
+                handle: secondAuthor.handle,
+                publicMessage: true,
+            });
 
             checkSuccessCode(res);
             checkPayloadArray(res);
 
             while (res.payload.length > 0) {
                 expect(res.payload.every(m => m.publicMessage)).to.be.true;
+
+                pageNum++;
+                res = await MessageService.getUserMessages({
+                    reqUser: reqUser, handle: secondAuthor.handle,
+                    page: pageNum
+                });
+
+                checkSuccessCode(res);
+                checkPayloadArray(res, true);
+            }
+        });
+
+        it("Should only return messages the requesting user can see", async function () {
+            this.timeout(30000)
+            let pageNum = 1;
+
+            let res = await MessageService.getUserMessages({ 
+                reqUser: reqUser, 
+                handle: secondAuthor.handle,
+            });
+
+            const reqUserChannelsNames = (await Channel.find({
+                _id: { $in: reqUser.joinedChannels }
+            })).map(c => c.name)
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+            while (res.payload.length > 0) {
+                expect(res.payload.every(m => {
+
+                    expect(m.author.handle).to.equal(secondAuthor.handle)
+
+                    return ((m.publicMessage) || 
+                        (reqUserChannelsNames
+                            .find(cname => m.destChannel.some(c => c.name === cname))) ||
+                        (m.destUser.find(u => u.handle === reqUser.handle)))
+                })).to.be.true;
 
                 pageNum++;
                 res = await MessageService.getUserMessages({
@@ -1128,6 +1216,7 @@ describe('Message Service Unit Tests', function () {
             expect(uselessTest).to.be.false;
             //console.log(pageNum)
         });
+
     });
 
     describe("postUserMessage Unit Tests", async function(){

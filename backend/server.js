@@ -7,6 +7,8 @@ require('./auth/auth');
 const config = require('./config/index');
 const UserRouter = require('./routes/users');
 const AuthRouter = require('./routes/auth');
+const MessageRouter = require('./routes/messages');
+const ChannelRouter = require('./routes/channel');
 
 class ExpressServer {
     constructor() {
@@ -22,6 +24,8 @@ class ExpressServer {
 
         app.use('/users', UserRouter);
         app.use('/auth', AuthRouter);
+        app.use('/messages', MessageRouter);
+        app.use('/channels', ChannelRouter)
         app.get('/hello', (req, res) => res.json({message: 'hello world'}))
 
         this.server = app.listen(config.port, () => 
