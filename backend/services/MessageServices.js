@@ -6,6 +6,8 @@ const Channel = require('../models/Channel');
 
 const Service = require('./Service');
 const config = require('../config');
+const fs = require('fs');
+
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -245,7 +247,7 @@ class MessageService {
         return Service.successResponse(res[0]);
     }
 
-    static async postUserMessage({ reqUser, handle, content, dest=[], publicMessage=true,
+    static async postUserMessage({ reqUser, handle, content, meta, dest=[], publicMessage=true,
         answering=null }) {
         if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
@@ -302,6 +304,7 @@ class MessageService {
 
         let message = new Message({ 
             content: content, 
+            meta: meta,
             author: user._id,
             publicMessage: publicMessage,
         });
@@ -358,6 +361,20 @@ class MessageService {
             return Service.rejectResponse({ message: "Invalid message id" })
 
         const message = await Message.findById(id);
+
+        // delete local image associated to the user's message
+        if (message.content.image!=""){
+
+            const imgPath = message.content.image;
+            //http://localhost:8000/f_user3/be4caaa4722f46f0bcae54903_picture.png
+            // imgPath = "files/f_user3/be4caaa4722f46f0bcae54903_picture.png"
+            let paths = imgPath.split("/");
+            let paths1 = paths.slice(paths.length - 2, paths.length)
+            let final_path = 'files/'+paths1.join('/')
+            fs.unlink(final_path, (err) => {
+                if(err) throw err;
+            });
+        }
 
         if (!message) return Service.rejectResponse({ message: "Id not found" });
 
