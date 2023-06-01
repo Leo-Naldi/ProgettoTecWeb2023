@@ -234,7 +234,7 @@ export default {
       api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
       var getUser = this.store.getUser.handle;
       api
-        .post("user/" + getUser + "/messages", newQweet)
+        .post("messages/" + getUser + "/messages", newQweet)
         .then((response) => {
           if (response.status === 200) {
             console.log("qweet added successfully!");
@@ -261,7 +261,7 @@ export default {
       api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
       var getUser = this.store.getUser.handle;
       api
-        .delete("user/" + getUser + "/messages/" + qweet._id)
+        .delete("messages/" + getUser + "/messages/" + qweet._id)
         .then((response) => {
           if (response.status === 200) {
             console.log("qweet deleted successfully!");
@@ -336,7 +336,7 @@ export default {
     var qweet_tmp;
     var tmp = this.qweets;
     api
-      .get("user/" + getUser + "/messages")
+      .get("messages/" + getUser + "/messages")
       .then((response) => {
         if (response.status === 200) {
           qweet_tmp = response.data;
