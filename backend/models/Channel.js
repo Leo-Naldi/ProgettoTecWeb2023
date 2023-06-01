@@ -25,12 +25,22 @@ const ChannelSchema = new mongoose.Schema(
             type: mongoose.ObjectId,
             ref: 'Message',
         }],
-        privateChannel: { type: Boolean, default: false, required: true, },
+        publicChannel: { type: Boolean, default: true, required: true, },
         official: { type: Boolean, default: false, required: true, },
         created: {
             type: Date,
             required: true,
             default: Date.now,
+        },
+        // TODO add a waiting list of people who want to join
+        // TODO differentiate between people who can only read and people who can rw
+    }, {
+        virtuals: {
+            privateChannel: {
+                get() {
+                    return !this.publicChannel;
+                },
+            }
         }
     }
 );

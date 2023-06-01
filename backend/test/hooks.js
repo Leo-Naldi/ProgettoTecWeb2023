@@ -1,11 +1,20 @@
 const mongoose = require('mongoose');
 const dayjs = require('dayjs');
-const LoremIpsum = require("lorem-ipsum").LoremIpsum;
+let isBetween = require('dayjs/plugin/isBetween')
+let isSameOrBefore = require('dayjs/plugin/isSameOrBefore')
+let isSameOrAfter = require('dayjs/plugin/isSameOrAfter')
+
+dayjs.extend(isBetween)
+dayjs.extend(isSameOrBefore)
+dayjs.extend(isSameOrAfter)
 
 const config = require('../config/index');
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Channel = require('../models/Channel');
+
+const { randomizedSetup, testUser, lorem } = require('../utils/randomUtils');
+const Plan = require('../models/Plan');
 
 /*
  * 
@@ -14,28 +23,9 @@ const Channel = require('../models/Channel');
  * 
  */
 
-const lorem = new LoremIpsum({
-    sentencesPerParagraph: {
-        max: 8,
-        min: 4
-    },
-    wordsPerSentence: {
-        max: 20,
-        min: 4
-    }
-});
-
-
-function testUser(i) {
-    return new User({
-        handle: `__testhandle${i}`,
-        email: `test.email${i}@mail.mai`,
-        password: 'abc123456',
-    });
-}
-
 // Number of dummy users and dummy admins that will be created in the test db.
-const users_count = 150;
+const users_count = 250;
+const admin_count = 20;
 
 class UserDispatch {
     static _cur = 1;
@@ -52,7 +42,7 @@ class UserDispatch {
     }
 
     static getNextAdmin() {
-        if (UserDispatch._curAdmin > users_count)
+        if (UserDispatch._curAdmin > admin_count)
             throw Error("Ran out of test admins");
         return testUser(`ad${UserDispatch._curAdmin++}`).toObject();
     }
@@ -102,17 +92,18 @@ async function addMessage(text, authorHandle, destHandles, destChannels=[], date
     await author.save();
 }
 
-async function createChannel({ name, ownerHandle, description, privateChannel = false }) {
+async function createChannel({ name, ownerHandle, description, publicChannel = true }) {
 
     const u = await User.findOne({ handle: ownerHandle });
     const channel = new Channel({
         name: name,
         creator: u._id,
-        privateChannel: privateChannel
+        publicChannel: publicChannel
     })
 
     if (description) channel.description = description;
-
+    
+    channel.members.push(u._id)
 
     await channel.save();
 
@@ -122,7 +113,6 @@ async function createChannel({ name, ownerHandle, description, privateChannel = 
 
 }
 
-
 before(async function() {
 
     /*
@@ -131,12 +121,16 @@ before(async function() {
      * andrebbe manipolato in al piu un it.
     */
 
+    this.timeout(20000)
+
     await mongoose.connect(config.db_test_url);
     console.log(`Connected to ${config.db_test_url}`);
 
-    await User.deleteMany({});
-    await Message.deleteMany({});
-    await Channel.deleteMany({});
+    await Promise.all([
+        User.deleteMany({}),
+        Message.deleteMany({}),
+        Channel.deleteMany({}),
+    ])
 
     let users = [];
 
@@ -146,13 +140,26 @@ before(async function() {
 
     let admins = []
 
-    for (let i = 1; i <= users_count; i++) {
+    for (let i = 1; i <= admin_count; i++) {
         admins.push(testUser(`ad${i}`));
         admins[i - 1].admin = true;
     }
 
-    await Promise.all(users.map(async (u) => await u.save()))
-    await Promise.all(admins.map(async (u) => await u.save()))
+    await Promise.all(users.map(async (u) => u.save()))
+    await Promise.all(admins.map(async (u) => u.save()))
+
+    await randomizedSetup();
+    console.log('================= Setup Done =================')
+    console.log('\n\nDB Stats: \n');
+    const ucount = await User.find().count(), 
+        ccount = await Channel.find().count(),
+        mcount = await Message.find().count();
+    
+    console.log(`   Users Count: ${ucount}`)
+    console.log(`   Channels Count: ${ccount}`)
+    console.log(`   Messages Count: ${mcount}\n\n`)
+    console.log('==============================================\n')
+    
 });
 
 // Runs after every other hook and test
@@ -161,6 +168,7 @@ after(async function(){
     await User.deleteMany({});
     await Message.deleteMany({});
     await Channel.deleteMany({});
+    await Plan.deleteMany({})
 
     await mongoose.disconnect();
     

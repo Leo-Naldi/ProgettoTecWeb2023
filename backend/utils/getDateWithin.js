@@ -12,6 +12,7 @@ function getDateWithin(timeperiod) {
 
     switch (timeperiod) {
         case 'today':
+        case 'day':
 
             break;  // Base res is fine
 

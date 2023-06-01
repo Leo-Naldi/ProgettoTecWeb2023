@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');4
+const mongoose = require('mongoose');
 const dayjs = require('dayjs'); 
 
 const config = require('../config/index');
@@ -25,7 +25,7 @@ const pointSchema = new mongoose.Schema({
 const MessageMetaSchema = new mongoose.Schema({
     created: { type: Date, default: Date.now },
     lastModified: { type: Date, default: Date.now },
-    geo: { type: pointSchema},  // any, TODO una volta che e' definito
+    geo: { type: pointSchema},  // defined as GeoJSON Objects
 }, { _id: false });
 
 const ContentSchema = new mongoose.Schema({
@@ -64,6 +64,11 @@ const MessageSchema = new mongoose.Schema({
             type: MessageMetaSchema,
             default: () => ({}),
             required: true,
+        },
+        publicMessage: { 
+            type: Boolean, 
+            required: true, 
+            default: true 
         }
     }, {
         virtuals: {
@@ -73,6 +78,11 @@ const MessageSchema = new mongoose.Schema({
                     return this.reactions.positive + this.reactions.negative
                 }
             },
+            privateMessage:  {
+                get() {
+                    return !this.publicMessage;
+                }
+            }
         },
         query: {
         
@@ -102,13 +112,19 @@ const MessageSchema = new mongoose.Schema({
 
                 if (popularity === 'popular') {
 
-                    return this.where('reactions.positive').gte(config.danger_threshold).lt(config.fame_threshold)
-                        .where('reactions.negative').lt(config.danger_threshold);
+                    return this
+                        .where('reactions.positive')
+                            .gte(config.danger_threshold).lt(config.fame_threshold)
+                        .where('reactions.negative')
+                            .lt(config.danger_threshold);
 
                 } else if (popularity === 'unpopular') {
 
-                    return this.where('reactions.negative').gte(config.danger_threshold).lt(config.fame_threshold)
-                        .where('reactions.positive').lt(config.danger_threshold);
+                    return this
+                        .where('reactions.negative')
+                            .gte(config.danger_threshold).lt(config.fame_threshold)
+                        .where('reactions.positive')
+                            .lt(config.danger_threshold);
 
                 } else if (popularity === 'controversial') {
 

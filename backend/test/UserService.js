@@ -7,6 +7,14 @@ const Message = require('../models/Message');
 const Channel = require('../models/Channel');
 const UserService = require('../services/UserServices');
 const { testUser, UserDispatch, lorem, createChannel } = require('./hooks');
+const {
+    checkErrorCode,
+        checkSuccessCode,
+        checkPayloadArray,
+        checkPayloadObject,
+        checkObject,
+        checkArray,
+} = require('../utils/testingUtils')
 
 describe('User Service Unit Tests', function () {
 
@@ -20,6 +28,49 @@ describe('User Service Unit Tests', function () {
             expect(res.status).to.equal(config.default_success_code);
             expect(res).to.have.property('payload');
             expect(res.payload).to.be.an('array').that.is.not.empty;
+        })
+
+        it('Should only return users with the given handle', async function(){
+            const user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const res = await UserService.getUsers({ handle: user.handle });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.has.lengthOf(1);
+
+            let expected = user.toObject();
+            delete expected.__v;
+            delete expected.password;
+
+            expect(res.payload[0]).to.deep.equal(expected);
+        });
+
+        it('Should only return admin users', async function(){
+            const res = await UserService.getUsers({ admin: true });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('array').that.is.not.empty;
+            expect(res.payload.every(u => u.admin)).to.be.true;
+        });
+
+        ['pro', 'user'].map(t => {
+
+            it(`Should only return accounts of the given type (${t})`, async function(){
+                const res = await UserService.getUsers({ accountType: t });
+
+                expect(res).to.be.an('object');
+                expect(res).to.have.property('status');
+                expect(res.status).to.equal(config.default_success_code);
+                expect(res).to.have.property('payload');
+                expect(res.payload).to.be.an('array').that.is.not.empty;
+                expect(res.payload.every(u => u.accountType === t)).to.be.true;
+            });
         })
 
     });
@@ -45,7 +96,7 @@ describe('User Service Unit Tests', function () {
             //console.log(res.payload)
         })
 
-        it('Should not return anything when the user does not exist', async function(){
+        it('Should fail when the user does not exist', async function(){
             const res = await UserService.getUser({
                 handle: 'bwernfwebgwohpeqcrbwo4gqnbdcohfb2oirfoi3urhf8745237hjdcnscjdn',
             });
@@ -70,7 +121,8 @@ describe('User Service Unit Tests', function () {
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            expect(res.status, res?.error?.message)
+                .to.equal(config.default_success_code);
             expect(found).to.not.be.null;
             expect(found).to.be.an.instanceOf(User);
             expect(found).to.have.property('handle');
@@ -305,7 +357,7 @@ describe('User Service Unit Tests', function () {
 
             expect(u.admin).to.be.true;
         })
-     });
+    });
 
     describe('revokeAdmin Unit Tests', async function () { 
         
@@ -569,7 +621,7 @@ describe('User Service Unit Tests', function () {
             expect(res.status).to.equal(config.default_client_error);
         });
 
-        it("Should return available: true if handle is available", async function () {
+        it("Should return handle: true if handle is available", async function () {
             const res = await UserService.checkAvailability({ handle: testUser(100000000).handle });
 
             expect(res).to.be.an('object');
@@ -577,11 +629,11 @@ describe('User Service Unit Tests', function () {
             expect(res.status).to.equal(config.default_success_code);
 
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object').that.has.property('available');
-            expect(res.payload.available).to.be.true;
+            expect(res.payload).to.be.an('object').that.has.property('handle');
+            expect(res.payload.handle).to.be.true;
         })
 
-        it("Should return available: true if email is available", async function () {
+        it("Should return email: true if email is available", async function () {
             const res = await UserService.checkAvailability({ email: testUser(100000000).email });
 
             expect(res).to.be.an('object');
@@ -589,88 +641,98 @@ describe('User Service Unit Tests', function () {
             expect(res.status).to.equal(config.default_success_code);
 
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object').that.has.property('available');
-            expect(res.payload.available).to.be.true;
+            expect(res.payload).to.be.an('object').that.has.property('email');
+            expect(res.payload.email).to.be.true;
         })
 
-        it("Should return available: true if email and handle are available", async function () {
-            const res = await UserService.checkAvailability({ handle: testUser(100000000).handle, email: testUser(100000000).email });
+        it("Should return email, handle: true if email and handle are available", async function () {
+            
+            const res = await UserService.checkAvailability({ 
+                handle: testUser(100000000).handle, 
+                email: testUser(100000000).email 
+            });
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
 
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object').that.has.property('available');
-            expect(res.payload.available).to.be.true;
+            expect(res.payload).to.be.an('object').that.has.property('email');
+            expect(res.payload.email).to.be.true;
+            expect(res.payload).to.have.property('handle');
+            expect(res.payload.handle).to.be.true;
+        });
+
+        it("Should return handle: false if handle is taken", async function () {
+            const res = await UserService.checkAvailability({ 
+                handle: UserDispatch.getNext().handle
+            });
+
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object').that.has.property('handle');
+            expect(res.payload.handle).to.be.false;
         })
 
-        it("Should return available: false if email or handle are taken", async function () {
-            const res = await UserService.checkAvailability({ handle: UserDispatch.getNext().handle, email: testUser(100000000).email });
+        it("Should return email: false if email is taken", async function () {
+            const res = await UserService.checkAvailability({
+                email: UserDispatch.getNext().email
+            });
 
+            expect(res).to.be.an('object');
+            expect(res).to.have.property('status');
+            expect(res.status).to.equal(config.default_success_code);
+
+            expect(res).to.have.property('payload');
+            expect(res.payload).to.be.an('object').that.has.property('email');
+            expect(res.payload.email).to.be.false;
+        })
+
+        it("Should return email, handle: false if neither are available", async function () {
+            
             const u = UserDispatch.getNext();
+            const res = await UserService.checkAvailability({
+                handle: u.handle,
+                email: u.email
+            });
 
             expect(res).to.be.an('object');
             expect(res).to.have.property('status');
             expect(res.status).to.equal(config.default_success_code);
 
             expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('object').that.has.property('available');
-            expect(res.payload.available).to.be.false;
+            expect(res.payload).to.be.an('object').that.has.property('email');
+            expect(res.payload.email).to.be.false;
+            expect(res.payload).to.have.property('handle');
+            expect(res.payload.handle).to.be.false;
+        });
 
-            const res2 = await UserService.checkAvailability({ handle: testUser(100000000).handle, email: u.email });
 
-            expect(res2).to.be.an('object');
-            expect(res2).to.have.property('status');
-            expect(res2.status).to.equal(config.default_success_code);
+    });
 
-            expect(res2).to.have.property('payload');
-            expect(res2.payload).to.be.an('object').that.has.property('available');
-            expect(res2.payload.available).to.be.false;
-
-            const res3 = await UserService.checkAvailability({ email: u.email });
-
-            expect(res3).to.be.an('object');
-            expect(res3).to.have.property('status');
-            expect(res3.status).to.equal(config.default_success_code);
-
-            expect(res3).to.have.property('payload');
-            expect(res3.payload).to.be.an('object').that.has.property('available');
-            expect(res3.payload.available).to.be.false;
-
-            const res4 = await UserService.checkAvailability({ handle: u.handle });
-
-            expect(res4).to.be.an('object');
-            expect(res4).to.have.property('status');
-            expect(res4.status).to.equal(config.default_success_code);
-
-            expect(res4).to.have.property('payload');
-            expect(res4.payload).to.be.an('object').that.has.property('available');
-            expect(res4.payload.available).to.be.false;
-        })
-
-     });
-
-     describe("General User Services Unit Tests", function(){
+    describe("General User Services Unit Tests", function(){
 
         it("Should add the user to the managed field returned by getUser after calling changeSmm",
         async function(){
             const handle1 = UserDispatch.getNext().handle, 
                 handle2 = UserDispatch.getNext().handle;
 
-            const u1 = await UserService.getUser({ handle: handle1 });
-
+            
+            let u1 = await User.findOne({ handle: handle1 }).orFail();
             let u2 = await User.findOne({ handle: handle2 }).orFail();
+
+            u1.accountType = 'pro';
+            u2.accountType = 'pro';
+
+            u1 = await u1.save();
+            u2 = await u2.save();
 
             // make sure u1 did not already manage u2
             expect(u1).to.be.an('object');
-            expect(u1).to.have.property('status');
-            expect(u1.status).to.equal(config.default_success_code);
-            expect(u1).to.have.property('payload');
-            expect(u1.payload).to.be.an('object');
-            expect(u1.payload).to.have.property('managed');
-            expect(u1.payload.managed).to.be.an('array');
-            expect(u1.payload.managed).to.not.have.deep.members([u2.toObject()]);
+            expect(u1._id.equals(u2.smm)).to.be.false;
 
             const res = await UserService.changeSmm({
                 handle: handle2, 
@@ -695,6 +757,87 @@ describe('User Service Unit Tests', function () {
             expect(getRes.payload.managed).to.have.deep.members([handle2]);
         });
 
-     })
-        
+    })
+    
+    describe("getManaged Unit Testst", function(){
+
+        it("Should fail if no handle is provided", async function(){
+
+            const reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const res = await UserService.getManaged({ reqUser: reqUser });
+
+            checkErrorCode(res);
+        });
+
+        it("Should fail if an invalid handle is provided", async function () {
+
+            const reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const res = await UserService.getManaged({ reqUser: reqUser, handle: 'jfvnwejfn' });
+
+            checkErrorCode(res);
+        });
+
+        it("Should return an array of users", async function () {
+
+            const reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const managed = [
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            ]
+
+            for (let i = 0; i < managed.length; i++) {
+                managed[i].smm = reqUser._id;
+            }
+
+            await Promise.all(managed.map(u => u.save()));
+
+            const res = await UserService.getManaged({ reqUser: reqUser, handle: reqUser.handle });
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+            res.payload.map(u => {
+                checkObject(u, ['handle']);
+                expect(u).to.not.have.property('password');
+            })
+        });
+
+        it("Should return only the users managed by the given user", async function () {
+
+            const reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const managed = [
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+                await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            ]
+
+            for (let i = 0; i < managed.length; i++) {
+                managed[i].smm = reqUser._id;
+            }
+
+            await Promise.all(managed.map(u => u.save()));
+
+            const res = await UserService.getManaged({ reqUser: reqUser, handle: reqUser.handle });
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+            res.payload.map(u => {
+                checkObject(u, ['handle', 'smm']);
+                expect(u).to.not.have.property('password');
+                expect(reqUser._id.equals(u.smm)).to.be.true;
+            })
+        });
+    })
 })

@@ -15,7 +15,8 @@ class UserService {
         if ((admin === true) || (admin === false)) filter.admin = admin;
         if (accountType) filter.accountType = accountType;
 
-        const users = await User.find(filter, '-_id')
+        const users = await User.find(filter)
+            .select('-__v -password')
             .sort('meta.created')
             .skip((page - 1) * config.results_per_page)
             .limit(config.results_per_page);
@@ -27,7 +28,7 @@ class UserService {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let user = await User.findOne({ handle: handle });
+        let user = await User.findOne({ handle: handle }).select('-__v -password');
 
         if (!user) return Service.rejectResponse({ message: "User not found" });
 
@@ -35,19 +36,11 @@ class UserService {
             user = await user.populate('messages');
         }
 
-        let managed = await User.findManaged(user._id);
-        //console.log(managed)
+        let managed = await User.find({ smm: user._id }).select('-password -messages');
 
-        if (!managed) managed = [];
+        let result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
 
-        const result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
-        
-        //console.log('aaa')
-        //console.log(result)
-        //console.log('aaa')
-
-        return Service.successResponse(result);
-        
+        return Service.successResponse(result);        
     }
 
     static async createUser({ handle, email, password,
@@ -68,7 +61,7 @@ class UserService {
             return a;
         }, {});
 
-        const new_user = new User({
+        let new_user = new User({
             handle: handle,
             email: email,
             password: password,
@@ -80,7 +73,7 @@ class UserService {
         });
 
         try{
-            await new_user.save();
+            new_user = await new_user.save();
         } catch (err) {
             creation_error = err;
         }
@@ -187,7 +180,7 @@ class UserService {
         let err = null;
 
         try {
-            await user.save()
+            user = await user.save()
         } catch(e) {
             err = e;
         }
@@ -242,15 +235,19 @@ class UserService {
         
         if (!(email || handle)) return Service.rejectResponse({ message: "Must provide either handle or email" })
 
-        let filter = { $or: [] };
+        let checkEmail, checkHandle;
+        let results = new Object();
 
-        if (handle) filter.$or.push({handle: handle});
-        if (email) filter.$or.push({ email: email });
+        if (email) {
+            checkEmail = await User.findOne({ email: email });
+            results.email = checkEmail ? false: true;
+        }
+        if (handle) {
+            checkHandle = await User.findOne({ handle: handle });
+            results.handle = checkHandle ? false : true;
+        }
         
-        const results = await User.findOne(filter).exec();
-        
-        if (results) return Service.successResponse({ available: false })
-        else return Service.successResponse({ available: true })
+        return Service.successResponse(results);
     }
 
     static async changeSmm({ handle, operation, smm }){
@@ -305,6 +302,7 @@ class UserService {
         return Service.successResponse()
     }
 
+    // TODO change name to remove managed
     static async changeManaged({ handle, reqUser, users }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -342,6 +340,22 @@ class UserService {
         return Service.successResponse()
     }
 
+    static async getManaged({ handle, reqUser }) {
+
+        if (!((handle) && (reqUser))) 
+            return Service.rejectResponse({ message: "Must provide a valid handle" })
+        
+        let user = reqUser;
+        if (user.handle !== handle){
+            user = await User.findOne({ handle: handle });
+
+            if (!user) return Service.rejectResponse({ message: "Must provide a valid handle" })
+        }
+
+        const res = await User.find({ smm: user._id }).select('-__v -password');
+
+        return Service.successResponse(res.map( u => u.toObject()));
+    }
 }
 
 module.exports = UserService;

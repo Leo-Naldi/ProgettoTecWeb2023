@@ -77,20 +77,20 @@ async function test2() {
 async function test3() {
   console.log("start test3: \n");
   var t1 = await UserService.getUser({handle: 'test3'});
-  console.log(t1.payload); //TODO: not found 409
+  console.log(t1.payload); 
   // await SearchUser('test3'); //ok
 }
 
 // test modify one user with API
 async function test4() {
-  await UserService.writeUser(user1_alter); //TODO: result not change
+  await UserService.writeUser(user1_alter); 
   // await writeUser('test1', 'test1_alter@gmail.com'); //ok
   await SearchUser('test1');
 }
 
 // test delete one user with API
 async function test5() {
-  await UserService.deleteUser('test3'); ////TODO: still in the database
+  await UserService.deleteUser('test3'); 
   // await deleteUser('test3'); //ok
   await SearchUser('test3');
 }

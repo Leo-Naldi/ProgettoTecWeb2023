@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const config = require('../config/index');
+const Plan = require('./Plan')
 const Message = require('./Message')
 
 
@@ -16,27 +17,24 @@ const CharQuotaSchema = new mongoose.Schema({
     day: {
         type: Number,
         default: config.daily_quote,
-        max: config.daily_quote,
         min: 0,
         required: true,
     },
     week: {
         type: Number,
         default: config.weekly_quote,
-        max: config.weekly_quote,
         min: 0,
         required: true,
     },
     month: {
         type: Number,
         default: config.monthly_quote,
-        max: config.monthly_quote,
         min: 0,
         required: true,
     },
 }, { _id: false });
 
-// TODO add lastloggedin field;
+
 const UserSchema = mongoose.Schema(
     {
         handle: {
@@ -44,7 +42,7 @@ const UserSchema = mongoose.Schema(
             trim: true,
             unique: true,
             required: true,
-            minLength: 3
+            minLength: 1
         },
         username: {
             type: String,
@@ -102,17 +100,21 @@ const UserSchema = mongoose.Schema(
             default: () => ({}),  // To actually trigger the created default 
             required: true,
         },
-        charLeft: {  // TODO definire i pay plan e aggiornare i max di conseguenza
+        charLeft: {  // TODO definire i pay plan 
             type: CharQuotaSchema,
             required: true,
             default: () => ({}),
         },
-        proPlan: mongoose.ObjectId,  // TODO change quando i piani sono definiti
+        proPlan: {
+            type: mongoose.ObjectId,
+            ref: 'Plan',
+        },
         smm: { 
             // Id del social media manager
             type: mongoose.ObjectId, 
             ref: 'User',
         },
+        lastLoggedin: Date,
         // Account per cui fa da smms
     }, {
         statics: {
@@ -127,7 +129,7 @@ UserSchema.pre('deleteOne', { document: true }, async function(){
     
     const updates = (await this.constructor.find({ smm: this._id })).map(async u => {
         u.smm = null;
-        await u.save();
+        return u.save();
     })
 
     await Promise.all(updates);

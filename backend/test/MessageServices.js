@@ -1,5 +1,4 @@
 let expect = require('chai').expect;
-const mongoose = require('mongoose');
 const dayjs = require('dayjs');
 let isBetween = require('dayjs/plugin/isBetween')
 let isSameOrBefore = require('dayjs/plugin/isSameOrBefore')
@@ -17,236 +16,548 @@ const MessageService = require('../services/MessageServices');
 const { testUser, addMessage, UserDispatch, lorem, createChannel } = require('./hooks');
 const { getRandom, getDateWithin } = require('../utils/getDateWithin');
 const {
-    checkThreshold,
-    isPopular,
-    isUnpopular,
-    isControversial,
-    atRiskOfControversial,
-    atRiskOfPopular,
-    atRiskOfUnpopular,
     checkFame,
     checkRiskOfFame,
+    getUnpopular,
+    getControversial,
+    getRiskPopular,
+    getPopular,
+    getRiskUnpopular,
+    getRiskControversial,
 } = require('../utils/fameUtils');
 
+
+const {
+    checkErrorCode,
+    checkSuccessCode,
+    checkPayloadArray,
+    checkPayloadObject,
+    checkObject,
+    checkArray,
+} = require('../utils/testingUtils');
 
 const messagesCount = 30;
 
 
+const periods = ['today', 'week', 'month', 'year'];
+const maxMessages = 20;
+
 describe('Message Service Unit Tests', function () {
 
-    let all = null;
-    let author = null;
-    let new_author =  null;
-    let handleauth1 = null, handleauth2 = null;
-    let recievers1 = [], recievers2 = [];
+    let reqUser = null, users = [], secondAuthor = null;
 
     before(async function () {
         /*
         *  NB this breaks the character limits, messages should be added using the service
         */
         this.timeout(7000)
-        handleauth1 = UserDispatch.getNext().handle;
-        //console.log(handleauth1)
-        recievers1 = [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
-        handleauth2 = UserDispatch.getNext().handle;
-        recievers2 = [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
+
+        reqUser = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+        users = [
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+            await User.findOne({ handle: UserDispatch.getNext().handle }).orFail(),
+        ]
+
+        let uids = users.map(u => u._id);
+
+        const publicNotJoinedChannels = [
+            // Public channels reqUser is not a member of
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(0, Math.floor(uids.length / 2)),
+                creator: uids[0],
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)),
+                creator: uids[Math.floor(uids.length / 2)]
+            }),
+        ]
+
+            // Public channels reqUser is a member of
+        const publicJoinedChannels = [    
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(0, Math.floor(uids.length / 2)).concat([reqUser._id]),
+                creator: uids[0]
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)).concat([reqUser._id]),
+                creator: uids[Math.floor(uids.length / 2)]
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)).concat([reqUser._id]),
+                creator: uids[Math.floor(uids.length / 2)],
+                official: true,
+            }),
+        ]
+
+        const privateNotJoinedChannels = [
+            // Public channels reqUser is not a member of
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(0, Math.floor(uids.length / 2)),
+                publicChannel: false,
+                creator: uids[0]
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)),
+                publicChannel: false,
+                creator: uids[Math.floor(uids.length / 2)]
+            }),
+        ]
+
+        // Public channels reqUser is a member of
+        const privateJoinedChannels = [
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(0, Math.floor(uids.length / 2)).concat([reqUser._id]),
+                publicChannel: false,
+                creator: uids[0]
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(1),
+                members: uids.slice(Math.floor(uids.length / 2)).concat([reqUser._id]),
+                publicChannel: false,
+                creator: uids[Math.floor(uids.length / 2)]
+            })
+        ]
+
+        let messages = [];
+
         // Random Messages
         for (let i = 0; i < messagesCount; i++) {
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth1,
-                [recievers1[0]],
-            );
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth1,
-                [recievers1[1]],
-            )
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth2,
-                [recievers2[0]],
-                [],
-                dayjs().subtract(2, 'day'),
-                {
-                    positive: getRandom(3000),
-                    negative: getRandom(20),
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: reqUser._id,
+                destUser: uids,
+                reactions: {
+                    positive: 10,
+                    negative: 10,
                 }
-            )
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth2,
-                [recievers2[1]],
-                [],
-                dayjs().subtract(2, 'month'),
-                {
-                    negative: getRandom(3000),
-                    positive: getRandom(20),
-                }
-            )
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth2,
-                [recievers2[1]],
-                [],
-                dayjs().subtract(2, 'year'),
-                {
-                    negative: getRandom(3000),
-                    positive: getRandom(20),
-                }
-            )
-            await addMessage(
-                lorem.generateSentences(getRandom(3) + 1),
-                handleauth1,
-                [recievers2[1]],
-                [],
-                dayjs().subtract(2, 'year'),
-                {
-                    negative: getRandom(3000),
-                    positive: getRandom(20),
-                }
-            )
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: reqUser._id,
+                destUser: uids,
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: true,
+            }))
+
+            // private messages reqUser cant see
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1),
+                destChannel: privateNotJoinedChannels.map(c => c._id),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
+
+            // private messages reqUser can see
+
+            // These can be seen since reqUser is part of the channel
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1),
+                destChannel: privateJoinedChannels.map(c => c._id),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
+
+            // These can be seen since reqUser is part of the dests
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1).concat([reqUser._id]),
+                destChannel: privateNotJoinedChannels.map(c => c._id),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
+        
+            // Public channels
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: reqUser._id,
+                destUser: uids,
+                destChannel: publicJoinedChannels.map(c => c._id),
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: true,
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: uids[0],
+                destUser: uids.slice(1),
+                destChannel: [publicNotJoinedChannels[0]._id],
+                reactions: {
+                    positive: 10,
+                    negative: 10,
+                },
+                publicMessage: false,
+            }))
         }
-        // Ensure there are messages for every fame configuration and every time frame
-        const getPopular = () => ({
-            positive: getRandom(3000) + config.crit_mass,
-            negative: getRandom(20),
-        });
-        const getUnpopular = () => ({
-            negative: getRandom(3000) + config.crit_mass,
-            positive: getRandom(20),
-        });
-        const getControversial = () => ({
-            negative: getRandom(3000) + config.crit_mass,
-            positive: getRandom(3000) + config.crit_mass,
-        });
-        const getRiskPopular = () => ({
-            positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            negative: getRandom(20),
-        });
-        const getRiskUnpopular = () => ({
-            negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            positive: getRandom(20),
-        });
-        const getRiskControversial = () => ({
-            negative: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-            positive: config.danger_threshold + getRandom(config.fame_threshold - config.danger_threshold),
-        });
-        const periods = ['today', 'week', 'month', 'year'];
-        const maxMessages = 20;
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getPopular(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getUnpopular(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getControversial(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getRiskPopular(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getRiskUnpopular(),
-                )
-        }))
-        await Promise.all(periods.map(async p => {
-            for (let i = 0; i < getRandom(maxMessages) + 1; i++)
-                await addMessage(
-                    lorem.generateSentences(getRandom(3) + 1),
-                    handleauth1,
-                    recievers2,
-                    [],
-                    getDateWithin(p),
-                    getRiskControversial(),
-                )
-        }))
+
+        // Ensure there are public messages for every fame configuration and every time frame
+        
+        periods.map(p => {
+            for (let i = 0; i < getRandom(maxMessages) + 1; i++){
+
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: reqUser._id,
+                    destUser: uids,
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getPopular()
+                }));
+        
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: reqUser._id,
+                    destUser: uids,
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getUnpopular()
+                }));
+                
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: reqUser._id,
+                    destUser: uids,
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getControversial()
+                }))
+
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: reqUser._id,
+                    destUser: uids,
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getRiskPopular()
+                }))
+
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: reqUser._id,
+                    destUser: uids,
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getRiskUnpopular()
+                }))
+
+                messages.push(new Message({
+                    content: {
+                        text: lorem.generateSentences(getRandom(3) + 1),
+                    },
+                    author: reqUser._id,
+                    destUser: uids,
+                    meta: {
+                        created: getDateWithin(p),
+                    },
+                    reactions: getRiskControversial()
+                }))
+            }
+        })
+
+        const times = [
+            dayjs().startOf('day'),
+            dayjs().startOf('week'),
+            dayjs().startOf('month'),
+            dayjs().startOf('year'),
+        ];
+        
+        times.map(d => {
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: reqUser._id,
+                destUser: uids,
+                meta: {
+                    created: d.subtract(1, 'hour'),
+                },
+                reactions: {
+                    positive: 20,
+                    negative: 20,
+                }
+            }))
+
+            messages.push(new Message({
+                content: {
+                    text: lorem.generateSentences(getRandom(3) + 1),
+                },
+                author: reqUser._id,
+                destUser: uids,
+                meta: {
+                    created: d.add(1, 'hour'),
+                },
+                reactions: {
+                    positive: 20,
+                    negative: 20,
+                }
+            }))
+        })
+
+        const allChannels = publicNotJoinedChannels
+            .concat(publicJoinedChannels)
+            .concat(privateJoinedChannels)
+            .concat(privateNotJoinedChannels)
+
+        const allUsers = users.concat([reqUser]);
+
+        allChannels.map(c => {           
+            for (let i = 0; i < allUsers.length; i++) {
+                if (c.members.find(id => id.equals(allUsers[i]._id))) {
+                    allUsers[i].joinedChannels.push(c._id);
+                }
+            }
+        })
+
+        messages.map(m => {
+            const ind = allUsers.findIndex(a => a._id.equals(m.author));
+            
+            expect(ind).to.not.equal(-1)
+
+            allUsers[ind].messages.push(m._id);
+
+            for (let i = 0; i < m.destChannel.length; i++) {
+                
+                const cind = allChannels.findIndex(c => c._id.equals(m.destChannel[i]));
+                
+                expect(cind).to.not.equal(-1)
+                allChannels[cind].messages.push(m._id);
+            }
+        })
+        
+        await Promise.all(messages.map(m => m.save()));
+        //console.log(accounts)
+        await Promise.all(allUsers.map(u => u.save()));
+        await Promise.all(allChannels.map(u => u.save()));
+
+        reqUser = await User.findById(reqUser._id).orFail();
+
+        const l = users.length;
+
+        secondAuthor = users[0];
+        
+        users = await User.find({ handle: { $in: users.map(u => u.handle) } });
+        
+        secondAuthor = users.find(u => u._id.equals(secondAuthor._id));
+
+
+        expect(users).to.be.an('array').that.has.lengthOf(l);
+
+        const ad = await User.findOne({ handle: UserDispatch.getNextAdmin().handle }).orFail();
+
+        official_channels = [
+            new Channel({
+                name: UserDispatch.getNextChannelName().toUpperCase(),
+                description: lorem.generateParagraphs(1),
+                creator: ad._id,
+                members: [ad._id],
+                official: true,
+            }),
+            new Channel({
+                name: UserDispatch.getNextChannelName().toUpperCase(),
+                description: lorem.generateParagraphs(1),
+                creator: ad._id,
+                members: [ad._id],
+                official: true,
+            }), 
+            new Channel({
+                name: UserDispatch.getNextChannelName().toUpperCase(),
+                description: lorem.generateParagraphs(1),
+                creator: ad._id,
+                members: [ad._id],
+                official: true,
+            })
+        ]
+
+        let official_messages = []
+        for (let i = 0; i < 20; i++) {
+            official_messages.push(
+                new Message({
+                    content: {
+                        text: lorem.generateSentences(3),
+                    },
+                    author: ad._id, 
+                    destChannel: [official_channels[i % 3]._id],
+                })
+            )
+
+            official_channels[i % 3].messages.push(
+                official_messages.at(-1)._id
+            )
+
+            ad.messages.push(official_messages.at(-1)._id)
+        }
+
+        official_channels = await Promise.all(official_channels.map(c => c.save()));
+        await Promise.all(official_messages.map(m => m.save()));
+        admin = await ad.save();
 
         all = await Message.find();
-        author = await User.findOne({ handle: handleauth1 });
-        new_author = await User.findOne({ handle: UserDispatch.getNext().handle });
     })
 
     describe("getMessages Unit Tests", function(){
 
         it("Should return an array of messages", async function(){
+
             const res = await MessageService.getMessages();
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            checkSuccessCode(res);
+            checkPayloadArray(res);
 
             res.payload.map(m => {
-                expect(m).to.be.an('object');
-                expect(m).to.have.property('content');
-                expect(m).to.have.property('reactions');
-                expect(m).to.have.property('meta');
-                expect(m.meta).to.be.an('object').that.has.property('created');
-                expect(m).to.have.property('author');
-                expect(m).to.have.property('destChannel');
-                expect(m.destChannel).to.be.an('array');
-                expect(m).to.have.property('destUser');
-                expect(m.destChannel).to.be.an('array');
+
+                checkObject(m, [
+                    'content',
+                    'reactions',
+                    'meta',
+                    'author',
+                    'destChannel',
+                    'destUser',
+                ])
+
+                checkObject(m.meta, ['created']);
+                checkArray(m.destChannel, true);
+                checkArray(m.destUser, true);
+                checkObject(m.content);
+                checkObject(m.reactions, ['positive', 'negative']);
             })
         });
 
         it(`Should at most return ${config.results_per_page} messages`, async function(){
             
             const res = await MessageService.getMessages();
-            const num_messages = await Message.find().count();
+            const ofCh = await Channel.find({ official: true }); 
+            expect(ofCh).to.not.be.empty
+            const num_messages = await Message.find({ destChannel: { $in: ofCh.map(c => c._id) } }).count();
 
-            //console.log(num_messages);
-
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+            
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
-        describe("getMessages Filters Unit Tests", function(){
+        it('Should return all available messages when page is -1', async function () {
+
+            this.timeout(20000)
+
+            const res = await MessageService.getMessages({ page: -1, reqUser });
+            
+            
+            const num_messages = await Message.find({ 
+                $or: [
+                    {author: reqUser._id},
+                    {destUser: reqUser._id},
+                    {publicMessage: true},
+                    {destChannel: { $in: reqUser.joinedChannels }},
+                ]
+             }).count();
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+            expect(res.payload).to.have.lengthOf(num_messages)
+        });
+
+        describe("Filters Unit Tests", function(){
         
             const fames = ['popular', 'unpopular', 'controversial'];
             const timeframes = ['day', 'week', 'month', 'year'];
@@ -258,14 +569,12 @@ describe('Message Service Unit Tests', function () {
                         let params = new Object();
 
                         params[fame] = timeframe;
+                        params.reqUser = reqUser;
 
                         const res = await MessageService.getMessages(params);
 
-                        expect(res).to.be.an('object');
-                        expect(res).to.have.property('status');
-                        expect(res.status).to.equal(config.default_success_code);
-                        expect(res).to.have.property('payload');
-                        expect(res.payload).to.be.an('array').that.is.not.empty;
+                        checkSuccessCode(res)
+                        checkPayloadArray(res)
 
                         res.payload.map(m => {
                             expect(checkFame(m.reactions, fame)).to.be.true;
@@ -279,13 +588,10 @@ describe('Message Service Unit Tests', function () {
             fames.map(fame => {
                 it(`Should return only messages that are almost ${fame}`, async function () {
 
-                    const res = await MessageService.getMessages({ risk: fame });
+                    const res = await MessageService.getMessages({ risk: fame, reqUser: reqUser });
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res)
+                    checkPayloadArray(res)
 
                     res.payload.map(m => {
                         expect(checkRiskOfFame(m.reactions, fame)).to.be.true;
@@ -300,13 +606,13 @@ describe('Message Service Unit Tests', function () {
                     dayjs().startOf('year'),
                 ].map(async d => {
 
-                    const res = await MessageService.getMessages({ before: d.toString() })
+                    const res = await MessageService.getMessages({ 
+                        before: d.toString(),
+                        reqUser: reqUser,
+                    })
                     
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res)
+                    checkPayloadArray(res)
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrBefore(d, 'second')).to.be.true;
@@ -321,13 +627,13 @@ describe('Message Service Unit Tests', function () {
                     dayjs().startOf('year'),
                 ].map(async d => {
 
-                    const res = await MessageService.getMessages({ after: d.toString() })
+                    const res = await MessageService.getMessages({ 
+                        after: d.toString(),
+                        reqUser: reqUser,
+                    })
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res)
+                    checkPayloadArray(res)
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrAfter(d, 'second')).to.be.true;
@@ -337,26 +643,27 @@ describe('Message Service Unit Tests', function () {
 
             it("Should only return messages destined to the given user", async function(){
 
-                const handle = recievers1[0];
+                const handles = users.map(u => u.handle);
 
-                const res = await MessageService.getMessages({ dest: '@' + handle })
+                const res = await MessageService.getMessages({
+                    reqUser: reqUser,
+                    dest: handles.map(h => '@' + h) 
+                })
 
-                expect(res).to.be.an('object');
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                checkSuccessCode(res)
+                checkPayloadArray(res)
 
                 res.payload.map(m => {
-                    expect(m.destUser, `Expected ${m.destUser} to include ${handle}`)
-                        .to.deep.include({ handle: handle });
+                    expect(m.destUser.some(u => handles.find(h => h === u.handle)))
+                        .to.be.true;
                 })
             });
 
             it("Should only return messages destined to the given channel", async function () {
 
+                // Setup
                 const creator = UserDispatch.getNext();
-                const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+                const locUsers = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
                 const description = lorem.generateParagraphs(1);
 
                 const name = UserDispatch.getNextChannelName();
@@ -375,13 +682,10 @@ describe('Message Service Unit Tests', function () {
                     description: description,
                 })
 
-                let crec = await Channel.findOne({ name: name });
-                let crec2 = await Channel.findOne({ name: name2 });
+                let crec = await Channel.findOne({ name: name }).orFail();
+                let crec2 = await Channel.findOne({ name: name2 }).orFail();
 
-                expect(crec).to.not.be.null;
-                expect(crec2).to.not.be.null;
-
-                await Promise.all(users.map(async u => {
+                await Promise.all(locUsers.map(async u => {
 
                     let urec = await User.findOne({ handle: u.handle });
 
@@ -392,9 +696,9 @@ describe('Message Service Unit Tests', function () {
                     return urec.save();
                 }))
 
-                for (let i = 0; i < users.length; i++) {
+                for (let i = 0; i < locUsers.length; i++) {
 
-                    let urec = await User.findOne({ handle: users[i].handle });
+                    let urec = await User.findOne({ handle: locUsers[i].handle });
 
                     crec.members.push(urec._id);
                     crec2.members.push(urec._id);
@@ -408,14 +712,14 @@ describe('Message Service Unit Tests', function () {
                 for (let i = 0; i < 10; i++) {
 
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name])
 
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name, name2])
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name2])
                 }
 
@@ -423,97 +727,163 @@ describe('Message Service Unit Tests', function () {
 
                 expect(bf).to.be.an('array').that.is.not.empty;
 
-                res = await MessageService.getMessages({ dest: '§' + name });
+                // channels used are all public so
+                const rnad = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
 
-                expect(res).to.be.an("object");
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                // Test
+                res = await MessageService.getMessages({ 
+                    reqUser: rnad,
+                    dest: ['§' + name] 
+                });
+
+                checkSuccessCode(res)
+                checkPayloadArray(res)
 
                 res.payload.map(m => {
                     expect(m.destChannel, `Expected ${m.destChannel} to include ${name}`)
                         .to.deep.include({ name: name });
                 })
+
+                res = await MessageService.getMessages({ reqUser: rnad, dest: ['§' + name, '§' + name2] });
+
+                checkSuccessCode(res)
+                checkPayloadArray(res)
+
+                res.payload.map(m => {
+                    expect(m.destChannel.some(n => (n.name === name) || (n.name === name2)))
+                        .to.be.true;
+                })
             });
 
+            
         });
 
+        it("Should not return private messages not addressed to the user or to one of the channels he joined", async function() {
+            
+            this.timeout(30000)
+            let pageNum = 1;
+
+            let res = await MessageService.getMessages({ reqUser: reqUser });
+            let jchannels = await Channel.find({ _id: { $in: reqUser.joinedChannels } });
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+
+            let uselessTest = true;
+
+            while (res.payload.length > 0) {
+                res.payload.map(m => {
+                    if (!m.publicMessage) {
+                        uselessTest = false;
+
+                        expect(
+                            (reqUser.handle === m.author.handle) ||
+                            (m.destUser.some(u => u.handle === reqUser.handle)) ||
+                            (m.destChannel.some(c => jchannels.some(jc => jc.name === c.name)))
+                        ).to.be.true
+                    }
+                })
+
+                pageNum++;
+                res = await MessageService.getMessages({ reqUser: reqUser, page: pageNum });
+            
+                checkSuccessCode(res);
+                checkPayloadArray(res, true);
+            }
+
+            expect(uselessTest).to.be.false;
+            //console.log(pageNum)
+        }); 
     });
 
     describe("getUserMessages Unit Tests", function(){
         
         it("Should only return messages authored by the given user", async function () {
 
-            expect(author).to.not.be.null;
+            expect(reqUser).to.not.be.null;
 
             const res = await MessageService.getUserMessages({ 
-                handle: author.handle,
-                reqUser: author
+                handle: reqUser.handle,
+                reqUser: reqUser
             });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            checkSuccessCode(res)
+            checkPayloadArray(res)
 
             res.payload.map(m => {
-                expect(m.author).to.deep.equal({ handle: author.handle });
+                expect(m.author).to.deep.equal({ handle: reqUser.handle });
             });
         });
 
         it("Should return an array of messages", async function () {
             
-            expect(author).to.not.be.null;
+            expect(reqUser).to.not.be.null;
 
             const res = await MessageService.getUserMessages({
-                handle: author.handle,
-                reqUser: author
+                handle: reqUser.handle,
+                reqUser: reqUser
             });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            checkSuccessCode(res)
+            checkPayloadArray(res)
 
             res.payload.map(m => {
-                expect(m).to.be.an('object');
-                expect(m).to.have.property('content');
-                expect(m).to.have.property('reactions');
-                expect(m).to.have.property('meta');
-                expect(m.meta).to.be.an('object').that.has.property('created');
-                expect(m).to.have.property('author');
-                expect(m).to.have.property('destChannel');
-                expect(m.destChannel).to.be.an('array');
-                expect(m).to.have.property('destUser');
-                expect(m.destChannel).to.be.an('array');
+
+                checkObject(m, [
+                    'content',
+                    'reactions',
+                    'meta',
+                    'author',
+                    'destChannel',
+                    'destUser',
+                ])
+
+                checkObject(m.meta, ['created']);
+                checkArray(m.destChannel, true);
+                checkArray(m.destUser, true);
+                checkObject(m.content);
+                checkObject(m.reactions, ['positive', 'negative']);
             })
         });
 
         it(`Should at most return ${config.results_per_page} messages`, async function () {
 
-            expect(author).to.not.be.null;
+            expect(reqUser).to.not.be.null;
 
             const res = await MessageService.getUserMessages({
-                handle: author.handle,
-                reqUser: author
+                handle: reqUser.handle,
+                reqUser: reqUser
             });
 
-            const num_messages = await Message.find().count();
+            const num_messages = await Message.find({ author: reqUser._id }).count();
 
             //console.log(num_messages);
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
-            expect(res).to.have.property('payload');
-            expect(res.payload).to.be.an('array').that.is.not.empty;
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
             expect(res.payload).to.have.lengthOf(Math.min(config.results_per_page, num_messages))
         });
 
-        describe("getUserMessages Filters Unit Tests", function () {
+        it("Should return all messages when page is a negative number", async function(){
+            const res = await MessageService.getUserMessages({
+                handle: reqUser.handle,
+                reqUser: reqUser,
+                page: -1,
+            });
+
+            const num_messages = await Message.find({ author: reqUser._id }).count();
+
+            //console.log(num_messages);
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+            expect(res.payload).to.have.lengthOf(num_messages)
+        })
+
+        describe("Filters Unit Tests", function () {
 
             const fames = ['popular', 'unpopular', 'controversial'];
             const timeframes = ['day', 'week', 'month', 'year'];
@@ -524,19 +894,16 @@ describe('Message Service Unit Tests', function () {
 
                         let params = new Object();
 
-                        expect(author).to.not.be.null;
+                        expect(reqUser).to.not.be.null;
 
                         params[fame] = timeframe;
-                        params.handle = author.handle;
-                        params.reqUser = author;
+                        params.handle = reqUser.handle;
+                        params.reqUser = reqUser;
 
                         const res = await MessageService.getUserMessages(params);
 
-                        expect(res).to.be.an('object');
-                        expect(res).to.have.property('status');
-                        expect(res.status).to.equal(config.default_success_code);
-                        expect(res).to.have.property('payload');
-                        expect(res.payload).to.be.an('array').that.is.not.empty;
+                        checkSuccessCode(res);
+                        checkPayloadArray(res);
 
                         res.payload.map(m => {
                             expect(checkFame(m.reactions, fame)).to.be.true;
@@ -552,19 +919,16 @@ describe('Message Service Unit Tests', function () {
 
                     let params = new Object();
 
-                    expect(author).to.not.be.null;
+                    expect(reqUser).to.not.be.null;
 
                     params.risk = fame;
-                    params.handle = author.handle;
-                    params.reqUser = author;
+                    params.handle = reqUser.handle;
+                    params.reqUser = reqUser;
 
                     const res = await MessageService.getUserMessages(params);
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res);
+                    checkPayloadArray(res);
 
                     res.payload.map(m => {
                         expect(checkRiskOfFame(m.reactions, fame)).to.be.true;
@@ -581,19 +945,16 @@ describe('Message Service Unit Tests', function () {
 
                     let params = new Object();
 
-                    expect(author).to.not.be.null;
+                    expect(reqUser).to.not.be.null;
 
                     params.before = d.toString();
-                    params.handle = author.handle;
-                    params.reqUser = author;
+                    params.handle = reqUser.handle;
+                    params.reqUser = reqUser;
 
                     const res = await MessageService.getUserMessages(params);
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res);
+                    checkPayloadArray(res);
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrBefore(d, 'second')).to.be.true;
@@ -610,19 +971,16 @@ describe('Message Service Unit Tests', function () {
 
                     let params = new Object();
 
-                    expect(author).to.not.be.null;
+                    expect(reqUser).to.not.be.null;
 
                     params.after = d.toString();
-                    params.handle = author.handle;
-                    params.reqUser = author;
+                    params.handle = reqUser.handle;
+                    params.reqUser = reqUser;
 
                     const res = await MessageService.getUserMessages(params);
 
-                    expect(res).to.be.an('object');
-                    expect(res).to.have.property('status');
-                    expect(res.status).to.equal(config.default_success_code);
-                    expect(res).to.have.property('payload');
-                    expect(res.payload).to.be.an('array').that.is.not.empty;
+                    checkSuccessCode(res);
+                    checkPayloadArray(res);
 
                     res.payload.map(m => {
                         expect(dayjs(m.meta.created).isSameOrAfter(d, 'second')).to.be.true;
@@ -630,36 +988,34 @@ describe('Message Service Unit Tests', function () {
                 }));
             })
 
-            it("Should only return messages destined to the given user", async function () {
+            it("Should only return messages destined to the given users", async function () {
 
-                const handle = recievers1[0];
+                const handles = users.map(u => u.handle);
 
                 let params = new Object();
 
-                expect(author).to.not.be.null;
+                expect(reqUser).to.not.be.null;
 
-                params.dest = '@' + handle;
-                params.handle = author.handle;
-                params.reqUser = author;
+                params.dest = handles.map(h => '@' + h);
+                params.handle = reqUser.handle;
+                params.reqUser = reqUser;
 
                 const res = await MessageService.getUserMessages(params);
 
-                expect(res).to.be.an('object');
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                checkSuccessCode(res);
+                checkPayloadArray(res);
 
                 res.payload.map(m => {
-                    expect(m.destUser, `Expected ${m.destUser} to include ${handle}`)
-                        .to.deep.include({ handle: handle });
+                    expect(m.destUser.some(u => handles.find(h => h === u.handle)))
+                        .to.be.true;
+                    expect(m.author.handle).to.equal(reqUser.handle);
                 })
             });
 
-            it("Should only return messages destined to the given channel", async function () {
+            it("Should only return messages destined to the given channels", async function () {
 
                 const creator = UserDispatch.getNext();
-                const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+                const locUsers = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
                 const description = lorem.generateParagraphs(1);
 
                 const name = UserDispatch.getNextChannelName();
@@ -678,13 +1034,10 @@ describe('Message Service Unit Tests', function () {
                     description: description,
                 })
 
-                let crec = await Channel.findOne({ name: name });
-                let crec2 = await Channel.findOne({ name: name2 });
+                let crec = await Channel.findOne({ name: name }).orFail();
+                let crec2 = await Channel.findOne({ name: name2 }).orFail();
 
-                expect(crec).to.not.be.null;
-                expect(crec2).to.not.be.null;
-
-                await Promise.all(users.map(async u => {
+                await Promise.all(locUsers.map(async u => {
 
                     let urec = await User.findOne({ handle: u.handle });
 
@@ -695,9 +1048,9 @@ describe('Message Service Unit Tests', function () {
                     return urec.save();
                 }))
 
-                for (let i = 0; i < users.length; i++) {
+                for (let i = 0; i < locUsers.length; i++) {
 
-                    let urec = await User.findOne({ handle: users[i].handle });
+                    let urec = await User.findOne({ handle: locUsers[i].handle });
 
                     crec.members.push(urec._id);
                     crec2.members.push(urec._id);
@@ -711,14 +1064,14 @@ describe('Message Service Unit Tests', function () {
                 for (let i = 0; i < 10; i++) {
 
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name])
 
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name, name2])
                     await addMessage(lorem.generateSentences(2), creator.handle,
-                        users.map(u => u.handle),
+                        locUsers.map(u => u.handle),
                         [name2])
                 }
 
@@ -733,75 +1086,185 @@ describe('Message Service Unit Tests', function () {
                 res = await MessageService.getUserMessages({ 
                     reqUser: creatorRec,
                     handle: creator.handle,
-                    dest: '§' + name 
+                    dest: ['§' + name]
                 });
 
-                expect(res).to.be.an("object");
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('array').that.is.not.empty;
+                checkSuccessCode(res);
+                checkPayloadArray(res);
 
                 res.payload.map(m => {
-                    expect(m.destChannel, `Expected ${m.destChannel} to include ${name}`)
-                        .to.deep.include({ name: name });
-                    expect(m.author).to.deep.include({ handle: creator.handle })
+                    expect(m.destChannel.some(ch => ch.name === name)).to.be.true;
+                    expect(m.author.handle).to.equal(creator.handle)
+                })
+
+                res = await MessageService.getUserMessages({
+                    reqUser: creatorRec,
+                    handle: creator.handle,
+                    dest: ['§' + name, '§' + name2]
+                });
+
+                checkSuccessCode(res);
+                checkPayloadArray(res);
+
+                res.payload.map(m => {
+                    expect(m.destChannel.some(ch => (ch.name === name) || (ch.name === name2)))
+                        .to.be.true;
+                    expect(m.author.handle).to.equal(creator.handle)
                 })
             });
 
         });
+
+        it("Should only return public messages when setting the public field to true", async function(){
+            this.timeout(30000)
+            let pageNum = 1;
+
+            let res = await MessageService.getUserMessages({ 
+                reqUser: reqUser, 
+                handle: secondAuthor.handle,
+                publicMessage: true,
+            });
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+            while (res.payload.length > 0) {
+                expect(res.payload.every(m => m.publicMessage)).to.be.true;
+
+                pageNum++;
+                res = await MessageService.getUserMessages({
+                    reqUser: reqUser, handle: secondAuthor.handle,
+                    page: pageNum
+                });
+
+                checkSuccessCode(res);
+                checkPayloadArray(res, true);
+            }
+        });
+
+        it("Should only return messages the requesting user can see", async function () {
+            this.timeout(30000)
+            let pageNum = 1;
+
+            let res = await MessageService.getUserMessages({ 
+                reqUser: reqUser, 
+                handle: secondAuthor.handle,
+            });
+
+            const reqUserChannelsNames = (await Channel.find({
+                _id: { $in: reqUser.joinedChannels }
+            })).map(c => c.name)
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+            while (res.payload.length > 0) {
+                expect(res.payload.every(m => {
+
+                    expect(m.author.handle).to.equal(secondAuthor.handle)
+
+                    return ((m.publicMessage) || 
+                        (reqUserChannelsNames
+                            .find(cname => m.destChannel.some(c => c.name === cname))) ||
+                        (m.destUser.find(u => u.handle === reqUser.handle)))
+                })).to.be.true;
+
+                pageNum++;
+                res = await MessageService.getUserMessages({
+                    reqUser: reqUser, handle: secondAuthor.handle,
+                    page: pageNum
+                });
+
+                checkSuccessCode(res);
+                checkPayloadArray(res, true);
+            }
+        });
+
+        it("Should also return private messages if requesting user is the author", async function () {
+
+            this.timeout(30000)
+            let pageNum = 1;
+
+            let res = await MessageService.getUserMessages({ reqUser: reqUser, handle: reqUser.handle });
+            
+            let check = await Message.find({ author: reqUser._id, publicMessage: false });
+
+            expect(check).to.not.be.empty
+
+            checkSuccessCode(res);
+            checkPayloadArray(res);
+
+
+            let uselessTest = true;
+
+            while (res.payload.length > 0) {
+                res.payload.map(m => {
+                    if (!m.publicMessage) {
+                        uselessTest = false;
+                        expect(reqUser.handle === m.author.handle).to.be.true;
+                    }
+                })
+
+                pageNum++;
+                res = await MessageService.getUserMessages({ reqUser: reqUser, handle: reqUser.handle,
+                    page: pageNum });
+
+                checkSuccessCode(res);
+                checkPayloadArray(res, true);
+            }
+
+            expect(uselessTest).to.be.false;
+            //console.log(pageNum)
+        });
+
     });
 
     describe("postUserMessage Unit Tests", async function(){
 
         it("Should fail if the handle does not exist", async function(){
             
-            const u = UserDispatch.getNext();
+            const u = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
             // console.log(u.handle);
 
             const text = lorem.generateWords(20);
 
             const res = await MessageService.postUserMessage({ 
-                reqUser: new_author,
-                handle: new_author.handle + 'ckjdfvnkdjfnoafnwjfv sjdfbu3i4ru3904uty2495y9hquvsadjnqa',
+                reqUser: u,
+                handle: u.handle + 'ckjdfvnkdjfnoafnwjfv sjdfbu3i4ru3904uty2495y9hquvsadjnqa',
                 content: {
                     text: text,
                 }, 
-                dest: recievers2.map(h => '@' + h)
+                dest: users.map(u => '@' + u.handle)
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
 
         });
 
         it("Should allow message creation if the user has enough characters left", async function(){
             
-            const u = UserDispatch.getNext();
+            const u = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
             //console.log(u.handle);
 
             const text = lorem.generateWords(10);
-            const cur_chars = JSON.parse(JSON.stringify(new_author.charLeft));
+            const cur_chars = JSON.parse(JSON.stringify(u.charLeft));
 
             expect(Math.min(cur_chars.day, cur_chars.week, cur_chars.month) >= text.length)
                 .to.be.true;
 
             const res = await MessageService.postUserMessage({
-                reqUser: new_author,
-                handle: new_author.handle,
+                reqUser: u,
+                handle: u.handle,
                 content: {
                     text: text,
                 },
-                dest: recievers2.map(handle => '@' + handle)
+                dest: users.map(u => '@' + u.handle)
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
         });
 
-        it("Should adjust the author's remaining characters", async function () {
+        it("Should adjust the author's remaining characters when creating a public message", async function () {
 
             const u = UserDispatch.getNext();
             const urecord = await User.findOne({ handle: u.handle });
@@ -820,17 +1283,93 @@ describe('Message Service Unit Tests', function () {
                     text: text,
                 },
                 dest: [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
-                    .map(handle => '@' + handle)
+                    .map(handle => '@' + handle),
+                publicMessage: true,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             const checkUser = await User.findOne({ handle: u.handle });
             expect(checkUser.charLeft.day).to.equal(cur_chars.day - text.length)
             expect(checkUser.charLeft.week).to.equal(cur_chars.week - text.length)
             expect(checkUser.charLeft.month).to.equal(cur_chars.month - text.length)
+
+        });
+
+        it("Should adjust the author's remaining characters when creating a private message addressed to any channel", async function () {
+
+            const u = UserDispatch.getNext();
+            let urecord = await User.findOne({ handle: u.handle });
+
+            const text = lorem.generateWords(10);
+            const cur_chars = JSON.parse(JSON.stringify(urecord.charLeft));
+
+
+            expect(Math.min(cur_chars.day, cur_chars.week, cur_chars.month) >= text.length)
+                .to.be.true;
+
+            let channel = new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(2),
+                creator: urecord._id,
+                members: [urecord._id],
+                publicChannel: false,
+            })
+
+            urecord.joinedChannels.push(channel._id);
+            
+            channel = await channel.save();
+            urecord = await urecord.save();
+
+            const res = await MessageService.postUserMessage({
+                reqUser: urecord,
+                handle: u.handle,
+                content: {
+                    text: text,
+                },
+                dest: [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
+                    .map(handle => '@' + handle).concat(['§' + channel.name]),
+                publicMessage: false,
+            })
+
+            checkSuccessCode(res);
+
+            const checkUser = await User.findOne({ handle: u.handle });
+            expect(checkUser.charLeft.day).to.equal(cur_chars.day - text.length)
+            expect(checkUser.charLeft.week).to.equal(cur_chars.week - text.length)
+            expect(checkUser.charLeft.month).to.equal(cur_chars.month - text.length)
+
+        });
+
+        it("Should not adjust the author's remaining characters when creating a private message to users only", async function () {
+
+            const u = UserDispatch.getNext();
+            const urecord = await User.findOne({ handle: u.handle });
+
+            const text = lorem.generateWords(10);
+            const cur_chars = JSON.parse(JSON.stringify(urecord.charLeft));
+
+
+            expect(Math.min(cur_chars.day, cur_chars.week, cur_chars.month) >= text.length)
+                .to.be.true;
+
+            const res = await MessageService.postUserMessage({
+                reqUser: urecord,
+                handle: u.handle,
+                content: {
+                    text: text,
+                },
+                dest: [UserDispatch.getNext().handle, UserDispatch.getNext().handle]
+                    .map(handle => '@' + handle),
+                publicMessage: false,
+            })
+
+            checkSuccessCode(res);
+
+            const checkUser = await User.findOne({ handle: u.handle });
+            expect(checkUser.charLeft.day).to.equal(cur_chars.day)
+            expect(checkUser.charLeft.week).to.equal(cur_chars.week)
+            expect(checkUser.charLeft.month).to.equal(cur_chars.month)
 
         });
 
@@ -843,10 +1382,16 @@ describe('Message Service Unit Tests', function () {
                     .map(handle => '@' + handle)
     
                 const u = UserDispatch.getNext();
-                const urecord = await User.findOne({ handle: u.handle });
-    
+                let urecord = await User.findOne({ handle: u.handle });
+                
+                urecord.charLeft = {
+                    day: text.length * 10,
+                    week: text.length * 10,
+                    month: text.length * 10,
+                }
+
                 urecord.charLeft[p] = text.length - 1;
-                await urecord.save()
+                urecord = await urecord.save()
     
                 const res = await MessageService.postUserMessage({
                     reqUser: urecord,
@@ -854,7 +1399,8 @@ describe('Message Service Unit Tests', function () {
                     content: {
                         text: text,
                     },
-                    dest: dests
+                    dest: dests,
+                    publicMessage: true,
                 })
     
                 expect(res).to.be.an('object');
@@ -864,10 +1410,17 @@ describe('Message Service Unit Tests', function () {
         }))
 
         it("Should add the message to the user messages list", async function(){
+            
             const u = UserDispatch.getNext();
-            const urecord = await User.findOne({ handle: u.handle });
+            let urecord = await User.findOne({ handle: u.handle }).orFail();
 
-            await urecord.save();
+            urecord.charLeft = {
+                day: 10000,
+                week: 10000,
+                month: 10000,
+            }
+
+            urecord = await urecord.save();
 
             let res = null;
 
@@ -890,12 +1443,8 @@ describe('Message Service Unit Tests', function () {
                     dest: dests,
                 });
 
-                expect(res).to.be.an('object');
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_success_code);
-                expect(res).to.have.property('payload');
-                expect(res.payload).to.be.an('object');
-                expect(res.payload).to.have.property('_id');
+                checkSuccessCode(res);
+                checkPayloadObject(res, ['_id']);
 
                 added.push(res.payload._id);
 
@@ -905,16 +1454,75 @@ describe('Message Service Unit Tests', function () {
                     month: 500,
                 }
 
-                await urecord.save()
+                urecord = await urecord.save()
             }
 
-            const u1 = await User.findOne({ handle: u.handle });
-
-            expect(u1.toObject().messages).to.be.an('array').that.is.not.empty;
+            expect(urecord.toObject().messages).to.be.an('array').that.is.not.empty;
 
             added.map(id => {
-                expect(u1.toObject().messages.some(m => m.equals(id))).to.be.true
+                expect(urecord.toObject().messages.some(m => m.equals(id))).to.be.true
             })
+        });
+
+        it("Should parse channel destinations correctly", async function(){
+
+            let u = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            let chdests = await Promise.all(Array.from({length: 10}, (v, i) => {
+                const channel = new Channel({
+                    name: UserDispatch.getNextChannelName(),
+                    creator: u._id
+                })
+
+                return channel.save()
+            }));
+
+            chdestsNames = chdests.map(c => '§' + c.name);
+
+            u.joinedChannels.push(...chdests.map(c => c._id));
+
+            u = await u.save();
+
+            const res = await MessageService.postUserMessage({
+                reqUser: u,
+                handle: u.handle,
+                content: { text: lorem.generateWords(5) },
+                dest: chdestsNames,
+            });
+
+
+            checkSuccessCode(res);
+            checkPayloadObject(res, ['destChannel']);
+            //console.log(res.status)
+            checkArray(res.payload.destChannel);
+
+            expect(res.payload.destChannel.every(cid => chdests.some(c =>  c._id.equals(cid))))
+                .to.be.true;
+        });
+
+        it("Should parse user destinations correctly", async function () {
+
+            let u = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            let udests = await Promise.all(Array.from({ length: 10 }, (v, i) => {
+                return User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            }));
+
+            udestsHandles = udests.map(c => '@' + c.handle);
+
+            const res = await MessageService.postUserMessage({
+                reqUser: u,
+                handle: u.handle,
+                content: { text: lorem.generateWords(5) },
+                dest: udestsHandles,
+            });
+
+            checkSuccessCode(res);
+            checkPayloadObject(res, ['destUser']);
+            checkArray(res.payload.destUser);
+
+            expect(res.payload.destUser.every(uid => udests.some(u => u._id.equals(uid))))
+                .to.be.true;
         });
     });
 
@@ -928,9 +1536,7 @@ describe('Message Service Unit Tests', function () {
             u.handle += 'sjjdhbcskfbveurvbsjdc wjnjuejrvn'
             const res = await MessageService.deleteUserMessages({ reqUser: urecord, handle: u.handle });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should succeed if the handle exists", async function(){
@@ -940,9 +1546,7 @@ describe('Message Service Unit Tests', function () {
 
             const res = await MessageService.deleteUserMessages({ reqUser: urecord, handle: u.handle });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
         });
 
         it('Should actually delete the messages', async function(){
@@ -971,9 +1575,7 @@ describe('Message Service Unit Tests', function () {
 
             const res = await MessageService.deleteUserMessages({ reqUser: urecord, handle: u.handle });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             await Promise.all(
                 messagesIds.map(async m => {
@@ -1004,9 +1606,7 @@ describe('Message Service Unit Tests', function () {
 
             const res = await MessageService.deleteUserMessages({ reqUser: urecord, handle: u.handle });
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             const u1 = await User.findOne({ handle: u.handle });
 
@@ -1022,9 +1622,7 @@ describe('Message Service Unit Tests', function () {
                 id: 'thisisavalididipromise',
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should remove the message", async function(){
@@ -1042,8 +1640,7 @@ describe('Message Service Unit Tests', function () {
 
             const message = await Message.findOne({ author: urecord._id });
 
-            expect(message).to.not.be.null;
-            expect(message).to.be.an('object').that.has.property('_id');
+            checkObject(message, ['_id']);
 
             const id = message._id;
 
@@ -1051,9 +1648,7 @@ describe('Message Service Unit Tests', function () {
                 id: message.toObject()._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             const check = await Message.findById(id);
 
@@ -1083,8 +1678,7 @@ describe('Message Service Unit Tests', function () {
 
             const message = await Message.findOne({ author: urecord._id });
 
-            expect(message).to.not.be.null;
-            expect(message).to.be.an('object').that.has.property('_id');
+            checkObject(message, ['_id']);
             
             const id = message._id;
 
@@ -1092,15 +1686,12 @@ describe('Message Service Unit Tests', function () {
                 id: message.toObject()._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res)
 
             const check = await await User.findOne({ handle: u.handle });
 
-            expect(check).to.not.be.null;
-            expect(check).to.have.property('messages');
-            expect(check.messages).to.be.an('array');
+            checkObject(check, ['messages'])
+            checkArray(check.messages, true);
 
             expect(check.messages.some(mid => mid.equals(id))).to.be.false;
         });
@@ -1119,9 +1710,7 @@ describe('Message Service Unit Tests', function () {
                 }
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should fail if reactions is missing", async function(){
@@ -1142,9 +1731,7 @@ describe('Message Service Unit Tests', function () {
                 id: message._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should fail if reactions is not in the correct form", async function(){
@@ -1191,12 +1778,10 @@ describe('Message Service Unit Tests', function () {
 
                 const res = await MessageService.postMessage({
                     id: message._id,
-                    reactions: malformed
+                    reactions: reaction
                 })
 
-                expect(res).to.be.an('object');
-                expect(res).to.have.property('status');
-                expect(res.status).to.equal(config.default_client_error);
+                checkErrorCode(res);
             }))
 
         });
@@ -1224,9 +1809,7 @@ describe('Message Service Unit Tests', function () {
                 reactions: reactions,
             })
             
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
             
             urecord = await User.findOne({ handle: u.handle });
             message = await Message.findOne({ author: urecord._id });
@@ -1244,9 +1827,7 @@ describe('Message Service Unit Tests', function () {
                 id: 'supervalidId',
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
         it("Should actually change the reaction object", async function () {
@@ -1268,15 +1849,280 @@ describe('Message Service Unit Tests', function () {
                 id: message._id,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res)
 
             urecord = await User.findOne({ handle: u.handle });
             const check = await Message.findOne({ author: urecord._id });
 
             expect(old_reactions.negative).to.equal(check.reactions.negative)
             expect(old_reactions.positive + 1).to.equal(check.reactions.positive)
+        });
+
+        it("Should change the user's character when getting enough positive reactions if the message is public", async function(){
+            
+            let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+            
+            // make sure there are chars left
+            user.charLeft.day += 10000 - text.length;
+            user.charLeft.week += 10000 - text.length;
+            user.charLeft.month += 10000 - text.length;
+
+            const charCopy = {...user.toObject().charLeft};
+
+            await user.save();
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: user._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                }
+            });
+
+            await message.save()
+            user.messages.push(message._id);
+
+            user = await user.save()
+
+            // check characters are left unchanged
+            const res = await MessageService.addPositiveReaction({ id: message._id });
+            
+            checkSuccessCode(res)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+            
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.positive = config.fame_threshold - 1;
+
+            for (let i = 0; i < config.num_messages_reward - 1; i ++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: user._id,
+                    destUser: [reciever._id],
+                    reactions: {
+                        positive: config.fame_threshold + 100,
+                        negative: 0,
+                    }
+                });
+
+                await message1.save()
+                user.messages.push(message1._id);
+
+            }
+            user = await user.save()
+
+            await message.save();
+
+            const res1 = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+
+            let newChars = {...charCopy};
+
+            newChars.day += Math.max(1, Math.ceil(config.daily_quote / 100));
+            newChars.week += Math.max(1, Math.ceil(config.weekly_quote / 100));
+            newChars.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
+
+            expect(newChars, 'Did not characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+        });
+
+        it("Should change the user's character when getting enough positive reactions if the message is private but destined to at least one channel", async function () {
+            // TODO
+            const u = UserDispatch.getNext();
+            let urecord = await User.findOne({ handle: u.handle }).orFail();
+
+            const cur_chars = JSON.parse(JSON.stringify(urecord.charLeft));
+
+            let channel = new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(2),
+                creator: urecord._id,
+                members: [urecord._id],
+                publicChannel: false,
+            })
+
+            urecord.joinedChannels.push(channel._id);
+
+            channel = await channel.save();
+            urecord = await urecord.save();
+
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            urecord.charLeft.day += 10000 - text.length;
+            urecord.charLeft.week += 10000 - text.length;
+            urecord.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...urecord.toObject().charLeft };
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: urecord._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                }, 
+                publicMessage: false,
+                destChannel: [channel._id],
+            });
+
+            await message.save()
+
+            urecord.messages.push(message._id);
+            channel.messages.push(message._id);
+
+            urecord = await urecord.save();
+            channel = await channel.save();
+
+            // check characters are left unchanged
+            const res = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            urecord = await User.findOne({ handle: urecord.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(urecord.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.positive = config.fame_threshold - 1;
+
+            await message.save();
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: urecord._id,
+                    destUser: [reciever._id],
+                    destChannel: [channel._id],
+                    reactions: {
+                        positive: config.fame_threshold + 100,
+                        negative: 0,
+                    }
+                });
+
+                await message1.save()
+                urecord.messages.push(message1._id);
+                channel.messages.push(message1._id);
+
+            }
+            urecord = await urecord.save();
+            channel = await channel.save();
+
+            const res1 = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            urecord = await User.findOne({ handle: urecord.handle }).orFail();
+
+            let newChars = { ...charCopy };
+
+            newChars.day += Math.max(1, Math.ceil(config.daily_quote / 100));
+            newChars.week += Math.max(1, Math.ceil(config.weekly_quote / 100));
+            newChars.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
+
+            expect(newChars, 'Did not characters when it shouldnt have')
+                .to.deep.equal(urecord.toObject().charLeft);
+        });
+
+        it("Should not change the user's character when getting enough positive reactions if the message is private and has no dest channels", async function () {
+
+            let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            user.charLeft.day += 10000 - text.length;
+            user.charLeft.week += 10000 - text.length;
+            user.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...user.toObject().charLeft };
+
+            await user.save();
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: user._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                },
+                publicMessage: false,
+            });
+
+            await message.save()
+            user.messages.push(message._id);
+
+            user = await user.save()
+
+            // check characters are left unchanged
+            const res = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.positive = config.fame_threshold - 1;
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: user._id,
+                    destUser: [reciever._id],
+                    reactions: {
+                        positive: config.fame_threshold + 100,
+                        negative: 0,
+                    }
+                });
+
+                await message1.save()
+                user.messages.push(message1._id);
+
+            }
+            user = await user.save()
+
+            await message.save();
+
+            const res1 = await MessageService.addPositiveReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
         });
     })
 
@@ -1288,39 +2134,280 @@ describe('Message Service Unit Tests', function () {
                 id: 'supervalidId',
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
         });
 
-        it("Should actually change the reaction object", async function () {
+        it("Should change the user's character when getting enough negative reactions if the message is public", async function () {
+
+            let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            user.charLeft.day += 10000 - text.length;
+            user.charLeft.week += 10000 - text.length;
+            user.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...user.toObject().charLeft };
+
+            await user.save();
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: user._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                }
+            });
+
+            await message.save()
+            user.messages.push(message._id);
+
+            user = await user.save()
+
+            // check characters are left unchanged
+            const res = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.negative = config.fame_threshold - 1;
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: user._id,
+                    destUser: [reciever._id],
+                    reactions: {
+                        negative: config.fame_threshold + 100,
+                        positive: 0,
+                    }
+                });
+
+                await message1.save()
+                user.messages.push(message1._id);
+
+            }
+            user = await user.save()
+
+            await message.save();
+
+            const res1 = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+
+            let newChars = { ...charCopy };
+
+            newChars.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
+            newChars.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
+            newChars.month -= Math.max(1, Math.ceil(config.monthly_quote / 100));
+
+            newChars.day = Math.max(newChars.day, 0);
+            newChars.week = Math.max(newChars.week, 0);
+            newChars.month = Math.max(newChars.month, 0);
+
+            expect(newChars, 'Did not characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+        });
+
+        it("Should change the user's character when getting enough positive reactions if the message is private but destined to at least one channel", async function () {
+         
             const u = UserDispatch.getNext();
-            const dests = [UserDispatch.getNext().handle]
+            let urecord = await User.findOne({ handle: u.handle }).orFail();
 
-            await addMessage(
-                lorem.generateSentences(4),
-                u.handle,
-                dests,
-            );
-
-            let urecord = await User.findOne({ handle: u.handle });
-            let message = await Message.findOne({ author: urecord._id });
-
-            const old_reactions = JSON.parse(JSON.stringify(message.reactions));
-
-            const res = await MessageService.addNegativeReaction({
-                id: message._id,
+            let channel = new Channel({
+                name: UserDispatch.getNextChannelName(),
+                description: lorem.generateParagraphs(2),
+                creator: urecord._id,
+                members: [urecord._id],
+                publicChannel: false,
             })
 
-            expect(res).to.be.an('object');
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            urecord.joinedChannels.push(channel._id);
 
-            urecord = await User.findOne({ handle: u.handle });
-            const check = await Message.findOne({ author: urecord._id });
+            channel = await channel.save();
+            urecord = await urecord.save();
 
-            expect(old_reactions.positive).to.equal(check.reactions.positive)
-            expect(old_reactions.negative + 1).to.equal(check.reactions.negative)
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            urecord.charLeft.day += 10000 - text.length;
+            urecord.charLeft.week += 10000 - text.length;
+            urecord.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...urecord.toObject().charLeft };
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: urecord._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                },
+                publicMessage: false,
+                destChannel: [channel._id],
+            });
+
+            await message.save()
+
+            urecord.messages.push(message._id);
+            channel.messages.push(message._id);
+
+            urecord = await urecord.save();
+            channel = await channel.save();
+
+            // check characters are left unchanged
+            const res = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            urecord = await User.findOne({ handle: urecord.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(urecord.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.negative = config.fame_threshold - 1;
+
+            await message.save();
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: urecord._id,
+                    destUser: [reciever._id],
+                    destChannel: [channel._id],
+                    reactions: {
+                        negative: config.fame_threshold + 100,
+                        positive: 0,
+                    }
+                });
+
+                await message1.save()
+                urecord.messages.push(message1._id);
+                channel.messages.push(message1._id);
+
+            }
+            urecord = await urecord.save();
+            channel = await channel.save();
+
+            const res1 = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            urecord = await User.findOne({ handle: urecord.handle }).orFail();
+
+            let newChars = { ...charCopy };
+
+            newChars.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
+            newChars.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
+            newChars.month -= Math.max(1, Math.ceil(config.monthly_quote / 100));
+
+            newChars.day = Math.max(newChars.day, 0);
+            newChars.week = Math.max(newChars.week, 0);
+            newChars.month = Math.max(newChars.month, 0);
+
+            expect(newChars, 'Did not characters when it shouldnt have')
+                .to.deep.equal(urecord.toObject().charLeft);
+        });
+
+        it("Should not change the user's character when getting enough negative reactions if the message is private and has no dest channels", async function () {
+
+            let user = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+            const reciever = await User.findOne({ handle: UserDispatch.getNext().handle }).orFail();
+
+            const text = lorem.generateSentences(getRandom(3) + 1);
+
+            // make sure there are chars left
+            user.charLeft.day += 10000 - text.length;
+            user.charLeft.week += 10000 - text.length;
+            user.charLeft.month += 10000 - text.length;
+
+            const charCopy = { ...user.toObject().charLeft };
+
+            await user.save();
+
+            let message = new Message({
+                content: {
+                    text: text,
+                },
+                author: user._id,
+                destUser: [reciever._id],
+                reactions: {
+                    positive: 0,
+                    negative: 0,
+                },
+                publicMessage: false,
+            });
+
+            await message.save()
+            user.messages.push(message._id);
+
+            user = await user.save()
+
+            // check characters are left unchanged
+            const res = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+            expect(charCopy, 'Changed characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
+
+            // check characters are changed once threshold is reached
+            message = await Message.findById(message._id).orFail();
+            message.reactions.negative = config.fame_threshold - 1;
+
+            for (let i = 0; i < config.num_messages_reward - 1; i++) {
+                let message1 = new Message({
+                    content: {
+                        text: text,
+                    },
+                    author: user._id,
+                    destUser: [reciever._id],
+                    reactions: {
+                        negative: config.fame_threshold + 100,
+                        positive: 0,
+                    }
+                });
+
+                await message1.save()
+                user.messages.push(message1._id);
+
+            }
+            user = await user.save()
+
+            await message.save();
+
+            const res1 = await MessageService.addNegativeReaction({ id: message._id });
+
+            checkSuccessCode(res1)
+
+            user = await User.findOne({ handle: user.handle }).orFail();
+
+            expect(charCopy, 'Did not characters when it shouldnt have')
+                .to.deep.equal(user.toObject().charLeft);
         });
     })
 
@@ -1332,16 +2419,14 @@ describe('Message Service Unit Tests', function () {
 
             res = await MessageService.deleteChannelMessages({ name: name });
 
-            expect(res).to.be.an("object");
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_client_error);
+            checkErrorCode(res);
 
         });
 
         it("Shuld remove the channel from the dest list of all messages", async function () {
 
             const creator = UserDispatch.getNext();
-            const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+            const locUsers = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
             const description = lorem.generateParagraphs(1);
 
             const name = UserDispatch.getNextChannelName();
@@ -1366,7 +2451,7 @@ describe('Message Service Unit Tests', function () {
             expect(crec).to.not.be.null;
             expect(crec2).to.not.be.null;
 
-            await Promise.all(users.map(async u => {
+            await Promise.all(locUsers.map(async u => {
 
                 let urec = await User.findOne({ handle: u.handle });
 
@@ -1377,9 +2462,9 @@ describe('Message Service Unit Tests', function () {
                 return urec.save();
             }))
 
-            for (let i = 0; i < users.length; i++) {
+            for (let i = 0; i < locUsers.length; i++) {
 
-                let urec = await User.findOne({ handle: users[i].handle });
+                let urec = await User.findOne({ handle: locUsers[i].handle });
 
                 crec.members.push(urec._id);
                 crec2.members.push(urec._id);
@@ -1393,7 +2478,7 @@ describe('Message Service Unit Tests', function () {
             for (let i = 0; i < 10; i++) {
 
                 await addMessage(lorem.generateSentences(2), creator.handle,
-                    users.map(u => u.handle),
+                    locUsers.map(u => u.handle),
                     [name, name2])
             }
 
@@ -1403,21 +2488,19 @@ describe('Message Service Unit Tests', function () {
 
             res = await MessageService.deleteChannelMessages({ name: name });
 
-            expect(res).to.be.an("object");
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res);
 
             const check = await Message.find({ destChannel: crec._id });
             const check2 = await Message.find({ destChannel: crec2._id });
 
-            expect(check).to.be.an('array').that.is.empty;
-            expect(check2).to.be.an('array').that.is.not.empty;
+            checkArray(check, true); expect(check).to.be.empty;
+            checkArray(check2);
         });
 
         it("Should delete messages whose sole dest was the channell", async function () {
 
             const creator = UserDispatch.getNext();
-            const users = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
+            const locUsers = [UserDispatch.getNext(), UserDispatch.getNext(), UserDispatch.getNext()]
             const description = lorem.generateParagraphs(1);
 
             const name = UserDispatch.getNextChannelName();
@@ -1434,7 +2517,7 @@ describe('Message Service Unit Tests', function () {
 
             expect(crec).to.not.be.null;
 
-            await Promise.all(users.map(async u => {
+            await Promise.all(locUsers.map(async u => {
 
                 let urec = await User.findOne({ handle: u.handle });
 
@@ -1444,9 +2527,9 @@ describe('Message Service Unit Tests', function () {
                 return urec.save();
             }))
 
-            for (let i = 0; i < users.length; i++) {
+            for (let i = 0; i < locUsers.length; i++) {
 
-                let urec = await User.findOne({ handle: users[i].handle });
+                let urec = await User.findOne({ handle: locUsers[i].handle });
 
                 crec.members.push(urec._id);
 
@@ -1467,9 +2550,7 @@ describe('Message Service Unit Tests', function () {
 
             res = await MessageService.deleteChannelMessages({ name: name });
 
-            expect(res).to.be.an("object");
-            expect(res).to.have.property('status');
-            expect(res.status).to.equal(config.default_success_code);
+            checkSuccessCode(res)
 
             const check = await Message.find({ destChannel: crec._id });
 
