@@ -7,12 +7,23 @@ const MessageServices = require('../services/MessageServices');
 
 const MessageRouter = express.Router();
 
-MessageRouter.get('/', passport.authenticate(['basicAuth', 'anonymous']), async (req, res) => {
+// MessageRouter.get('/', passport.authenticate(['basicAuth', 'anonymous']), async (req, res) => {
+    
+//     await Controller.handleRequest(req, res, MessageServices.getMessages);
+// })
+
+// a logged in user can get all posts in database 
+MessageRouter.get('/', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.getMessages);
 })
 
-//send posts
+MessageRouter.get('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+    
+    await Controller.handleRequest(req, res, MessageServices.getChannelMessages);
+})
+
+// Users send messages
 MessageRouter.post('/:handle/messages', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
         if (req.params.handle !== req.user.handle)
@@ -24,7 +35,7 @@ MessageRouter.post('/:handle/messages', passport.authenticate('basicAuth', { ses
 );
 
 
-//seach post of a user
+// Get all messages for a user
 MessageRouter.get('/:handle/messages', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
         if (req.params.handle !== req.user.handle)
@@ -33,10 +44,9 @@ MessageRouter.get('/:handle/messages', passport.authenticate('basicAuth', { sess
         await Controller.handleRequest(req, res, MessageServices.getUserMessages);
     });
 
-//delete post of a user
+//delete apost of a user
 MessageRouter.delete('/:handle/messages/:id', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
-        
         await Controller.handleRequest(req, res, MessageServices.deleteMessage);
     }
 );

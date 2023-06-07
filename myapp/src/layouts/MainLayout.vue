@@ -27,6 +27,24 @@
 
           <q-item-section class="text-h6 text-weight-bold">Home</q-item-section>
         </q-item>
+        <q-item to="/displore" v-ripple clickable exact>
+          <q-item-section avatar>
+            <q-icon name="Displore" size="md" />
+          </q-item-section>
+
+          <q-item-section class="text-h6 text-weight-bold"
+            >Displore</q-item-section
+          >
+        </q-item>
+        <q-item to="/channel" v-ripple clickable exact>
+          <q-item-section avatar>
+            <q-icon name="Channel" size="md" />
+          </q-item-section>
+
+          <q-item-section class="text-h6 text-weight-bold"
+            >Channel</q-item-section
+          >
+        </q-item>
         <q-item to="/profile" v-ripple clickable exact>
           <q-item-section avatar>
             <q-icon name="Profile" size="md" />

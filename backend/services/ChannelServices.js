@@ -6,6 +6,52 @@ const config = require('../config');
 
 class ChannelServices{
 
+    // Get all channels created by the user
+    static async getUserChannels({ page = 1, reqUser }){
+        let user = reqUser;
+
+        let channelsQuery = Channel.find();
+        channelsQuery.where('creator').equals(user._id);
+        channelsQuery.skip((page - 1) * config.results_per_page);
+        channelsQuery.limit(config.results_per_page);
+
+        const res = await channelsQuery;
+
+        return Service.successResponse(res.map(m => m.toObject()));
+
+    }
+
+    // Get all channels that users have joined
+    static async getJoinedChannels({ page = 1, reqUser}){
+        let user = reqUser;
+        let joinedChannelsArr = user.joinedChannels;    // get an array of ObjectIds
+        let tmpRes = [];
+        for (let i = 0; i < joinedChannelsArr.length; i++) {
+            tmpRes.push(await Channel.findById(joinedChannelsArr[i]) )
+        }
+        
+        return Service.successResponse(tmpRes)
+    }
+
+    // Get the handle of the creator of the channel based on the channel name 
+    static async getChannelCreator({name}){
+        // console.log(name)
+
+        let channelsQuery = Channel.findOne();
+        channelsQuery.where('name').equals(name);
+
+        const channelRes = await channelsQuery;
+        // console.log(channelRes)
+
+        var channelCreator = channelRes.creator
+        // console.log(channelCreator)
+
+        const res = await User.findById(channelCreator);
+        // console.log(res);
+        return Service.successResponse(res.handle);
+    }
+
+    // get all channels
     static async getChannels({ reqUser = null, page = 1, owner = null, postCount = -1, publicChannel=null,
         member=null, name=null } = {
             reqUser: null, page: 1, owner: null, postCount: -1, publicChannel: null,
@@ -74,6 +120,8 @@ class ChannelServices{
 
     }
 
+
+    // get informations of a channel
     static async getChannel({ name, reqUser = null }) {
         if (!name) return Service.rejectResponse({ message: "Must Provide a valid name" });
 
@@ -92,7 +140,7 @@ class ChannelServices{
         return Service.successResponse(res);
     }
 
-    static async createChannel({ name, reqUser, description='' }){
+    static async createChannel({ name, reqUser, description='',publicChannel=true }){
         
         if (!(name)) return Service.rejectResponse({ message: "Must provide owner handle and unique name" })
 
@@ -102,6 +150,8 @@ class ChannelServices{
 
         if (description) channel.description = description;
 
+        if(publicChannel) channel.publicChannel = publicChannel;
+        
         channel.members.push(reqUser._id);
         reqUser.joinedChannels.push(channel._id);
 

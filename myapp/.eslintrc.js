@@ -6,7 +6,7 @@ module.exports = {
 
   parserOptions: {
     parser: "@babel/eslint-parser",
-    requireConfigFile: false,
+    requireConfigFile: false, // add this line to remove warning: `Parsing error: No Babel config file detected for <filename>`
     ecmaVersion: 2018, // Allows for the parsing of modern ECMAScript features
     sourceType: "module", // Allows for the use of imports
   },

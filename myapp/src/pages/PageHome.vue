@@ -7,7 +7,7 @@
             v-model="newQweetContent"
             class="new-qweet"
             placeholder="What's happening?"
-            maxlength="280"
+            maxlength="10"
             bottom-slots
             counter
             autogrow
@@ -65,76 +65,70 @@
       <q-separator class="divider" color="grey-2" size="10px" />
 
       <q-list separator>
-        <transition-group
-          appear
-          enter-active-class="animated fadeIn slow"
-          leave-active-class="animated fadeOut slow"
-        >
-          <q-item
-            v-for="qweet in qweets"
-            :key="qweet._id"
-            class="qweet q-py-md"
-          >
-            <q-item-section avatar top>
-              <q-avatar size="xl">
-                <img
-                  src="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?s=80"
-                />
-              </q-avatar>
-            </q-item-section>
-
-            <q-item-section>
-              <q-item-label
-                class="text-subtitle1 flex justify-between items-start"
-              >
-                <div>
-                  <strong>{{ store ? store.user.username : "" }}</strong>
-                  <span class="text-grey-7 text-caption q-ml-sm"
-                    >@{{ store ? store.user.handle : "" }}</span
-                  >
-                  <q-item-label caption>
-                    <!-- <span class="text-grey-7"
-                      >&bull; {{ relativeDate(qweet.meta.created) }}</span
-                    > -->
-                  </q-item-label>
-                </div>
-                <q-btn flat round color="grey-5" icon="more_horiz" />
-              </q-item-label>
-              <q-item-label class="qweet-content text-body1">{{
-                qweet.content.text
-              }}</q-item-label>
-
-              <q-img
-                :src="qweet.content.image"
-                v-if="qweet.content.image"
-                spinner-color="white"
-                style="height: 140px; max-width: 150px"
+        <q-item v-for="qweet in qweets" :key="qweet._id" class="qweet q-py-md">
+          <q-item-section avatar top>
+            <q-avatar size="xl">
+              <img
+                src="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?s=80"
               />
-              <GMapMap
-                v-if="
-                  qweet.meta &&
-                  qweet.meta.geo &&
-                  qweet.meta.geo.coordinates[0] != null &&
-                  qweet.meta.geo.coordinates[0] != -1 &&
-                  qweet.meta.geo.coordinates[1] != -1
-                "
-                :center="{
+            </q-avatar>
+          </q-item-section>
+
+          <q-item-section>
+            <q-item-label
+              class="text-subtitle1 flex justify-between items-start"
+            >
+              <div>
+                <strong>{{ store ? store.user.username : "" }}</strong>
+                <span class="text-grey-7 text-caption q-ml-sm"
+                  >@{{ store ? store.user.handle : "" }}</span
+                >
+                <!-- <q-item-label caption> -->
+                <span class="text-grey-7"
+                  >&bull;
+                  {{
+                    qweet.meta ? relativeDate(qweet.meta.created) : "?? ago"
+                  }}</span
+                >
+                <!-- </q-item-label> -->
+              </div>
+              <q-btn flat round color="grey-5" icon="more_horiz" />
+            </q-item-label>
+            <q-item-label class="qweet-content text-body1">{{
+              qweet.content.text
+            }}</q-item-label>
+
+            <q-img
+              :src="qweet.content.image"
+              v-if="qweet.content.image"
+              spinner-color="white"
+              style="height: 140px; max-width: 150px"
+            />
+            <GMapMap
+              v-if="
+                qweet.meta &&
+                qweet.meta.geo &&
+                qweet.meta.geo.coordinates[0] != null &&
+                qweet.meta.geo.coordinates[0] != -1 &&
+                qweet.meta.geo.coordinates[1] != -1
+              "
+              :center="{
+                lat: qweet.meta.geo.coordinates[0],
+                lng: qweet.meta.geo.coordinates[1],
+              }"
+              :zoom="15"
+              map-type-id="terrain"
+              style="width: 500px; height: 300px"
+            >
+              <GMapMarker
+                :position="{
                   lat: qweet.meta.geo.coordinates[0],
                   lng: qweet.meta.geo.coordinates[1],
                 }"
-                :zoom="15"
-                map-type-id="terrain"
-                style="width: 500px; height: 300px"
-              >
-                <GMapMarker
-                  :position="{
-                    lat: qweet.meta.geo.coordinates[0],
-                    lng: qweet.meta.geo.coordinates[1],
-                  }"
-                />
-              </GMapMap>
-              <div class="qweet-icons row justify-between q-mt-sm">
-                <!-- <q-btn
+              />
+            </GMapMap>
+            <div class="qweet-icons row justify-between q-mt-sm">
+              <!-- <q-btn
                   flat
                   round
                   :color="qweet.reactions.negative > 0 ? 'black' : 'grey'"
@@ -146,7 +140,7 @@
                   size="sm"
                   @click="toggleDisliked(qweet)"
                 /> -->
-                <!-- <q-btn
+              <!-- <q-btn
                   flat
                   round
                   :color="qweet.reactions.positive > 0 ? 'red' : 'grey'"
@@ -158,18 +152,17 @@
                   size="sm"
                   @click="toggleLiked(qweet)"
                 />  -->
-                <q-btn
-                  flat
-                  round
-                  color="grey"
-                  icon="fas fa-trash"
-                  size="sm"
-                  @click="deleteQweet(qweet)"
-                />
-              </div>
-            </q-item-section>
-          </q-item>
-        </transition-group>
+              <q-btn
+                flat
+                round
+                color="grey"
+                icon="fas fa-trash"
+                size="sm"
+                @click="deleteQweet(qweet)"
+              />
+            </div>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-scroll-area>
   </q-page>
@@ -179,6 +172,7 @@
 import { formatDistance } from "date-fns";
 import { useUserStore } from "stores/user";
 import { api } from "boot/axios";
+import { parseISO } from "date-fns";
 
 export default {
   name: "PageHome",
@@ -195,9 +189,9 @@ export default {
     };
   },
   methods: {
-    // relativeDate(value){
-    //   return formatDistance(value, new Date())
-    // },
+    relativeDate(value) {
+      return formatDistance(parseISO(value), new Date());
+    },
     addNewQweet() {
       /* without connect to db */
       // let newTweet = {
@@ -300,8 +294,8 @@ export default {
         this.coord = [position.coords.latitude, position.coords.longitude];
         this.addMarker();
       });
-
     },
+    // TODO:one only can like/dislike other's tweets
     toggleDisliked(qweet) {
       console.log("qweet disliked");
     },
@@ -343,6 +337,7 @@ export default {
 
           qweet_tmp.forEach(function (element) {
             if (!element.content) {
+              console.log("not content, new content added");
               let tt = element;
               tt.content = { text: "", image: "" };
               tt.meta.geo = { types: "Point", coordinates: [] };

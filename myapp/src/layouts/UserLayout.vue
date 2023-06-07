@@ -1,82 +1,116 @@
 <template>
-  <q-layout view="hHh Lpr fFf">
-    <!-- Be sure to play with the Layout demo on docs -->
-
-    <!-- (Optional) The Header -->
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn flat round dense icon="menu" @click="toggleLeftDrawer" />
-
-        <q-toolbar-title> Header </q-toolbar-title>
-      </q-toolbar>
-
-      <q-tabs>
-        <q-route-tab icon="map" to="/profile" replace label="Profile" />
-        <q-route-tab icon="assignment" to="/posts" replace label="Posts" />
-      </q-tabs>
-    </q-header>
-
-    <!-- (Optional) The Footer -->
-    <!--     <q-footer>
-      <q-tabs switch-indicator>
-        <q-route-tab
-          icon="map"
-          to="/your/route"
-          replace
-          label="One Tab"
-        />
-        <q-route-tab
-          icon="assignment"
-          to="/some/other/route"
-          replace
-          label="Other Tab"
-        />
-      </q-tabs>
-
-      <q-toolbar>
-        <q-btn
-          flat
-          round
-          dense
-          icon="menu"
-          @click="toggleLeftDrawer"
-        />
-        <q-toolbar-title>
-          Footer
-        </q-toolbar-title>
-      </q-toolbar>
-    </q-footer> -->
-
-    <!-- (Optional) A Drawer; you can add one more with side="right" or change this one's side -->
-    <q-drawer v-model="leftDrawerOpen" side="left" bordered class="bg-grey-2">
-      <!-- QScrollArea is optional -->
-      <q-scroll-area class="fit q-pa-sm">
-        <!-- Content here -->
-      </q-scroll-area>
-    </q-drawer>
-
+  <q-layout view="hHh lpR fFf">
     <q-page-container>
-      <!-- This is where pages get injected -->
-      <router-view />
+      <q-scroll-area
+        :thumb-style="thumbStyle"
+        :content-style="contentStyle"
+        :content-active-style="contentActiveStyle"
+        style="height: 40rem; max-width: 100%"
+      >
+        <div class="column relative" style="height: 35rem">
+          <div class="col bg-blue-grey-11">
+            <!-- <q-img src="" style="max-width: 100%; height: 100%;"></q-img> -->
+            <div class="avatar">
+              <q-avatar size="11rem" class="">
+                <img
+                  src="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?s=80"
+                />
+              </q-avatar>
+            </div>
+          </div>
+          <q-separator size="0.25rem" color="grey-2" class="divider" />
+          <div class="col q-pa-lg">
+            <div class="flex justify-end">
+              <q-btn
+                outline
+                rounded
+                style="color: goldenrod"
+                icon="edit"
+                label="Edit profile"
+                @click="editProfile"
+              />
+            </div>
+            <div class="q-mt-xl">
+              <q-item-label class="text-subtitle1 flex justify-between">
+                <strong>store.getUser.username</strong>
+                <span class="text-grey-7 text-caption"
+                  ><q-icon
+                    name="calendar_month"
+                    size="xs"
+                    class="q-mr-sm"
+                  />Join at joinedDate
+                </span>
+              </q-item-label>
+              <q-item-label class="text-body2">
+                <span class="text-grey-7">@store.getUser.handle</span>
+              </q-item-label>
+              <q-item-label>
+                <span class="text-grey-7 text-caption"
+                  >Maybe a description???</span
+                >
+              </q-item-label>
+              <q-item-label class="text-subtitle1 flex">
+                <strong>
+                  joinedChannels
+                  <span class="text-grey-7 text-caption q-mr-md"
+                    >Following</span
+                  ></strong
+                >
+                <strong
+                  >createdChannels
+                  <span class="text-grey-7 text-caption">Created</span></strong
+                >
+                <!-- TODO: Maybe show the total number of likes/steps, or total number of controversial posts/popular posts? -->
+              </q-item-label>
+            </div>
+            <q-item-label
+              class="nav-option text-subtitle1 flex justify-around q-py-lg"
+            >
+              <!--           <strong @click="onActive('tweets')" :style="[isActive === 'tweets' ? {borderBottom : '2px solid #1da1f2'} : {borderBottom : '2px solid transparent'}]"><q-btn flat round color="grey" icon="reply_all" size="sm" />Tweets</strong>
+          <strong @click="onActive('replies')" :style="[isActive === 'replies' ? {borderBottom : '2px solid #1da1f2'} : {borderBottom : '2px solid transparent'}]"><q-btn flat round color="grey" icon="question_answer" size="sm" />Replies</strong>
+          <strong @click="onActive('media')" :style="[isActive === 'media' ? {borderBottom : '2px solid #1da1f2'} : {borderBottom : '2px solid transparent'}]"><q-btn flat round color="grey" icon="movie" size="sm" />Media</strong>
+          <strong @click="onActive('likes')" :style="[isActive === 'likes' ? {borderBottom : '2px solid #1da1f2'} : {borderBottom : '2px solid transparent'}]"><q-btn flat round color="grey" icon="thumb_up" size="sm" />Likes</strong>
+  -->
+            </q-item-label>
+          </div>
+        </div>
+        <div>
+          <!--       <Tweets v-if="isActive === 'tweets'" />
+      <Replies v-if="isActive === 'replies'" />
+      <Media v-if="isActive === 'media'" />
+      <Likes v-if="isActive === 'likes'" /> -->
+        </div>
+      </q-scroll-area>
     </q-page-container>
   </q-layout>
 </template>
 
-<script>
+<script setup>
 import { ref } from "vue";
+/* import Tweets from "./profile/Tweets.vue"
+import Replies from "./profile/Replies.vue"
+import Media from "./profile/Media.vue"
+import Likes from "./profile/Likes.vue" */
 
-export default {
-  // name: 'LayoutName',
+const isActive = ref("tweets");
 
-  setup() {
-    const leftDrawerOpen = ref(false);
+const onActive = (nameLink) => {
+  isActive.value = nameLink;
+};
 
-    return {
-      leftDrawerOpen,
-      toggleLeftDrawer() {
-        leftDrawerOpen.value = !leftDrawerOpen.value;
-      },
-    };
-  },
+const contentStyle = {
+  color: "#555",
+};
+
+const contentActiveStyle = {
+  color: "black",
+};
+
+const thumbStyle = {
+  right: "0px",
+  borderRadius: "5px",
+  backgroundColor: "#027be3",
+  width: "3px",
+  opacity: 0.7,
 };
 </script>

@@ -128,10 +128,15 @@ export default {
         .get("users/" + getUser)
         .then((response) => {
           if (response.status === 200) {
+            /*             console.log(this.form.oldPassword);
+            console.log(response.data); */
             res = this.form.oldPassword === response.data.password;
           }
         })
-        .catch((err) => {});
+        .catch((err) => {
+          console.log(this.form.oldPassword);
+          console.log(response.data.password);
+        });
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           resolve(res || "password not correct!");
