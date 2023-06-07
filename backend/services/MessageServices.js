@@ -179,6 +179,12 @@ class MessageService {
         return Service.successResponse(res.map(m => m.toObject()));
     }
 
+    static async getChannelMessages({reqUser, channelId}){
+        const query = Message.find({ destChannel: { $elemMatch: { $eq: channelId } } });
+        const res = await query
+        return Service.successResponse(res.map(m => m.toObject()));
+    }
+
     static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage }){
         
