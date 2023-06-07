@@ -8,6 +8,7 @@ const dayjs = require('dayjs');
 async function makeDefaultUsers() {
     const pw = '12345678';
 
+    // Utenti richiesti
     const user1 = new User({
         handle: 'fv',
         username: 'fv',
@@ -56,12 +57,120 @@ async function makeDefaultUsers() {
         accountType: 'pro',
     })
 
+    // SMM
     user2.smm = user3._id;
     user5.smm = user3._id;
     user6.smm = user3._id;
 
     let messages = []
-    for (let i = 0; i < config.num_messages_reward - 1; i++) {
+
+    let u5startMessages = getRandom(50);
+    let u6startMessages = getRandom(50);
+
+    // old messages
+    for (let i = 0; i < u5startMessages; i++) {
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user5._id,
+            reactions: {
+                positive: config.fame_threshold + getRandom(50) + 1,
+                negative: getRandom(13),
+            },
+            meta: {
+                created: getDateWithin('year').subtract(getRandom(2), 'year').toDate(),
+            }
+        }));
+
+        user5.messages.push(messages.at(-1)._id);
+
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user5._id,
+            reactions: {
+                positive: config.fame_threshold + getRandom(50) + 1,
+                negative: getRandom(13),
+            },
+            meta: {
+                created: getDateWithin('year').toDate(),
+            }
+        }));
+
+        user5.messages.push(messages.at(-1)._id);
+
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user5._id,
+            reactions: {
+                positive: config.fame_threshold + getRandom(50) + 1,
+                negative: getRandom(13),
+            },
+            meta: {
+                created: getDateWithin('month').toDate(),
+            }
+        }));
+
+        user5.messages.push(messages.at(-1)._id);
+    }
+
+    for (let i = 0; i < u6startMessages; i++) {
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user6._id,
+            reactions: {
+                negative: config.fame_threshold + getRandom(20) + 1,
+                positive: getRandom(13),
+            },
+            meta: {
+                created: getDateWithin('year').subtract(getRandom(2), 'year').toDate(),
+            }
+        }))
+        user6.messages.push(messages.at(-1)._id);
+
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user6._id,
+            reactions: {
+                negative: config.fame_threshold + getRandom(20) + 1,
+                positive: getRandom(13),
+            },
+            meta: {
+                created: getDateWithin('year').toDate(),
+            }
+        }))
+        user6.messages.push(messages.at(-1)._id);
+
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user6._id,
+            reactions: {
+                negative: config.fame_threshold + getRandom(20) + 1,
+                positive: getRandom(13),
+            },
+            meta: {
+                created: getDateWithin('month').toDate(),
+            }
+        }))
+        user6.messages.push(messages.at(-1)._id);
+    }
+
+    u5startMessages *= 3;
+    u6startMessages *= 3;
+
+    // new messages to make user 5 and 6 two messages away from increasing/decreasing characters
+    while (u5startMessages % (config.num_messages_reward - 2) !== 0) {
+        
         messages.push(new Message({
             content: {
                 text: lorem.generateSentences(getRandom(3) + 1),
@@ -77,6 +186,10 @@ async function makeDefaultUsers() {
         }));
 
         user5.messages.push(messages.at(-1)._id);
+        u5startMessages++;
+    }
+
+    while (u6startMessages % (config.num_messages_reward - 2) !== 0) {
 
         messages.push(new Message({
             content: {
@@ -92,8 +205,10 @@ async function makeDefaultUsers() {
             }
         }))
         user6.messages.push(messages.at(-1)._id);
+        u6startMessages++;
     }
 
+    // new messages to make user 5 and 6 one message away from increasing/decreasing characters
     messages.push(new Message({
         content: {
             text: lorem.generateSentences(getRandom(3) + 1),
@@ -125,54 +240,7 @@ async function makeDefaultUsers() {
     }))
     user6.messages.push(messages.at(-1)._id);
 
-
-    for (let i = 0; i < 20; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user5._id,
-            reactions: {
-                positive: config.fame_threshold + 1 + getRandom(170),
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }));
-        user5.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user6._id,
-            reactions: {
-                negative: config.fame_threshold + 1 + getRandom(170),
-                positive: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }))
-        user6.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user2._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }))
-        user2.messages.push(messages.at(-1)._id);
-    }
-
+    // not sure se andasse fatto anche per user2 ma male non fa
     user2.charLeft = {
         day: 50,
         week: getRandom(config.weekly_quote - 50) + 50,
@@ -213,9 +281,15 @@ async function makeDefaultUsers() {
     let answers = [];
 
 
-    for (let i = 0; i < getRandom(20) + 20; i++) {
+    for (let i = 0; i < getRandom(u6startMessages) + 20; i++) {
         const user_ind = getRandom(answering_users.length);
         const mess_ind = getRandom(messages.length);
+
+        let created = dayjs(messages[mess_ind].meta.created).add(getRandom(120), 'minute');
+        
+        if (created.isAfter(dayjs(), 'second')) {
+            created = dayjs();
+        }
 
         answers.push(new Message({
             content: {
@@ -227,7 +301,7 @@ async function makeDefaultUsers() {
                 positive: getRandom(config.fame_threshold + 50),
             },
             meta: {
-                created: dayjs(messages[mess_ind].meta.created).add(getRandom(120), 'minute').toDate(),
+                created: created.toDate(),
             },
             answering: messages[mess_ind]._id,
         }))
