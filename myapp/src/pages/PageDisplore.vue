@@ -129,6 +129,20 @@ export default {
       const msgAuthor = qweet.author.handle;
       if (loggedUser != msgAuthor) {
         console.log("qweet disliked");
+        var getToken = this.store.getUserToken;
+        var getUser = this.store.getUser.handle;
+
+        api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
+        api
+          .post('messages/'+getUser+'/down/'+qweet._id,{"id":qweet._id})
+          .then((response) => {
+            if (response.status === 200) {
+              console.log(response.data)
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+          });
       } else {
         alert("you cannot dislike your own tweets! ");
       }
@@ -138,6 +152,20 @@ export default {
       const msgAuthor = qweet.author.handle;
       if (loggedUser != msgAuthor) {
         console.log("qweet Liked");
+        var getToken = this.store.getUserToken;
+        var getUser = this.store.getUser.handle;
+
+        api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
+        api
+          .post('messages/'+getUser+'/up/'+qweet._id,{"id":qweet._id})
+          .then((response) => {
+            if (response.status === 200) {
+              console.log(response.data)
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+          });
       } else {
         alert("you cannot like your own tweets! ");
       }

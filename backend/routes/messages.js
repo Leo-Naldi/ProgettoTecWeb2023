@@ -44,10 +44,24 @@ MessageRouter.get('/:handle/messages', passport.authenticate('basicAuth', { sess
         await Controller.handleRequest(req, res, MessageServices.getUserMessages);
     });
 
-//delete apost of a user
-MessageRouter.delete('/:handle/messages/:id', passport.authenticate('basicAuth', { session: false }),
+//delete post of a user
+MessageRouter.delete('/:handle/:id', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
         await Controller.handleRequest(req, res, MessageServices.deleteMessage);
+    }
+);
+
+// user add positive reactions
+MessageRouter.post('/:handle/up/:id', passport.authenticate('basicAuth', { session: false }),
+    async (req, res) => {
+        await Controller.handleRequest(req, res, MessageServices.addPositiveReaction);
+    }
+);
+
+// user add negative reactions
+MessageRouter.post('/:handle/down/:id', passport.authenticate('basicAuth', { session: false }),
+    async (req, res) => {
+        await Controller.handleRequest(req, res, MessageServices.addNegativeReaction);
     }
 );
 

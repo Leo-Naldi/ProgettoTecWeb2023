@@ -245,7 +245,6 @@ export default {
         });
     },
     deleteQweet(qweet) {
-      console.log(qweet._id);
       //   /* without connect to db */
       //   let dateToDelete = qweet.date;
       //   let index = this.qweets.findIndex((qweet) => qweet.date === dateToDelete);
@@ -255,7 +254,7 @@ export default {
       api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
       var getUser = this.store.getUser.handle;
       api
-        .delete("messages/" + getUser + "/messages/" + qweet._id)
+        .delete("messages/" + getUser + "/" + qweet._id)
         .then((response) => {
           if (response.status === 200) {
             console.log("qweet deleted successfully!");
@@ -295,8 +294,7 @@ export default {
         this.addMarker();
       });
     },
-    // TODO:one only can like/dislike other's tweets
-    toggleDisliked(qweet) {
+/*     toggleDisliked(qweet) {
       console.log("qweet disliked");
     },
     toggleLiked(qweet) {
@@ -305,7 +303,7 @@ export default {
       index.liked = true;
 
       console.log("qweet liked");
-    },
+    }, */
     uploadImage(file) {
       var formData = new FormData();
       formData.append("files", file);

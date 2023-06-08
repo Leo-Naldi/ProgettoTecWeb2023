@@ -369,7 +369,7 @@ class MessageService {
         const message = await Message.findById(id);
 
         // delete local image associated to the user's message
-        if (message.content.image!=""){
+        if (message.content.image && message.content.image!=""){
 
             const imgPath = message.content.image;
             //http://localhost:8000/f_user3/be4caaa4722f46f0bcae54903_picture.png

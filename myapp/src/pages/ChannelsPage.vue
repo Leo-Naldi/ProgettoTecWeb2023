@@ -58,14 +58,6 @@ export default {
     gotoPage() {
       this.$router.push("/lists/create");
     },
-    // TODO: Now responds only on the channel name's text area
-    jumpToPage(event) {
-      /*       const target = event.target;
-      // console.log(event);
-      if (event.target.textContent === "test1") {
-
-      } */
-    },
   },
   mounted() {
     var getToken = this.store.getUserToken;
