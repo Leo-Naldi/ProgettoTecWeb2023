@@ -134,10 +134,10 @@ export default {
 
         api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
         api
-          .post('messages/'+getUser+'/down/'+qweet._id,{"id":qweet._id})
+          .post("messages/" + getUser + "/down/" + qweet._id, { id: qweet._id })
           .then((response) => {
             if (response.status === 200) {
-              console.log(response.data)
+              console.log(response.data);
             }
           })
           .catch((err) => {
@@ -157,10 +157,10 @@ export default {
 
         api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
         api
-          .post('messages/'+getUser+'/up/'+qweet._id,{"id":qweet._id})
+          .post("messages/" + getUser + "/up/" + qweet._id, { id: qweet._id })
           .then((response) => {
             if (response.status === 200) {
-              console.log(response.data)
+              console.log(response.data);
             }
           })
           .catch((err) => {

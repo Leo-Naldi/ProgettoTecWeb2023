@@ -14,6 +14,11 @@ const routes = [
         name: "Displore",
       },
       {
+        path: "/search",
+        component: () => import("pages/PageSearch.vue"),
+        name: "Search",
+      },
+      {
         path: "/channel",
         component: () => import("pages/PageChannel.vue"),
         name: "Channel",

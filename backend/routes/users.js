@@ -13,6 +13,10 @@ UserRouter.get('/', passport.authenticate('adminAuth', {session: false}), async 
     await Controller.handleRequest(req, res, UserService.getUsers);
 })
 
+UserRouter.get('/users', passport.authenticate('basicAuth', {session: false}), async (req, res) => {
+    await Controller.handleRequest(req, res, UserService.getUsers);
+})
+
 UserRouter.get('/:handle', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
 

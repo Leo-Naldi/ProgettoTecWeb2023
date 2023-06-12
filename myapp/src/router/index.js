@@ -42,8 +42,8 @@ export default route(function (/* { store, ssrContext } */) {
     // //console.log(token);
     if (
       token ||
-      to.path === "/" ||
       to.path === "/about" ||
+      to.path === "/search" ||
       to.path === "/login" ||
       to.path === "/register"
     ) {
@@ -51,7 +51,7 @@ export default route(function (/* { store, ssrContext } */) {
       // console.log(token);
     } else {
       alert("you must be a user to modify your user data!");
-      next("/");
+      next("/login");
     }
   });
   // // check before routes

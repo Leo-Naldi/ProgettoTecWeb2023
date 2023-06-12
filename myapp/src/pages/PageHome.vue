@@ -3,50 +3,111 @@
     <q-scroll-area class="absolute full-width full-height">
       <div class="q-py-lg q-px-md row items-end q-col-gutter-md">
         <div class="col">
-          <q-input
-            v-model="newQweetContent"
-            class="new-qweet"
-            placeholder="What's happening?"
-            maxlength="10"
-            bottom-slots
-            counter
-            autogrow
+          <Mentionable
+            :keys="['@', '#', '§']"
+            :items="items"
+            offset="6"
+            insert-space
+            @open="onOpen"
+            @apply="onApply"
           >
-            <template v-slot:before>
-              <q-avatar size="xl">
-                <img
-                  src="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?s=80"
-                />
-              </q-avatar>
-            </template>
-            <q-img
-              :src="this.newQweetImage"
-              v-if="this.newQweetImage"
-              spinner-color="white"
-              style="height: 140px; max-width: 150px"
-            />
-            <GMapMap
-              v-if="this.coord"
-              :center="this.center"
-              :zoom="18"
-              map-type-id="satellite"
-              style="width: 300px; height: 100px"
+            <q-input
+              v-model="newQweetContent"
+              class="new-qweet"
+              placeholder="What's happening?"
+              maxlength="80"
+              bottom-slots
+              counter
+              autogrow
             >
-              <GMapMarker
-                :key="marker.id"
-                v-for="marker in this.markers"
-                :position="marker.position"
+              <template v-slot:before>
+                <!--              <q-avatar size="xl">
+                <img
+                  src="https://ui-avatars.com/api/?name=fv&rounded=true&background=f56b25&color=fff"
+                />
+              </q-avatar> -->
+                <q-avatar color="orange-7" text-color="white" size="xl">
+                  {{
+                    store
+                      ? store.user.username[0] + store.user.username[1]
+                      : "?"
+                  }}
+                </q-avatar>
+              </template>
+              <q-img
+                :src="this.newQweetImage"
+                v-if="this.newQweetImage"
+                spinner-color="white"
+                style="height: 140px; max-width: 150px"
               />
-            </GMapMap>
-            <q-btn
-              flat
-              round
-              color="grey"
-              icon="fas fa-map-marker-alt"
-              size="sm"
-              @click="getGeo()"
-            />
-          </q-input>
+              <GMapMap
+                v-if="this.coord"
+                :center="this.center"
+                :zoom="18"
+                map-type-id="satellite"
+                style="width: 300px; height: 100px"
+              >
+                <GMapMarker
+                  :key="marker.id"
+                  v-for="marker in this.markers"
+                  :position="marker.position"
+                />
+              </GMapMap>
+              <q-btn
+                flat
+                round
+                color="grey"
+                icon="fas fa-map-marker-alt"
+                size="sm"
+                @click="getGeo()"
+              />
+            </q-input>
+
+            <template #no-result>
+              <div class="dim">No result</div>
+            </template>
+
+            <template #[`item-@`]="{ item }">
+              <div class="issue">
+                <div className="account-body">
+                  <q-avatar color="orange-7" text-color="white" size="xl">
+                    {{ item.username[0] + item.username[1] }}
+                  </q-avatar>
+                  <div>
+                    <div className="account-name">
+                      {{ item.username }}
+                    </div>
+                    <div className="account-handle">@{{ item.value }}</div>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <template #[`item-§`]="{ item }">
+              <div class="issue">
+                <div className="account-body">
+                  <q-avatar rounded>
+                    {{ item.value[0] }}
+                  </q-avatar>
+                  <div>
+                    <div className="account-name">
+                      {{ item.value }}
+                    </div>
+                    <div className="account-handle">§{{ item.label }}</div>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <template #[`item-#`]="{ item }">
+              <div class="issue">
+                <span class="issue">
+                  {{ item.value }}
+                </span>
+                <span class="dim"> #{{ item.label }} </span>
+              </div>
+            </template>
+          </Mentionable>
         </div>
         <div class="col col-shrink">
           <q-btn
@@ -67,10 +128,15 @@
       <q-list separator>
         <q-item v-for="qweet in qweets" :key="qweet._id" class="qweet q-py-md">
           <q-item-section avatar top>
-            <q-avatar size="xl">
+            <!-- <q-avatar size="xl">
               <img
-                src="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?s=80"
+                src="https://ui-avatars.com/api/?name=fv&rounded=true&background=f56b25&color=fff"
               />
+            </q-avatar> -->
+            <q-avatar color="orange-7" text-color="white" size="xl">
+              {{
+                store ? store.user.username[0] + store.user.username[1] : "?"
+              }}
             </q-avatar>
           </q-item-section>
 
@@ -84,11 +150,9 @@
                   >@{{ store ? store.user.handle : "" }}</span
                 >
                 <!-- <q-item-label caption> -->
-                <span class="text-grey-7"
+                <span class="text-grey-7 text-caption q-ml-sm"
                   >&bull;
-                  {{
-                    qweet.meta ? relativeDate(qweet.meta.created) : "?? ago"
-                  }}</span
+                  {{ qweet.meta ? relativeDate(qweet) : "?? ago" }}</span
                 >
                 <!-- </q-item-label> -->
               </div>
@@ -169,13 +233,18 @@
 </template>
 
 <script>
-import { formatDistance } from "date-fns";
+import { formatISO, formatDistance } from "date-fns";
 import { useUserStore } from "stores/user";
 import { api } from "boot/axios";
 import { parseISO } from "date-fns";
+import { Mentionable } from "vue-mention";
+import "floating-vue/dist/style.css";
 
 export default {
   name: "PageHome",
+  components: {
+    Mentionable,
+  },
   data() {
     return {
       store: useUserStore(),
@@ -186,11 +255,32 @@ export default {
       markers: [],
       qweets: [],
       submitting: false,
+      users: [],
+      channels: [],
+      tags: [
+        {
+          value: "tag1",
+          label: "tag1",
+          searchText: "tag1",
+        },
+        {
+          value: "tagg",
+          label: "tagg",
+          searchText: "tagg",
+        },
+        {
+          value: "tewqet",
+          label: "tewqet",
+          searchText: "tewqet",
+        },
+      ],
+      items: [], //autocomplete content
+      dests: [],
     };
   },
   methods: {
     relativeDate(value) {
-      return formatDistance(parseISO(value), new Date());
+      return formatDistance(parseISO(value.meta.created), new Date());
     },
     addNewQweet() {
       /* without connect to db */
@@ -214,14 +304,20 @@ export default {
               type: "Point",
               coordinates: this.coord,
             },
+            created: formatISO(new Date()),
+            lastModified: formatISO(new Date()),
           },
+          dest: this.dests,
         };
+        // console.log(newQweet.meta);
+        // console.log(formatDistance(newQweet.meta.created, new Date()))
       } else {
         newQweet = {
           content: {
             text: this.newQweetContent,
             image: this.newQweetImage,
           },
+          dest: this.dests,
         };
       }
       var getToken = this.store.getUserToken;
@@ -294,7 +390,7 @@ export default {
         this.addMarker();
       });
     },
-/*     toggleDisliked(qweet) {
+    /*     toggleDisliked(qweet) {
       console.log("qweet disliked");
     },
     toggleLiked(qweet) {
@@ -320,6 +416,17 @@ export default {
           console.log(err);
         });
     },
+    onOpen(key) {
+      if (key === "@") this.items = this.users;
+      else if (key === "#") this.items = this.tags;
+      else if (key === "§") this.items = this.channels;
+      else this.items = this.users;
+    },
+
+    onApply(item, key, replacedWith) {
+      this.dests.push(replacedWith);
+      console.log(item, `has been replaced with ${replacedWith}`);
+    },
   },
   mounted() {
     var getToken = this.store.getUserToken;
@@ -327,6 +434,10 @@ export default {
     var getUser = this.store.getUser.handle;
     var qweet_tmp;
     var tmp = this.qweets;
+    var tmp_user = this.users;
+    var tmp_channel = this.channels;
+
+    // get user messages
     api
       .get("messages/" + getUser + "/messages")
       .then((response) => {
@@ -349,6 +460,45 @@ export default {
       .catch((err) => {
         console.log(err);
       });
+
+    // get all users (used for autocomplete)
+    api
+      .get("users/users")
+      .then((response) => {
+        if (response.status === 200) {
+          response.data.forEach(function (element) {
+            var tmp_res = { value: "", username: "" };
+            tmp_res.value = element.handle;
+            tmp_res.username = element.username;
+            tmp_user.push(tmp_res);
+          });
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    // get all channels (used for autocomplete)
+    api
+      .get("channels/")
+      .then((response) => {
+        if (response.status === 200) {
+          response.data.forEach(function (element) {
+            var tmp_res2 = { value: "", label: "", searchText: "" };
+            tmp_res2.value = element.name;
+            tmp_res2.label = element.description;
+            tmp_res2.searchText = element.name;
+            tmp_channel.push(tmp_res2);
+          });
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    console.log(this.users);
+    console.log(this.channels);
+
     //TODO:listen only on form
     document.addEventListener("paste", async (e) => {
       e.preventDefault();
@@ -374,11 +524,11 @@ export default {
       }
     });
   },
-  filters: {
+  /*  filters: {
     relativeDate(value) {
       return formatDistance(value, new Date());
     },
-  },
+  }, */
 };
 </script>
 
@@ -397,4 +547,77 @@ export default {
     white-space: pre-line
 .qweet-icons
     margin-left: -5px
+</style>
+
+<style scoped>
+.demo {
+  margin: 24px 0;
+}
+
+.input {
+  width: 100%;
+  border: #ccc 1px solid;
+  border-radius: 6px;
+  resize: vertical;
+  min-height: 42px;
+  padding: 12px;
+  box-sizing: border-box;
+  line-height: 1.2em;
+  font-size: inherit;
+}
+.user,
+.issue {
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mention-selected .issue {
+  background: rgb(139, 212, 255);
+}
+
+.user,
+.issue .number {
+  font-family: monospace;
+}
+
+.dim {
+  color: #666;
+}
+
+.preview {
+  font-family: monospace;
+  white-space: pre-wrap;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f8f8;
+  border-radius: 6px;
+}
+
+.account-body {
+  display: flex;
+  align-items: center;
+}
+
+.account-body > :not([hidden]) ~ :not([hidden]) {
+  margin-right: calc(0.75rem * 0);
+  margin-left: calc(0.75rem * calc(1 - 0));
+}
+
+.account-name {
+  font-weight: 600;
+  color: rgb(72, 65, 65);
+}
+
+img {
+  width: 100%;
+  height: auto;
+  transform: scale(1.2) translateY(-0.2rem);
+}
+
+.account-handle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: rgba(107, 114, 128, 1);
+}
 </style>

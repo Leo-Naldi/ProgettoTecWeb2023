@@ -63,6 +63,15 @@
             >About</q-item-section
           >
         </q-item>
+        <q-item to="/search" v-ripple clickable exact>
+          <q-item-section avatar>
+            <q-icon name="Search" size="md" />
+          </q-item-section>
+
+          <q-item-section class="text-h6 text-weight-bold"
+            >Serach</q-item-section
+          >
+        </q-item>
 
         <q-item clickable v-ripple>
           <q-item-section avatar>

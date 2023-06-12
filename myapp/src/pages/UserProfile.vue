@@ -197,7 +197,7 @@ export default {
 
     api.defaults.headers.common["Authorization"] = "Bearer " + getToken;
     api
-      .get("channels/"+getUser+'/created')
+      .get("channels/" + getUser + "/created")
       .then((response) => {
         if (response.status === 200) {
           this.createdChannels = response.data.length;
