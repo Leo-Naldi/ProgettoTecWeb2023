@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 
 const db_host = process.env.DB_HOST || '127.0.0.1',
       db_port = process.env.DB_PORT || '27017',
@@ -9,6 +10,9 @@ const db_test_host = process.env.DB_TEST_HOST || '127.0.0.1',
     db_test_name = process.env.DB_TEST_NAME || 'TecWebDBTest';
 
 const crit_mass_base = 200, danger_zone = 0.2, fame_zone = 0.25;
+
+let rootPath = path.resolve(__dirname,'..'); 
+const folder = path.join(rootPath, 'files');    // static folder: backend/files
 
 const config = {
     secrect: process.env.SECRET,
@@ -24,6 +28,7 @@ const config = {
     default_success_code: 200,
     results_per_page: 100,
     num_messages_reward: 10,
+    folder: folder,
 }
 
 module.exports = config;

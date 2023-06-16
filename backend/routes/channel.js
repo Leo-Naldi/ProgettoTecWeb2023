@@ -9,6 +9,7 @@ const Channel = require('../models/Channel');
 
 const ChannelRouter = express.Router();
 
+// Get all channels created by all users
 ChannelRouter.get('/', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
     // Lists of messages and members is removed from private channels if the user
@@ -16,7 +17,26 @@ ChannelRouter.get('/', passport.authenticate('basicAuth', { session: false }), a
     await Controller.handleRequest(req, res, ChannelServices.getChannels);
 })
 
+// Get all channels created by a user
+ChannelRouter.get('/:handle/created', passport.authenticate('basicAuth', {session: false}), async(req, res) =>{
+    await Controller.handleRequest(req, res, ChannelServices.getUserChannels);
+})
 
+// Get all channels that a user has joined
+ChannelRouter.get('/:handle/joined', passport.authenticate('basicAuth', {session: false}), async(req, res) =>{
+    await Controller.handleRequest(req, res, ChannelServices.getJoinedChannels);
+})
+
+// Get the name of the creator based on ObjectId
+ChannelRouter.get('/:name/creator', passport.authenticate('basicAuth', {session: false}), async(req, res) =>{
+    await Controller.handleRequest(req, res, ChannelServices.getChannelCreator);
+})
+
+
+
+
+
+// get a channel
 ChannelRouter.get('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
     // Lists of messages and members is removed from private channels if the user
@@ -24,13 +44,15 @@ ChannelRouter.get('/:name', passport.authenticate('basicAuth', { session: false 
     await Controller.handleRequest(req, res, ChannelServices.getChannel);
 })
 
-ChannelRouter.put('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+// create a channel
+ChannelRouter.post('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
     // TODO if the channel is official the creator should be an admin
     await Controller.handleRequest(req, res, ChannelServices.createChannel);
 })
 
-ChannelRouter.post('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+// modify a channle
+ChannelRouter.put('/:name', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
     // TODO pass channel to request so one query is saved
     const channel = await Channel.findOne({ name: req.params.name });
