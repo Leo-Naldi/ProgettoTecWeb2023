@@ -94,7 +94,16 @@ UserRouter.post('/:handle/revokeAdmin', passport.authenticate('adminAuth', { ses
 
 UserRouter.get('/:handle/messages/stats', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
 
-    // this way you can see any user's messages
+    if (req.user.handle !== req.params.handle) {
+        const requestedUser = await User.findOne({ handle: req.params.handle }) 
+        if (!requestedUser) {
+            return req.sendStatus(409)
+        }
+
+        if (!request.user._id.equals(requestedUser.smm)) {
+            return req.sendStatus(409)
+        }
+    }
 
     await Controller.handleRequest(req, res, MessageServices.getMessagesStats);
 })

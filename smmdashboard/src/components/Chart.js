@@ -1,35 +1,79 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { LineChart, Line, XAxis, YAxis, Label, ResponsiveContainer } from 'recharts';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import Menu from '@mui/material/Menu';
 import Title from './Title';
 
 // Generate Sales Data
-function createData(time, amount) {
-    return { time, amount };
+function createData(time, likes, dislikes) {
+    return { time, likes, dislikes };
 }
 
-const data = [
-    createData('00:00', 0),
-    createData('03:00', 300),
-    createData('06:00', 600),
-    createData('09:00', 800),
-    createData('12:00', 1500),
-    createData('15:00', 2000),
-    createData('18:00', 2400),
-    createData('21:00', 2400),
-    createData('24:00', undefined),
-];
+// Generate dummy data for Today
+const generateTodayData = () => {
+    const todayData = [];
+    const now = new Date();
+    const currentTime = `${now.getHours()}:00`;
+    for (let i = 0; i <= now.getHours(); i++) {
+        const time = `${i < 10 ? '0' + i : i}:00`;
+        const likes = Math.floor(Math.random() * 1000);
+        const dislikes = Math.floor(Math.random() * 500);
+        todayData.push(createData(time, likes, dislikes));
+    }
+    todayData.push(createData(currentTime, undefined, undefined));
+    return todayData;
+};
 
-export default function Chart() {
+
+function parseChartData(chartData, timePeriod) {
     
+    if (timePeriod === 'Today') {
+        return chartData.map(datapoint => {
+            createData(`${datapoint.start.getHours()}:datapont.start.getMinutes()`,
+                datapoint.stats.positive, datapoint.stats.positive);
+        })
+    } else {
+        return chartData.map(datapoint => {
+            createData(`${datapoint.start.getMonth() + 1}/${datapoint.start.getMinutes()}`,
+                datapoint.stats.positive, datapoint.stats.positive);
+        })
+    }
+}
+
+export default function Chart({ timePeriods, selectedPeriod, setSelectedPeriod, chartData }) {
     const theme = useTheme();
+    const [anchorEl, setAnchorEl] = useState(null);
+
+    const handleClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
 
     return (
         <React.Fragment>
-            <Title>Today</Title>
+            <Title>
+
+                <Button onClick={handleClick} size="small">
+                    {selectedPeriod}
+                </Button>
+            </Title>
+            <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+            >
+                {timePeriods.map(p => (
+                    <MenuItem onClick={() => setSelectedPeriod(p)}>{p}</MenuItem>
+                ))}
+            </Menu>
             <ResponsiveContainer>
                 <LineChart
-                    data={data}
+                    data={parseChartData(chartData, selectedPeriod)}
                     margin={{
                         top: 16,
                         right: 16,
@@ -55,14 +99,21 @@ export default function Chart() {
                                 ...theme.typography.body1,
                             }}
                         >
-                            Sales ($)
+                            Likes/Dislikes
                         </Label>
                     </YAxis>
                     <Line
                         isAnimationActive={false}
                         type="monotone"
-                        dataKey="amount"
+                        dataKey="likes"
                         stroke={theme.palette.primary.main}
+                        dot={false}
+                    />
+                    <Line
+                        isAnimationActive={false}
+                        type="monotone"
+                        dataKey="dislikes"
+                        stroke="#FF0000" // Custom shade of red for dislikes
                         dot={false}
                     />
                 </LineChart>
