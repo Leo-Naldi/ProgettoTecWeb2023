@@ -19,6 +19,7 @@ import fetchCheckPointData from "../utils/fetchStats";
 import { getCheckpoints, getStartDate, time_periods } from '../utils/fetchStats'
 
 
+
 export default function DashboardPage() {
 
     const num_checkpoints = 8;
@@ -29,30 +30,8 @@ export default function DashboardPage() {
     };
 
     const [managed, setManaged] = useState(null);
-    const [selectedPeriod, setSelectedPeriod] = useState('Today');
-    const [chartData, setChartData] = useState([]);
 
     const smm = useAccount();
-
-    useEffect(() => {
-
-        if ((managed)) {
-            const checkpoints = getCheckpoints(selectedPeriod, num_checkpoints);
-
-            if (checkpoints !== null) {
-                // if not All Time Was Selected
-                Promise.all(checkpoints.map(c => fetchCheckPointData(
-                    c, new Date(), managed, smm.token,
-                )))
-                .then(vals => {
-
-                    // Array[{start, end, stats}]
-                    setChartData(vals);
-                })
-            }
-        }
-
-    }, [managed, selectedPeriod]);
 
     return !smm.loggedIn ? (
         <Navigate to="/" />
@@ -121,7 +100,6 @@ export default function DashboardPage() {
                     ))}
                 </List>
             </Drawer>
-            {/* TODO this doesnt show shit */}
             {(managed) ? (<Dashboard managed={managed} />): (
                 <Box>
                     <Typography variant="h2">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Container from '@mui/material/Container';
@@ -9,10 +9,14 @@ import CharacterCount from './CharacterCount';
 import Orders from './Orders';
 import Copyright from './Copiright';
 import { useAccount } from "../context/CurrentAccountContext";
+import fetchCheckPointData, { getCheckpoints } from '../utils/fetchStats';
+import dayjs from 'dayjs';
 
 
 
 export default function Dashboard({ managed }) {
+
+    const num_checkpoints = 8;
 
     const smm = useAccount();
     const [selectedPeriod, setSelectedPeriod] = useState('Today');
@@ -27,18 +31,25 @@ export default function Dashboard({ managed }) {
 
             if (checkpoints !== null) {
                 // if not All Time Was Selected
-                Promise.all(checkpoints.map(c => fetchCheckPointData(
-                    c, new Date(), managed, smm.token,
-                )))
-                    .then(vals => {
-
-                        // Array[{start, end, stats}]
-                        setChartData(vals);
-                    })
+                
+                Promise.all(checkpoints.map(c => {
+                    return fetchCheckPointData(null, c, managed, smm.token)
+                        .then(res => res.json())
+                        .then(res => ({
+                            start: c,
+                            end: new dayjs(),
+                            stats: res,
+                        }))
+                        .catch(err => console.log(err))
+                })).then(vals => {
+                    setChartData(vals)
+                }).catch(error => {
+                    console.log(error)
+                })
             }
         }
 
-    }, [selectedPeriod]);
+    }, [selectedPeriod, managed]);
 
     // TODO fetch checkpoints
     
@@ -68,7 +79,11 @@ export default function Dashboard({ managed }) {
                                     height: 240,
                                 }}
                             >
-                                <Chart />
+                                <Chart 
+                                    selectedPeriod={selectedPeriod}
+                                    setSelectedPeriod={setSelectedPeriod}
+                                    chartData={chartData}
+                                    />
                             </Paper>
                         </Grid>
                         {/* Recent Deposits */}

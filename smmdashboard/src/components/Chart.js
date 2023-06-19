@@ -5,44 +5,38 @@ import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
 import Title from './Title';
+import dayjs from 'dayjs'
+
+import { time_periods } from '../utils/fetchStats'
 
 // Generate Sales Data
 function createData(time, likes, dislikes) {
     return { time, likes, dislikes };
 }
 
-// Generate dummy data for Today
-const generateTodayData = () => {
-    const todayData = [];
-    const now = new Date();
-    const currentTime = `${now.getHours()}:00`;
-    for (let i = 0; i <= now.getHours(); i++) {
-        const time = `${i < 10 ? '0' + i : i}:00`;
-        const likes = Math.floor(Math.random() * 1000);
-        const dislikes = Math.floor(Math.random() * 500);
-        todayData.push(createData(time, likes, dislikes));
-    }
-    todayData.push(createData(currentTime, undefined, undefined));
-    return todayData;
-};
-
 
 function parseChartData(chartData, timePeriod) {
     
     if (timePeriod === 'Today') {
         return chartData.map(datapoint => {
-            createData(`${datapoint.start.getHours()}:datapont.start.getMinutes()`,
-                datapoint.stats.positive, datapoint.stats.positive);
+
+            return createData(datapoint.start.format('HH:mm'),
+                datapoint.stats.positive, datapoint.stats.negative);
+        })
+    } else if (timePeriod === 'All Time') {
+        return chartData.map(datapoint => {
+            return createData(datapoint.start.format('YYYY/MM'),
+                datapoint.stats.positive, datapoint.stats.negative);
         })
     } else {
         return chartData.map(datapoint => {
-            createData(`${datapoint.start.getMonth() + 1}/${datapoint.start.getMinutes()}`,
-                datapoint.stats.positive, datapoint.stats.positive);
+            return createData(datapoint.start.format('MM/DD'),
+                datapoint.stats.positive, datapoint.stats.negative);
         })
     }
 }
 
-export default function Chart({ timePeriods, selectedPeriod, setSelectedPeriod, chartData }) {
+export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) {
     const theme = useTheme();
     const [anchorEl, setAnchorEl] = useState(null);
 
@@ -67,8 +61,8 @@ export default function Chart({ timePeriods, selectedPeriod, setSelectedPeriod, 
                 open={Boolean(anchorEl)}
                 onClose={handleClose}
             >
-                {timePeriods.map(p => (
-                    <MenuItem onClick={() => setSelectedPeriod(p)}>{p}</MenuItem>
+                {time_periods.map(p => (
+                    <MenuItem key={p} onClick={() => setSelectedPeriod(p)}>{p}</MenuItem>
                 ))}
             </Menu>
             <ResponsiveContainer>

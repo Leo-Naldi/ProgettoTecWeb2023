@@ -13,16 +13,15 @@ export function getStartDate(timePeriod) {
 
     switch (timePeriod) {
         case 'Today':
-            return new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            return dayjs().startOf('day');
         case 'This Week':
-            const firstDayOfWeek = currentDate.getDate() - currentDate.getDay();
-            return new Date(currentDate.getFullYear(), currentDate.getMonth(), firstDayOfWeek);
+            return dayjs().startOf('week');
         case 'This Month':
-            return new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            return dayjs().startOf('month');
         case 'This Year':
-            return new Date(currentDate.getFullYear(), 0, 1);
+            return dayjs().startOf('year');
         case 'All Time':
-            return null; // Or the appropriate start date for your system
+            return dayjs().startOf('year').subtract(1, 'year'); // Or the appropriate start date for your system
         default:
             return null; // Invalid time period
     }
@@ -31,12 +30,13 @@ export function getStartDate(timePeriod) {
 
 function getDatesBetween(startDate, endDate, n) {
     let dates = [];
-    const startTime = startDate.getTime();
-    const endTime = endDate.getTime();
+    const startTime = startDate.valueOf();
+    const endTime = endDate.valueOf();
     const interval = Math.floor((endTime - startTime) / (n + 1));
 
     for (let i = 1; i <= n; i++) {
-        const date = new Date(startTime + interval * i);
+        let date = new dayjs(startTime + interval * i);
+        date = date.minute(0)
         dates.push(date);
     }
 
@@ -47,42 +47,39 @@ function getDatesBetween(startDate, endDate, n) {
 
 export function getCheckpoints(period, num) {
 
-    function getStartDate(timePeriod) {
-        const currentDate = new Date();
+    const start = getStartDate(period);
 
-        const start = getStartDate(period);
-
-        if (start === null) {
-            return null;
-        }
-
-        return getDatesBetween(start, new Date(), num);
+    if (start === null) {
+        return null;
     }
 
+    return getDatesBetween(start, new dayjs(), num);
 }
 
 export default function fetchCheckPointData(start, end, handle, token) {
-    
-    let body = {
-        before: end,
-    }
+
+    // Define the base URL
+    const baseUrl = `http://localhost:8000/users/${handle}/messages/stats`;
+
+    // Create a new URL object
+    const url = new URL(baseUrl);
+
+    // Create a new URLSearchParams object
+    const params = new URLSearchParams();
+
+    // Add query parameters
+    params.append('before', end.toISOString());
 
     if (start) {
-        body.after = start
+        params.append('after', start.toISOString());
     }
-    
-    return fetch(`http://localhost:8000/users/${handle}/messages/stats`, {
-        method: "get",
+
+    // Attach the query parameters to the URL
+    url.search = params.toString();
+
+    return fetch(url.href, {
         headers: {
-            'Content-Type': 'application/json',
-            'Authentication': 'Bearer ' + token,
-        },
-        body: JSON.stringify(body)
-    }).then(res => {
-        return {
-            start: start,
-            end: end,
-            stats: JSON.parse(res.body)
+            'Authorization': 'Bearer ' + token,
         }
     })
 }
