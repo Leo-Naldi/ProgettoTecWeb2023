@@ -8,27 +8,40 @@ export const time_periods = [
     'All Time',
 ];
 
-export function getStartDate(timePeriod) {
-    const currentDate = new Date();
+export function getStartDate(timePeriod, created) {
+
+    let ret_val = null;
 
     switch (timePeriod) {
         case 'Today':
-            return dayjs().startOf('day');
+            ret_val = dayjs().startOf('day');
+            break;
         case 'This Week':
-            return dayjs().startOf('week');
+            ret_val =  dayjs().startOf('week');
+            break;
         case 'This Month':
-            return dayjs().startOf('month');
+            ret_val =  dayjs().startOf('month');
+            break;
         case 'This Year':
-            return dayjs().startOf('year');
+            ret_val =  dayjs().startOf('year');
+            break;
         case 'All Time':
-            return dayjs().startOf('year').subtract(1, 'year'); // Or the appropriate start date for your system
+            ret_val = created;
+            break;
         default:
-            return null; // Invalid time period
+            throw Error(`Unknown time period: ${timePeriod}`); // Invalid time period
     }
+
+    if (created.isAfter(ret_val)) ret_val = created;
+
+    return ret_val;
 }
 
 
 function getDatesBetween(startDate, endDate, n) {
+
+    if (!startDate) throw Error("Start date was Null")
+
     let dates = [];
     const startTime = startDate.valueOf();
     const endTime = endDate.valueOf();
@@ -45,18 +58,18 @@ function getDatesBetween(startDate, endDate, n) {
 
 
 
-export function getCheckpoints(period, num) {
+export function getCheckpoints(period, num, created=null) {
 
-    const start = getStartDate(period);
+    const start = getStartDate(period, created);
 
     if (start === null) {
-        return null;
+        throw Error('KILLMEEEEEEEEEE')
     }
 
     return getDatesBetween(start, new dayjs(), num);
 }
 
-export default function fetchCheckPointData(start, end, handle, token) {
+export default function fetchCheckPointData(checkpoint, handle, token) {
 
     // Define the base URL
     const baseUrl = `http://localhost:8000/users/${handle}/messages/stats`;
@@ -68,11 +81,7 @@ export default function fetchCheckPointData(start, end, handle, token) {
     const params = new URLSearchParams();
 
     // Add query parameters
-    params.append('before', end.toISOString());
-
-    if (start) {
-        params.append('after', start.toISOString());
-    }
+    params.append('before', checkpoint.toISOString());
 
     // Attach the query parameters to the URL
     url.search = params.toString();

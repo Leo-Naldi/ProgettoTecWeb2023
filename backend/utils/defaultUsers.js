@@ -24,6 +24,9 @@ async function makeDefaultUsers() {
         email: 'mailPro@mail.com',
         accountType: 'pro',
         password: pw,
+        meta: {
+            created: (new dayjs()).subtract(getRandom(3) + 2, 'years').toDate(),
+        },
     });
 
     // user3: fvSMM
@@ -33,7 +36,9 @@ async function makeDefaultUsers() {
         email: 'mailSMM@mail.com',
         password: pw,
         accountType: 'pro',
-        admin: true,
+        meta: {
+            created: (new dayjs()).subtract(getRandom(3) + 2, 'years').toDate(),
+        },
     });
 
     // user4: fvMod
@@ -43,6 +48,9 @@ async function makeDefaultUsers() {
         email: 'mailMod@mail.com',
         password: pw,
         admin: true,
+        meta: {
+            created: (new dayjs()).subtract(getRandom(3) + 2, 'years').toDate(),
+        },
     });
 
     // user5: Nome Buffo1
@@ -52,6 +60,9 @@ async function makeDefaultUsers() {
         accountType: 'pro',
         email: 'mailBuffa@mail.com',
         password: pw,
+        meta: {
+            created: (new dayjs()).subtract(getRandom(3) + 2, 'years').toDate(),
+        },
     });
 
     // user6: Nome Buffo2
@@ -61,6 +72,9 @@ async function makeDefaultUsers() {
         email: 'mailBuffa2@mail.com',
         password: pw,
         accountType: 'pro',
+        meta: {
+            created: (new dayjs()).subtract(getRandom(3) + 2, 'years').toDate(),
+        },
     })
 
     //  channel1: daily_news
@@ -401,6 +415,8 @@ async function makeDefaultUsers() {
         }))
         user2.messages.push(messages.at(-1)._id);
     }
+
+    // TODO make user2 messages look better
 
     // Modify the character balance of user2, user5, user6
     user2.charLeft = {

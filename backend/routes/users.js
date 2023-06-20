@@ -100,7 +100,7 @@ UserRouter.get('/:handle/messages/stats', passport.authenticate('basicAuth', { s
             return req.sendStatus(409)
         }
 
-        if (!request.user._id.equals(requestedUser.smm)) {
+        if (!req.user._id.equals(requestedUser.smm)) {
             return req.sendStatus(409)
         }
     }

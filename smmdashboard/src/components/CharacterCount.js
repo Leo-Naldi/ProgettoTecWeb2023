@@ -3,7 +3,10 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 
 
-export default function CharacterCount({ dailyCount=8, weeklyCount=60, monthlyCount=45 }) {
+export default function CharacterCount({ managed, managedUsers }) {
+
+    const user = managedUsers.find(u => u.handle === managed);
+
     const getTextColor = (count) => {
         if (count <= 10) {
             return 'error';
@@ -20,20 +23,20 @@ export default function CharacterCount({ dailyCount=8, weeklyCount=60, monthlyCo
             <Grid container  sx={{ ml: 1 }} spacing={2}>
                 <Grid item xs={12}>
                     <Typography variant="h6" component="span" display="inline">Daily: </Typography>
-                    <Typography component="span" variant="h5" color={getTextColor(dailyCount)} display="inline">
-                        {dailyCount}
+                    <Typography component="span" variant="h5" color={getTextColor(user.charLeft.day)} display="inline">
+                        {user.charLeft.day}
                     </Typography>
                 </Grid>
                 <Grid item xs={12}>
                     <Typography variant="h6" component="span" display="inline">Weekly: </Typography>
-                    <Typography component="span" variant="h5" color={getTextColor(weeklyCount)} display="inline">
-                        {weeklyCount}
+                    <Typography component="span" variant="h5" color={getTextColor(user.charLeft.week)} display="inline">
+                        {user.charLeft.week}
                     </Typography>
                 </Grid>
                 <Grid item xs={12}>
                     <Typography variant="h6" component="span" display="inline">Monthly: </Typography>
-                    <Typography component="span" variant="h5" color={getTextColor(monthlyCount)} display="inline">
-                        {monthlyCount}
+                    <Typography component="span" variant="h5" color={getTextColor(user.charLeft.month)} display="inline">
+                        {user.charLeft.month}
                     </Typography>
                 </Grid>
             </Grid>

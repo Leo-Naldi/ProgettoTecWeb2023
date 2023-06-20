@@ -14,42 +14,66 @@ import dayjs from 'dayjs';
 
 
 
-export default function Dashboard({ managed }) {
+export default function Dashboard({ managed, managedUsers }) {
 
     const num_checkpoints = 8;
 
     const smm = useAccount();
     const [selectedPeriod, setSelectedPeriod] = useState('Today');
     const [chartData, setChartData] = useState([]);
+    const [messagePageNum, setMessagePageNum] = useState(1);
+    
+    const userAccount = managedUsers.find(u => u.handle === managed)
+    console.log(userAccount.meta.created)
     
 
     useEffect(() => {
 
         // If managed changes the whole prop will be refetched so its ok
-        if ((managed)) {
-            const checkpoints = getCheckpoints(selectedPeriod, num_checkpoints);
 
-            if (checkpoints !== null) {
-                // if not All Time Was Selected
-                
-                Promise.all(checkpoints.map(c => {
-                    return fetchCheckPointData(null, c, managed, smm.token)
-                        .then(res => res.json())
-                        .then(res => ({
-                            start: c,
-                            end: new dayjs(),
-                            stats: res,
-                        }))
-                        .catch(err => console.log(err))
-                })).then(vals => {
-                    setChartData(vals)
-                }).catch(error => {
-                    console.log(error)
-                })
-            }
+        const checkpoints = getCheckpoints(
+            selectedPeriod, 
+            num_checkpoints, 
+            new dayjs(userAccount.meta.created)
+        );
+
+        //console.log(checkpoints.map(c => c.toISOString()))
+
+        if (checkpoints !== null) {
+            // TODO put a spinner in place of the chart
+            Promise.all(checkpoints.map(c => {
+                return fetchCheckPointData(c, managed, smm.token)
+                    .then(res => res.json())
+                    .then(res => {
+                        if (selectedPeriod === 'All Time') {
+                            //console.log('Res')
+                            //console.log(res)
+                        }
+                        return res
+                    })
+                    .then(res => {
+
+                        //console.log(res)
+
+                        return ({
+                        start: c,
+                        end: new dayjs(),
+                        stats: res,
+                    })})
+                    .catch(err => {
+                        console.log("Errored")
+                        console.log(c.toISOString())
+                    })
+            })).then(vals => {
+                setChartData(vals)
+            })
         }
 
-    }, [selectedPeriod, managed]);
+    }, [selectedPeriod]);
+
+    useEffect(() => {
+        // TODO fetch the page of user messages
+    }, [managed, messagePageNum])
 
     // TODO fetch checkpoints
     
@@ -76,7 +100,7 @@ export default function Dashboard({ managed }) {
                                     p: 2,
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    height: 240,
+                                    height: 260,
                                 }}
                             >
                                 <Chart 
@@ -86,17 +110,16 @@ export default function Dashboard({ managed }) {
                                     />
                             </Paper>
                         </Grid>
-                        {/* Recent Deposits */}
                         <Grid item xs={12} md={4} lg={3}>
                             <Paper
                                 sx={{
                                     p: 2,
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    height: 240,
+                                    height: 260,
                                 }}
                             >
-                                <CharacterCount />
+                                <CharacterCount managed={managed} managedUsers={managedUsers}/>
                             </Paper>
                         </Grid>
                         {/* Recent Orders */}

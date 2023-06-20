@@ -50,4 +50,17 @@ function getDateWithin(timeperiod) {
     return baseRes;
 }
 
-module.exports = { getRandom, getDateWithin }
+function getRandomDatesWithin(min, max, num) {
+    let res = []
+
+    for (let i = 0; i < num; i++) {
+        
+        const newTimeStamp = Math.floor(Math.random() * (max.unix() - min.unix() + 1)) + min.unix();
+
+        res.push(new dayjs(newTimeStamp));
+    }
+
+    return res;
+}
+
+module.exports = { getRandom, getDateWithin, getRandomDatesWithin }

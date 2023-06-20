@@ -160,15 +160,6 @@ class MessageService {
     static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage }={ page: 1, reqUser: null }) {
 
-       
-        // TODO if reqUser and dest are both set remove all private channels the user is not
-        // a member of (unless reqUser is an admin)
-
-        // TODO remove private messages not addressed to reqUser 
-        
-        // TODO if reqUser is null only return messages from public channels
-        // (this will break a lotoftests methinks)
-
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
             before, after, dest, page, reqUser, publicMessage
@@ -236,7 +227,7 @@ class MessageService {
             before, after, dest, reqUser, author: author,
             publicMessage, page: -1, filterOnly: true,
         })
-        //console.log(messagesFilter)
+        
 
         let aggregation = Message.aggregate()
             .match(messagesFilter)
@@ -244,11 +235,16 @@ class MessageService {
                 _id: null,
                 positive: { $sum: "$reactions.positive" },
                 negative: { $sum: "$reactions.negative" },
-                total: { $count: { } },
+                total: { $count: { } },  // numero dei messaggi
             })
-        const res = await aggregation;
+        let res = await aggregation;
 
-        if (res.length !== 1) console.log(messagesFilter)
+        // No messages were found
+        if (res.length !== 1) res = [{
+            positive: 0,
+            negative: 0, 
+            total: 0,
+        }]
 
         return Service.successResponse(res[0]);
     }

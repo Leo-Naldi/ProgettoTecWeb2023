@@ -29,9 +29,29 @@ export default function DashboardPage() {
         setOpenToggleSideDrawer(!toggleSideDrawer);
     };
 
+
+
     const [managed, setManaged] = useState(null);
+    const [managedUsers, setManagedUsers] = useState([]);
 
     const smm = useAccount();
+
+    useEffect(() => {
+        fetch(`http://localhost:8000/users/${smm.handle}/managed`, {
+            method: "get",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${smm.token}`
+            }
+        })
+            .then(res => res.json())
+            .then(res => {
+                setManagedUsers(res)
+            })
+    }, [])
+
+    
+
 
     return !smm.loggedIn ? (
         <Navigate to="/" />
@@ -100,7 +120,7 @@ export default function DashboardPage() {
                     ))}
                 </List>
             </Drawer>
-            {(managed) ? (<Dashboard managed={managed} />): (
+            {(managed) ? (<Dashboard managed={managed} managedUsers={managedUsers}/>): (
                 <Box>
                     <Typography variant="h2">
                         Choose a User to manage...

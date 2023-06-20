@@ -4,7 +4,9 @@ const config = require('../config/index');
 
 class Controller {
     static sendResponse(serviceResult, res) {
+        console.log("Hello?")
         if (serviceResult.payload) {
+            console.log(serviceResult.payload)
             res.status(serviceResult.status).json(serviceResult.payload);
         } else {
             res.sendStatus(serviceResult.status);
@@ -34,6 +36,9 @@ class Controller {
         };
 
         if (request.user) requestParams.reqUser = request.user;
+
+        if (requestParams.before) requestParams.before = new Date(requestParams.before)
+        if (requestParams.after) requestParams.after = new Date(requestParams.after)
 
         return requestParams;
     }

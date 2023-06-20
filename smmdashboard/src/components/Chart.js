@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTheme } from '@mui/material/styles';
-import { LineChart, Line, XAxis, YAxis, Label, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Label, ResponsiveContainer, Tooltip, Legend, CartesianGrid } from 'recharts';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
+import { Grid } from '@mui/material';
 import Title from './Title';
 import dayjs from 'dayjs'
 
@@ -16,6 +17,8 @@ function createData(time, likes, dislikes) {
 
 
 function parseChartData(chartData, timePeriod) {
+
+    //console.log(chartData)
     
     if (timePeriod === 'Today') {
         return chartData.map(datapoint => {
@@ -51,8 +54,7 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
     return (
         <React.Fragment>
             <Title>
-
-                <Button onClick={handleClick} size="small">
+                <Button onClick={handleClick} >
                     {selectedPeriod}
                 </Button>
             </Title>
@@ -62,14 +64,17 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
                 onClose={handleClose}
             >
                 {time_periods.map(p => (
-                    <MenuItem key={p} onClick={() => setSelectedPeriod(p)}>{p}</MenuItem>
+                    <MenuItem key={p} onClick={() => {
+                        setSelectedPeriod(p)
+                        handleClose()
+                    }}>{p}</MenuItem>
                 ))}
             </Menu>
             <ResponsiveContainer>
                 <LineChart
                     data={parseChartData(chartData, selectedPeriod)}
                     margin={{
-                        top: 16,
+                        top: 5,
                         right: 16,
                         bottom: 0,
                         left: 24,
@@ -96,20 +101,22 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
                             Likes/Dislikes
                         </Label>
                     </YAxis>
+                    <CartesianGrid strokeDasharray="3 3"/>
                     <Line
                         isAnimationActive={false}
                         type="monotone"
                         dataKey="likes"
                         stroke={theme.palette.primary.main}
-                        dot={false}
+                        //dot={false}
                     />
                     <Line
                         isAnimationActive={false}
                         type="monotone"
                         dataKey="dislikes"
                         stroke="#FF0000" // Custom shade of red for dislikes
-                        dot={false}
+                        //dot={false}
                     />
+                    <Tooltip cursor={false}/>
                 </LineChart>
             </ResponsiveContainer>
         </React.Fragment>
