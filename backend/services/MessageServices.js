@@ -147,7 +147,7 @@ class MessageService {
                     break;
             }
         } else {
-            query.sort('meta.created')
+            query.sort('-meta.created')
         }
 
         if (page > 0)

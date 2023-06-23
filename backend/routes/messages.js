@@ -38,8 +38,6 @@ MessageRouter.post('/:handle/messages', passport.authenticate('basicAuth', { ses
 // Get all messages for a user
 MessageRouter.get('/:handle/messages', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
-        if (req.params.handle !== req.user.handle)
-            res.sendStatus(401)
 
         await Controller.handleRequest(req, res, MessageServices.getUserMessages);
     });

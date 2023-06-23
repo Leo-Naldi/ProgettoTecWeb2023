@@ -6,6 +6,7 @@ const { getDateWithin, getRandom } = require('./getDateWithin');
 const config = require('../config/index');
 const dayjs = require('dayjs');
 
+
 async function makeDefaultUsers() {
     const pw = '12345678';
 
@@ -416,7 +417,103 @@ async function makeDefaultUsers() {
         user2.messages.push(messages.at(-1)._id);
     }
 
-    // TODO make user2 messages look better
+    // make user2 messages look better
+
+    // Dayly u2
+    for (let i = 0; i < 10; i++) {
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user2._id,
+            reactions: {
+                negative: getRandom(config.fame_threshold + 50),
+                positive: getRandom(config.fame_threshold + 50),
+            },
+            meta: {
+                created: getDateWithin('day').toDate(),
+            }
+        }))
+        user2.messages.push(messages.at(-1)._id);
+    }
+
+    // weekly
+    for (let i = 0; i < 30; i++) {
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user2._id,
+            reactions: {
+                negative: getRandom(config.fame_threshold + 50),
+                positive: getRandom(config.fame_threshold + 50),
+            },
+            meta: {
+                created: getDateWithin('week').toDate(),
+            }
+        }))
+        user2.messages.push(messages.at(-1)._id);
+    }
+
+    for (let i = 0; i < 50; i++) {
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user2._id,
+            reactions: {
+                negative: getRandom(config.fame_threshold + 50),
+                positive: getRandom(config.fame_threshold + 50),
+            },
+            meta: {
+                created: getDateWithin('month').toDate(),
+            }
+        }))
+        user2.messages.push(messages.at(-1)._id);
+    }
+
+    // This Year
+    for (let i = 0; i < 100; i++) {
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user2._id,
+            reactions: {
+                negative: getRandom(config.fame_threshold + 50),
+                positive: getRandom(config.fame_threshold + 50),
+            },
+            meta: {
+                created: getDateWithin('year').toDate(),
+            }
+        }))
+        user2.messages.push(messages.at(-1)._id);
+    }
+
+    // All Time
+    for (let i = 0; i < 100; i++) {
+
+        let minTime = new dayjs(user2.meta.created);
+        let maxTime = (new dayjs()).startOf('year').unix();
+
+        let created = minTime.add(getRandom(maxTime - minTime.unix()), 'second')
+
+        messages.push(new Message({
+            content: {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: user2._id,
+            reactions: {
+                negative: getRandom(config.fame_threshold + 50),
+                positive: getRandom(config.fame_threshold + 50),
+            },
+            meta: {
+                created: created.toDate(),
+            }
+        }))
+        user2.messages.push(messages.at(-1)._id);
+    }
+    
 
     // Modify the character balance of user2, user5, user6
     user2.charLeft = {
