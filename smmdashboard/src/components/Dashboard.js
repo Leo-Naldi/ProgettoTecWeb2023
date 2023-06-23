@@ -6,38 +6,41 @@ import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Chart from './Chart';
 import CharacterCount from './CharacterCount';
-import Orders from './Orders';
+import Squeals from './Squeals';
 import Copyright from './Copiright';
 import { useAccount } from "../context/CurrentAccountContext";
 import fetchCheckPointData, { getCheckpoints } from '../utils/fetchStats';
 import dayjs from 'dayjs';
+import { useManagedAccounts } from '../context/ManagedAccountsContext';
+import Spinner from './Spinner';
+import { Button } from '@mui/material';
 
 
 
-export default function Dashboard({ managed, managedUsers }) {
+export default function Dashboard({ managed }) {
 
     const num_checkpoints = 8;
 
-    const smm = useAccount();
     const [selectedPeriod, setSelectedPeriod] = useState('Today');
     const [chartData, setChartData] = useState([]);
-    const [messagePageNum, setMessagePageNum] = useState(1);
+
+    const [fetchingChartData, setFetchingChartData] = useState(true);
     
-    const userAccount = managedUsers.find(u => u.handle === managed)
-    console.log(userAccount.meta.created)
+    const smm = useAccount();
+    const managedUsers = useManagedAccounts()
+    const userAccount = managedUsers?.find(u => u.handle === managed)
     
 
     useEffect(() => {
 
         // If managed changes the whole prop will be refetched so its ok
 
+        setFetchingChartData(true);
         const checkpoints = getCheckpoints(
             selectedPeriod, 
             num_checkpoints, 
             new dayjs(userAccount.meta.created)
         );
-
-        //console.log(checkpoints.map(c => c.toISOString()))
 
         if (checkpoints !== null) {
             // TODO put a spinner in place of the chart
@@ -60,22 +63,13 @@ export default function Dashboard({ managed, managedUsers }) {
                         end: new dayjs(),
                         stats: res,
                     })})
-                    .catch(err => {
-                        console.log("Errored")
-                        console.log(c.toISOString())
-                    })
             })).then(vals => {
-                setChartData(vals)
+                setChartData(vals);
+                setFetchingChartData(false);
             })
         }
 
     }, [selectedPeriod]);
-
-    useEffect(() => {
-        // TODO fetch the page of user messages
-    }, [managed, messagePageNum])
-
-    // TODO fetch checkpoints
     
     return (
             <Box
@@ -93,7 +87,6 @@ export default function Dashboard({ managed, managedUsers }) {
                 <Toolbar />
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                     <Grid container spacing={3}>
-                        {/* Chart */}
                         <Grid item xs={12} md={8} lg={9}>
                             <Paper
                                 sx={{
@@ -103,11 +96,7 @@ export default function Dashboard({ managed, managedUsers }) {
                                     height: 260,
                                 }}
                             >
-                                <Chart 
-                                    selectedPeriod={selectedPeriod}
-                                    setSelectedPeriod={setSelectedPeriod}
-                                    chartData={chartData}
-                                    />
+                                {getChart()}
                             </Paper>
                         </Grid>
                         <Grid item xs={12} md={4} lg={3}>
@@ -120,12 +109,15 @@ export default function Dashboard({ managed, managedUsers }) {
                                 }}
                             >
                                 <CharacterCount managed={managed} managedUsers={managedUsers}/>
+                                <Button sx={{my: 1}} variant='contained'>
+                                    Post Squeal
+                                </Button>
                             </Paper>
                         </Grid>
                         {/* Recent Orders */}
                         <Grid item xs={12}>
                             <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                                <Orders />
+                                <Squeals managed={managed}/>
                             </Paper>
                         </Grid>
                     </Grid>
@@ -133,4 +125,16 @@ export default function Dashboard({ managed, managedUsers }) {
                 </Container>
             </Box>
     );
+
+    function getChart() {
+        if (fetchingChartData) {
+            return <Spinner />
+        } else {
+            return <Chart
+                selectedPeriod={selectedPeriod}
+                setSelectedPeriod={setSelectedPeriod}
+                chartData={chartData}
+            />
+        }
+    }
 }

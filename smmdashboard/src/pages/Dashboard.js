@@ -15,8 +15,8 @@ import { ListItemButton, ListItemText } from '@mui/material';
 import List from '@mui/material/List';
 import AppBar from '@mui/material/AppBar';
 import Drawer from '@mui/material/Drawer';
-import fetchCheckPointData from "../utils/fetchStats";
-import { getCheckpoints, getStartDate, time_periods } from '../utils/fetchStats'
+import { useManagedAccounts, useManagedAccountsDispatch } from "../context/ManagedAccountsContext";
+import Spinner from "../components/Spinner";
 
 
 
@@ -25,33 +25,16 @@ export default function DashboardPage() {
     const num_checkpoints = 8;
     
     const [toggleSideDrawer, setOpenToggleSideDrawer] = useState(true);
+
+    const [managed, setManaged] = useState(null);
+
+    const smm = useAccount();
+    const managedAccountsDispatch = useManagedAccountsDispatch();
+    const managedAccount = useManagedAccounts();
+
     const toggleDrawer = () => {
         setOpenToggleSideDrawer(!toggleSideDrawer);
     };
-
-
-
-    const [managed, setManaged] = useState(null);
-    const [managedUsers, setManagedUsers] = useState([]);
-
-    const smm = useAccount();
-
-    useEffect(() => {
-        fetch(`http://localhost:8000/users/${smm.handle}/managed`, {
-            method: "get",
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${smm.token}`
-            }
-        })
-            .then(res => res.json())
-            .then(res => {
-                setManagedUsers(res)
-            })
-    }, [])
-
-    
-
 
     return !smm.loggedIn ? (
         <Navigate to="/" />
@@ -106,21 +89,10 @@ export default function DashboardPage() {
                 </Toolbar>
                 <Divider />
                 <List component="nav">
-                    {smm.managed.map((handle) => (
-                        <ListItemButton
-                            key={handle}
-                            selected={handle === managed}
-                            onClick={() => {
-                                setManaged(handle);
-                                setOpenToggleSideDrawer(false)
-                            }}
-                        >
-                            <ListItemText primary={handle} />
-                        </ListItemButton>
-                    ))}
+                    {getManagedUserList()}
                 </List>
             </Drawer>
-            {(managed) ? (<Dashboard managed={managed} managedUsers={managedUsers}/>): (
+            {(managed) ? (<Dashboard managed={managed}/>): (
                 <Box>
                     <Typography variant="h2">
                         Choose a User to manage...
@@ -129,4 +101,27 @@ export default function DashboardPage() {
             )}
         </Box>
     );
+
+    function getManagedUserList() {
+        if (managedAccount?.length) {
+            return (
+                <>
+                    {managedAccount.map((account) => (
+                        <ListItemButton
+                            key={account.handle}
+                            selected={account.handle === managed}
+                            onClick={() => {
+                                setManaged(account.handle);
+                                setOpenToggleSideDrawer(false)
+                            }}
+                        >
+                            <ListItemText primary={account.handle} />
+                        </ListItemButton>
+                    ))}
+                </>
+            )
+        }else {
+            return <Spinner />
+        }
+    }
 }

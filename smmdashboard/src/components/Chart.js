@@ -17,8 +17,6 @@ function createData(time, likes, dislikes) {
 
 
 function parseChartData(chartData, timePeriod) {
-
-    //console.log(chartData)
     
     if (timePeriod === 'Today') {
         return chartData.map(datapoint => {
@@ -51,6 +49,12 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
         setAnchorEl(null);
     };
 
+    const data = parseChartData(chartData, selectedPeriod);
+    console.log(data)
+    const minVal = Math.min(data[0].likes, data[0].dislikes);
+    const maxVal = Math.max(data[data.length - 1].likes, data[data.length - 1].dislikes);
+    const horizontalPoints = Array.from({ length: 3 }, (v, i) => Math.floor(minVal + (maxVal - minVal) / 4))
+
     return (
         <React.Fragment>
             <Title>
@@ -72,7 +76,7 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
             </Menu>
             <ResponsiveContainer>
                 <LineChart
-                    data={parseChartData(chartData, selectedPeriod)}
+                    data={data}
                     margin={{
                         top: 5,
                         right: 16,
@@ -88,6 +92,7 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
                     <YAxis
                         stroke={theme.palette.text.secondary}
                         style={theme.typography.body2}
+                        domain={[minVal, maxVal]}
                     >
                         <Label
                             angle={270}

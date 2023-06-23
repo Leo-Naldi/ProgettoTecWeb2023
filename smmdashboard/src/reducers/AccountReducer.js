@@ -8,6 +8,7 @@ export default function accountReducer(state, action) {
                 ...action.payload.user,
                 loggedIn: true,
                 token: action.payload.token,
+                timestamp: (new Date()).getTime(),
             };
 
             localStorage.setItem('smmDashboardUser', JSON.stringify(newUser));
