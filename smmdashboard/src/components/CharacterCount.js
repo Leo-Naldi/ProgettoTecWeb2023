@@ -19,7 +19,7 @@ export default function CharacterCount({ managed, managedUsers }) {
 
     return (
         <React.Fragment>
-            <Typography sx={{ mb: 2 }} variant="h5" component="h2">Characters Left</Typography>
+            <Typography sx={{ mb: 1 }} variant="h5" component="h2">Characters Left</Typography>
             <Grid container  sx={{ ml: 1 }} spacing={2}>
                 <Grid item xs={12}>
                     <Typography variant="h6" component="span" display="inline">Daily: </Typography>

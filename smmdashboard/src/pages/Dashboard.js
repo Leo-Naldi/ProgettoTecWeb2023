@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAccount } from "../context/CurrentAccountContext";
 import Dashboard from "../components/Dashboard";
@@ -7,10 +7,8 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import Badge from '@mui/material/Badge';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import { ListItemButton, ListItemText } from '@mui/material';
 import List from '@mui/material/List';
 import AppBar from '@mui/material/AppBar';
@@ -59,11 +57,6 @@ export default function DashboardPage() {
                     >
                         Dashboard
                     </Typography>
-                    <IconButton color="inherit">
-                        <Badge badgeContent={4} color="secondary">
-                            <NotificationsIcon />
-                        </Badge>
-                    </IconButton>
                 </Toolbar>
             </AppBar>
                 <Drawer open={toggleSideDrawer}>

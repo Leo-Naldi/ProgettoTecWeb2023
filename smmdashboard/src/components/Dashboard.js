@@ -14,6 +14,7 @@ import dayjs from 'dayjs';
 import { useManagedAccounts } from '../context/ManagedAccountsContext';
 import Spinner from './Spinner';
 import { Button } from '@mui/material';
+import SquealFormModal from './SquealForm';
 
 
 
@@ -25,6 +26,8 @@ export default function Dashboard({ managed }) {
     const [chartData, setChartData] = useState([]);
 
     const [fetchingChartData, setFetchingChartData] = useState(true);
+
+    const [openSquealModal, setOpenSquealModal] = useState(false);
     
     const smm = useAccount();
     const managedUsers = useManagedAccounts()
@@ -48,28 +51,20 @@ export default function Dashboard({ managed }) {
                 return fetchCheckPointData(c, managed, smm.token)
                     .then(res => res.json())
                     .then(res => {
-                        if (selectedPeriod === 'All Time') {
-                            //console.log('Res')
-                            //console.log(res)
-                        }
-                        return res
-                    })
-                    .then(res => {
-
-                        //console.log(res)
 
                         return ({
-                        start: c,
-                        end: new dayjs(),
-                        stats: res,
-                    })})
+                            start: c,
+                            end: new dayjs(),
+                            stats: res,
+                        })
+                    })
             })).then(vals => {
                 setChartData(vals);
                 setFetchingChartData(false);
             })
         }
 
-    }, [selectedPeriod]);
+    }, [selectedPeriod, managed]);
     
     return (
             <Box
@@ -86,6 +81,7 @@ export default function Dashboard({ managed }) {
             >
                 <Toolbar />
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                <SquealFormModal open={openSquealModal} setOpen={setOpenSquealModal} managed={managed}/>
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={8} lg={9}>
                             <Paper
@@ -109,12 +105,11 @@ export default function Dashboard({ managed }) {
                                 }}
                             >
                                 <CharacterCount managed={managed} managedUsers={managedUsers}/>
-                                <Button sx={{my: 1}} variant='contained'>
+                                <Button sx={{my: 1}} variant='contained' onClick={() => setOpenSquealModal(true)}>
                                     Post Squeal
                                 </Button>
                             </Paper>
                         </Grid>
-                        {/* Recent Orders */}
                         <Grid item xs={12}>
                             <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
                                 <Squeals managed={managed}/>

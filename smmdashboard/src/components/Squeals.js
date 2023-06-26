@@ -67,9 +67,10 @@ export default function Squeals({ managed }) {
             })
         }
 
-    }, [page]);
+    }, [page, managed]);
 
     useEffect(() => {
+        setPage(1);
         setFetchingStats(true);
         fetchCheckPointData(new dayjs(), managed, smm.token)
         .then(res => res.json())
