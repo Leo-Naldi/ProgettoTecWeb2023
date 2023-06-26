@@ -4,9 +4,7 @@ const config = require('../config/index');
 
 class Controller {
     static sendResponse(serviceResult, res) {
-        console.log("Hello?")
         if (serviceResult.payload) {
-            console.log(serviceResult.payload)
             res.status(serviceResult.status).json(serviceResult.payload);
         } else {
             res.sendStatus(serviceResult.status);
