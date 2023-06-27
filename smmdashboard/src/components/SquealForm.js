@@ -3,19 +3,44 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
-import { useTheme, TextField, Alert } from '@mui/material';
+import { useTheme, TextField, Alert, FormControlLabel, Checkbox } from '@mui/material';
 import { useManagedAccounts } from '../context/ManagedAccountsContext';
+import { MapContainer, TileLayer, Popup, Marker, useMapEvents, Tooltip } from 'react-leaflet';
 
+
+function LocationMarker({ position, setPosition }) {
+    const map = useMapEvents({
+        click: (e) => {
+            setPosition(e.latlng)
+            map.flyTo(e.latlng, map.getZoom())
+        },
+        load: () => {
+            map.locate();
+        },
+        locationfound: (loc) => {
+            map.flyTo(loc, map.getZoom())
+        }
+    })
+
+    return position === null ? null : (
+        <Marker 
+            position={position} 
+            eventHandlers={{ click: () => setPosition(null) }}>
+            <Tooltip>Click on the marker to delete it.</Tooltip>
+        </Marker>
+    )
+}
 
 export default function SquealFormModal({ managed, open, setOpen }) {
     
     const theme = useTheme();
-    
     const managedAccounts = useManagedAccounts()
     const managedAccount = managedAccounts.find(u => u.handle === managed);
     const maxLength = Math.min(...Object.values(managedAccount.charLeft));
     
-    let [usedChars, setUsedChars] = useState(0);
+    const [usedChars, setUsedChars] = useState(0);
+    const [position, setPosition] = useState(null);
+    const [posting, setPosting] = useState(false);
 
     const handleOpen = () => setOpen(true);
 
@@ -24,12 +49,16 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         setUsedChars(0);
     }
     
-    const handleSubmit = (e) => {};
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        console.log(data.get('content'));
+        console.log(data.get('location'))
+    };
 
     const hadleValueChanged = (e) => {
 
         const l = e.target.value.replace(/\s+/g, '').length; // Remove all whitespaces
-
         setUsedChars(l)
     };
 
@@ -41,7 +70,8 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                 aria-describedby="modal-modal-description"
                 sx={{
                     position: 'absolute',
-                    [theme.breakpoints.up('sm')]: {left: '25%',},
+                    [theme.breakpoints.up('sm')]: { left: '12%',},
+                    [theme.breakpoints.up('lg')]: {left: '25%',},
                     maxWidth: 'lg',
                     p: 1,
                 }}
@@ -78,11 +108,33 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                             autoFocus
                             onChange={(e) => hadleValueChanged(e)}
                         />
+                        <Box sx={{ mt: 1 }}>
+                            <MapContainer 
+                                center={[51.505, -0.09]} 
+                                zoom={13} 
+                                style={{ height: '50vh' }}
+                                touchZoom
+                                doubleClickZoom={false}
+                                >
+                                <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                />
+                                <LocationMarker position={position} setPosition={setPosition}/>
+                            </MapContainer>
+                        </Box>
+
+                        <FormControlLabel
+                            sx={{ width: '100%', mt: 1 }}
+                            control={<Checkbox value="location" id="location" color="primary" />}
+                            label="Geolocate Squeal"
+                            disabled={position === null}
+                        />
+
                         <Button
                             type="submit"
-                            //fullWidth
                             variant="contained"
-                            sx={{ mt: 3, mb: 2 }}
+                            sx={{ mt: 1, mb: 2 }}
                             disabled={usedChars > maxLength}
                         >
                             Post Squeal

@@ -83,6 +83,7 @@ export default function Dashboard({ managed }) {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <SquealFormModal open={openSquealModal} setOpen={setOpenSquealModal} managed={managed}/>
                     <Grid container spacing={3}>
+                        
                         <Grid item xs={12} md={8} lg={9}>
                             <Paper
                                 sx={{
