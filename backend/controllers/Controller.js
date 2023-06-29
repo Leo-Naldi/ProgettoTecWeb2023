@@ -20,6 +20,12 @@ class Controller {
         }
     }
 
+    static handleBoolean(value) {
+        if (value === 'false') return false;
+
+        return !!value;
+    }
+
 
     /**
      * Query parameters gathering and validation
@@ -27,6 +33,7 @@ class Controller {
     static collectRequestParams(request) {
         
         // NB le propieta e i loro valori vengono verificati dagli schema
+        
         let requestParams = {
             ...request.params,
             ...request.body,
@@ -37,6 +44,15 @@ class Controller {
 
         if (requestParams.before) requestParams.before = new Date(requestParams.before)
         if (requestParams.after) requestParams.after = new Date(requestParams.after)
+
+        // convert booleans
+        if (requestParams.handleOnly) {
+            requestParams.handleOnly = Controller.handleBoolean(requestParams.handleOnly);
+        }
+
+        if (requestParams.admin) {
+            requestParams.admin = Controller.handleBoolean(requestParams.admin);
+        }
 
         return requestParams;
     }

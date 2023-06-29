@@ -9,14 +9,12 @@ const MessageServices = require('../services/MessageServices');
 
 const UserRouter = express.Router();
 
-UserRouter.get('/', passport.authenticate('adminAuth', {session: false}), async (req, res) => {
+UserRouter.get('/', passport.authenticate('basicAuth', {session: false}), async (req, res) => {
     await Controller.handleRequest(req, res, UserService.getUsers);
 })
 
 UserRouter.get('/:handle', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
-
-        // TODO a user can only get full ifo about themselves and their managed accounts
 
         await Controller.handleRequest(req, res, UserService.getUser);
     })
@@ -32,8 +30,7 @@ UserRouter.post('/:handle', passport.authenticate('basicAuth', { session: false 
     async (req, res) => {
         
         // Some fields can only be modified by an admin
-        if (((req.body?.charLeft) || req.body?.blocked) 
-            && (!req.user.admin)) 
+        if (((req.body?.charLeft) || req.body?.blocked) && (!req.user.admin)) 
             res.sendStatus(401);
         // TODO a user can only modify himself or his managed accounts
 

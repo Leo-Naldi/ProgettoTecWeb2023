@@ -8,18 +8,25 @@ const Channel = require("../models/Channel");
 
 class UserService {
 
-    static async getUsers({ handle, admin, accountType, page = 1 } = { page: 1}){
+    static async getUsers({ handle, admin, accountType, handleOnly, page = 1 } = { page: 1}){
         let filter = new Object();
 
         if (handle) filter.handle = handle;
         if ((admin === true) || (admin === false)) filter.admin = admin;
         if (accountType) filter.accountType = accountType;
 
-        const users = await User.find(filter)
-            .select('-__v -password')
-            .sort('meta.created')
-            .skip((page - 1) * config.results_per_page)
-            .limit(config.results_per_page);
+        let users;
+        if ((handleOnly === true) || (handleOnly === false)) {
+            users = await User.find(filter)
+                .sort('meta.created')
+                .select('handle');
+        } else {
+            users = await User.find(filter)
+                .select('-__v -password')
+                .sort('meta.created')
+                .skip((page - 1) * config.results_per_page)
+                .limit(config.results_per_page);
+        }
 
         return Service.successResponse(users.map(u => u.toObject()));
     }
