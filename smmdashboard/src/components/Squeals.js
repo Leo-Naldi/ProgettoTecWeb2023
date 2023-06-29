@@ -75,7 +75,6 @@ export default function Squeals({ managed }) {
         fetchCheckPointData(new dayjs(), managed, smm.token)
         .then(res => res.json())
         .then(res => {
-            console.log(res.total)
             setMaxPages(Math.ceil(res.total / messagesPerPage));
             setFetchingStats(false);
         })

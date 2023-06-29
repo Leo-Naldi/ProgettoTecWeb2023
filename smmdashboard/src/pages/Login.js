@@ -18,10 +18,6 @@ export default function SignIn() {
     const handleSubmit = (event, setShowError) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        console.log({
-            handle: data.get('handle'),
-            password: data.get('password'),
-        });
 
         setFetching(true);
 
@@ -39,7 +35,6 @@ export default function SignIn() {
             setFetching(false);
             if (res.status === 200)
                 return res.json().then(data => {
-                    console.log(data);
                     userDispatch({
                         type: 'USER_CHANGED',
                         payload: {

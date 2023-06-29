@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -6,6 +6,10 @@ import Modal from '@mui/material/Modal';
 import { useTheme, TextField, Alert, FormControlLabel, Checkbox } from '@mui/material';
 import { useManagedAccounts } from '../context/ManagedAccountsContext';
 import { MapContainer, TileLayer, Popup, Marker, useMapEvents, Tooltip } from 'react-leaflet';
+import Chip from '@mui/material/Chip';
+import Autocomplete from '@mui/material/Autocomplete';
+import FetchOptionsAutocomplete from './FetchOptionsAutocomplete';
+import { useAccount } from '../context/CurrentAccountContext';
 
 
 function LocationMarker({ position, setPosition }) {
@@ -33,7 +37,11 @@ function LocationMarker({ position, setPosition }) {
 
 export default function SquealFormModal({ managed, open, setOpen }) {
     
+
+    const users = Array.from({ length: 500 }, (v, i) => ({handle: `handle${i}`}));
+
     const theme = useTheme();
+    const smm = useAccount();
     const managedAccounts = useManagedAccounts()
     const managedAccount = managedAccounts.find(u => u.handle === managed);
     const maxLength = Math.min(...Object.values(managedAccount.charLeft));
@@ -41,6 +49,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const [usedChars, setUsedChars] = useState(0);
     const [position, setPosition] = useState(null);
     const [posting, setPosting] = useState(false);
+    const [destUsers, setDestUsers] = useState(null);
 
     const handleOpen = () => setOpen(true);
 
@@ -52,8 +61,6 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         const data = new FormData(e.currentTarget);
-        console.log(data.get('content'));
-        console.log(data.get('location'))
     };
 
     const hadleValueChanged = (e) => {
@@ -61,6 +68,8 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         const l = e.target.value.replace(/\s+/g, '').length; // Remove all whitespaces
         setUsedChars(l)
     };
+
+    //useEffect(() => { console.log(destUsers) }, [destUsers]);
 
     return (
             <Modal
@@ -108,6 +117,13 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                             autoFocus
                             onChange={(e) => hadleValueChanged(e)}
                         />
+                        <FetchOptionsAutocomplete 
+                            optionsPromise={getUserHandlesFetch}
+                            id="select-fetched-handles"
+                            getOptionLabel={(u) => u.handle}
+                            textLabel="User Destinations"
+                            onChange={(e, v) => setDestUsers(v)}
+                            />
                         <Box sx={{ mt: 1 }}>
                             <MapContainer 
                                 center={[51.505, -0.09]} 
@@ -152,5 +168,29 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         }
 
         return 'info'
+    }
+
+    function getUserHandlesFetch() {
+
+        // Define the base URL
+        const baseUrl = `http://localhost:8000/users/`;
+
+        // Create a new URL object
+        const url = new URL(baseUrl);
+
+        // Create a new URLSearchParams object
+        const params = new URLSearchParams();
+
+        // Add query parameters
+        params.append('handleOnly', "true");
+
+        // Attach the query parameters to the URL
+        url.search = params.toString();
+
+        return fetch(url.href, {
+            headers: {
+                'Authorization': 'Bearer ' + smm.token,
+            }
+        }).then(res => res.json())
     }
 }

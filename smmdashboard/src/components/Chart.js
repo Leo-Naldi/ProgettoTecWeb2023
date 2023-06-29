@@ -50,7 +50,6 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
     };
 
     const data = parseChartData(chartData, selectedPeriod);
-    console.log(data)
     const minVal = Math.min(data[0].likes, data[0].dislikes);
     const maxVal = Math.max(data[data.length - 1].likes, data[data.length - 1].dislikes);
     const horizontalPoints = Array.from({ length: 3 }, (v, i) => Math.floor(minVal + (maxVal - minVal) / 4))
