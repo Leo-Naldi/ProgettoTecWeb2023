@@ -1,5 +1,6 @@
 const config = require('./config');
-const ExpressLoader = require('./server');
+const ExpressServer = require('./server');
+const { logger } = require('./config/logging');
 const mongoose = require('mongoose');
 
 const User = require('./models/User');
@@ -19,8 +20,7 @@ const {
 
 mongoose.connect(config.db_url).then(async () => {
 
-    console.log(config.db_url)
-    console.log(`connected db at ${config.db_url}`);
+    logger.info(`Connected DB at ${config.db_url}`);
     
     // delete all tables and recreate them
     await User.deleteMany({});
@@ -37,5 +37,7 @@ mongoose.connect(config.db_url).then(async () => {
 
     //await makeDefaultUsers()
 
-    new ExpressLoader();
+    const exp_server = new ExpressServer();
+
+    exp_server.launchServer();
 });

@@ -25,9 +25,13 @@
     "mocha": "^10.2.0",
     "mongodb": "5.3",
     "mongoose": "^7.0.5",
+    "morgan": "^1.10.0",
     "nodemon": "^2.0.22",
     "passport": "^0.6.0",
     "passport-anonymous": "^1.0.1",
-    "passport-jwt": "^4.0.1"
+    "passport-jwt": "^4.0.1",
+    "socket.io": "^4.7.1",
+    "winston": "^3.9.0",
+    "winston-daily-rotate-file": "^4.7.1"
   }
 }

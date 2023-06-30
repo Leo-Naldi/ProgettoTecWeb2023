@@ -29,6 +29,7 @@ const config = {
     results_per_page: 100,
     num_messages_reward: 10,
     folder: folder,
+    log_level: process.env.LOG_LEVEL,
 }
 
 module.exports = config;
