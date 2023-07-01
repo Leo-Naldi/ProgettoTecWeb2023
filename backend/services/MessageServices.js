@@ -7,7 +7,8 @@ const Channel = require('../models/Channel');
 const Service = require('./Service');
 const config = require('../config');
 const fs = require('fs');
-
+const { logger } = require('../config/logging');
+const SquealSocket = require('../socket/Socket');
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -250,7 +251,7 @@ class MessageService {
     }
 
     static async postUserMessage({ reqUser, handle, content, meta, dest=[], publicMessage=true,
-        answering=null }) {
+        answering=null, socket=null }) {
         if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
         let user = reqUser;
@@ -269,13 +270,14 @@ class MessageService {
         if (destUser?.length) {
             destUser = await User.find()
                 .where('handle')
-                .in(destUser)
+                .in(destUser);
         }
 
         if (destChannel?.length) {
             destChannel = await Channel.find()
                 .where('name')
                 .in(destChannel)
+                .populate('members', 'handle');
         }
         
         if (destChannel?.some(c => c.publicChannel)) publicMessage = true;
@@ -324,6 +326,16 @@ class MessageService {
             
             message = await message.save();
             await user.save();
+
+            if (socket) {
+                SquealSocket.messageCreated({
+                    message: message,
+                    socket: socket,
+                    destChannel: destChannel,
+                    authorHandle: user.handle,
+                })
+            }
+
         } catch (e) {
             err = e;
         }
@@ -425,8 +437,7 @@ class MessageService {
         return Service.successResponse();
     }
 
-    // TODO fix according to slides
-    static async addNegativeReaction({ id }){
+    static async addNegativeReaction({ id, socket }){
 
         if (!mongoose.isObjectIdOrHexString(id))
             return Service.rejectResponse({ message: "Invalid message id" })
@@ -437,7 +448,7 @@ class MessageService {
             return Service.rejectResponse({ message: "Id not found" });
 
 
-        const num_inf_messages = await Message.find({ author: message.author })
+        const num_inf_messages = await Message.find({ author: message.author._id })
             .byPopularity('unpopular').count();
 
         message.reactions.negative += 1;
@@ -463,7 +474,12 @@ class MessageService {
         let err = null;
         try {
             await message.save();
-            if (user) await user.save();
+            if (user) {
+                await user.save();
+                SquealSocket.charsChanged({ user, socket });
+            }
+            await SquealSocket.reactionsChanged({ message, socket });
+
         } catch (e) {
             err = e;
         }
@@ -474,15 +490,15 @@ class MessageService {
         return Service.successResponse();
     };
 
-    static async addPositiveReaction({ id }) { 
+    static async addPositiveReaction({ id, socket }) { 
         if (!mongoose.isValidObjectId(id))
-            return Service.rejectResponse({ message: "Invalid message id" })
-
+        return Service.rejectResponse({ message: "Invalid message id" })
+        
         const message = await Message.findById(id);
-
+        
         if (!message)
             return Service.rejectResponse({ message: "Id not found" });
-
+        
         const num_fam_messages = await Message.find({ author: message.author })
             .byPopularity('popular').count();
 
@@ -494,7 +510,7 @@ class MessageService {
             ((num_fam_messages + 1) % config.num_messages_reward === 0)
             && (message.publicMessage || (message.destChannel?.length))) {
 
-            user = await User.findById(message.author).orFail();
+            user = await User.findById(message.author)._id.orFail();
 
 
             user.charLeft.day += Math.max(1, Math.ceil(config.daily_quote / 100));
@@ -505,8 +521,13 @@ class MessageService {
         let err = null;
         try {
             await message.save();
-            if(user) await user.save();
+            if (user) {
+                await user.save();
+                SquealSocket.charsChanged({ user, socket });
+            }
+            await SquealSocket.reactionsChanged({ message, socket });
         } catch (e) {
+            
             err = e;
         }
 
@@ -538,7 +559,7 @@ class MessageService {
         }));
 
         return Service.successResponse();
-    }
+    };
 }
 
 module.exports = MessageService;

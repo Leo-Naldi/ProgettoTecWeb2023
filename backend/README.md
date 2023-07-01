@@ -43,27 +43,27 @@ Communication will be divided into four namespaces:
 * /pro-io for logged-in pro users
 * /adin-io for logged-in admins
 
-When a user (normal, admin or pro) logs in through the API, a new namespace will be created using the user's handle and a dedicated prefix, see below. Any events relative to the user, for example a message destined to them, a like on one of their posts etc., will be emitted there.
+When a user (normal, admin or pro) logs in through the API, a new namespace will be created using the user's id and a dedicated prefix, see below. Any events relative to the user, for example a message destined to them, a like on one of their posts etc., will be emitted there.
 
-All namespaces except /public-io require the same JSON Web Token as the API's non-public routes to authenticate the user. For example:
+All namespaces except /public-io (TODO) require the same JSON Web Token as the API's non-public routes to authenticate the user. For example:
 
 ```js
 const socket = io("https://localhost:8000/public-io"); // Public namespace
 
 // replace HANDLE and JWT_TOKEN with the appropriate values
-const userSocket = io("https://localhost:8000/user-io/HANDLE", {
+const userSocket = io("https://localhost:8000/user-io/id", {
     extraHeaders: {
         Authorization: 'Bearer JWT_TOKEN'
     }
 }); // For app non pro users
 
-const proSocket = io("https://localhost:8000/pro-io/HANDLE", {
+const proSocket = io("https://localhost:8000/pro-io/id", {
     extraHeaders: {
         Authorization: 'Bearer JWT_TOKEN'
     }
 }); // For app/smm dashboard pro users
 
-const adminSocket = io("https://localhost:8000/admin-io/HANDLE", {
+const adminSocket = io("https://localhost:8000/admin-io/id", {
     extraHeaders: {
         Authorization: 'Bearer JWT_TOKEN'
     }
@@ -76,7 +76,7 @@ adminSocket.on('some event', (...args) => {
 });
 ```
 
-More on namespaces [here](https://socket.io/docs/v4/namespaces/). The file ./testSocket.html can be used to check live events. The file ./SocketExample.html contains a page that allows to see the events in real time.
+More on namespaces [here](https://socket.io/docs/v4/namespaces/). The file ./SocketExample.html contains a page that allows to see the events in real time.
 
 ## Logger
 
@@ -93,4 +93,4 @@ logger.verbose("Verbose Message");
 logger.debug("Debug Message");
 ```
 
-Messages will be printed to the console and saved as json objects in the log files contained in the ./log directory. Error messages are also saved in an extra error-%DATE%.log file. A new log file gets created every day and log files older than 5 days are deleted (see ./config/logging.js).
+Messages will be printed to the console and saved as json objects in the log files contained in the ./logs directory. Error messages are also saved in an extra error-%DATE%.log file. A new log file gets created every day and log files older than 5 days are deleted (see ./config/logging.js). I'm not 100% sure what happens if you don't create the ./logs directory by hand so do it.

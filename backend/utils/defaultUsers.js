@@ -127,6 +127,34 @@ async function makeDefaultUsers() {
         publicChannel: true,
     });
 
+    // Canali automatici
+
+    // Account Per creare i canali automatici
+    const cronUser = new User({
+        handle: '__cron',
+        password: pw,
+        email: 'mailMod@mail.com',
+        admin: true,
+    })
+
+    // Will contain 100 random public messages, they will change every hour
+    const random100Channel = new Channel({
+        name: 'RANDOM100',
+        creator: cronUser._id,
+        description: "100 random squeals that change every hour",
+        publicChannel: true,
+        official: true,
+    })
+
+    // 100 most voted
+    const top100today = new Channel({
+        name: 'TOP100',
+        creator: cronUser._id,
+        description: "The 100 most upvoted squeals of today",
+        publicChannel: true,
+        official: true,
+    })
+
     // Handle reference relations between data tables, all creators are members of the channels they created
     user1.joinedChannels.push(channel1._id);
     channel1.members.push(user1._id);   // creator

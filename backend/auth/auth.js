@@ -27,7 +27,6 @@ passport.use( 'basicAuth',
             } catch (error) {
                 err = error;
             }
-            
                 
             if (err) 
                 return done(err);

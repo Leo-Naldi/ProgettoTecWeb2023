@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('../config/index');
+const { logger } = require('../config/logging');
 
 class Controller {
     static sendResponse(serviceResult, res) {
@@ -12,6 +13,7 @@ class Controller {
     }
 
     static sendError(response, error) {
+        logger.error(`[${error.status || 500}]: ${error.error || error.message}`)
         response.status(error.status || 500);
         if (error.error instanceof Object) {
             response.json(error.error);
@@ -57,10 +59,13 @@ class Controller {
         return requestParams;
     }
 
-    static async handleRequest(request, response, serviceOperation) {
+    static async handleRequest(request, response, serviceOperation, socket=null) {
         let serviceResponse = null;
         try {
-            serviceResponse = await serviceOperation(this.collectRequestParams(request));
+            let params = this.collectRequestParams(request);
+            params.socket = socket;
+
+            serviceResponse = await serviceOperation(params);
             Controller.sendResponse(serviceResponse, response);
         } catch (error) {
             Controller.sendError(response, error);

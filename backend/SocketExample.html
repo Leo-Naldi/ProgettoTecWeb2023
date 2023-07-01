@@ -17,9 +17,13 @@
         }
 
         const add_li_node = (eventName, ...args) => {
-            const li = $('<li>').text(`${eventName}: ${JSON.stringify(args)}`);
-            li.addClass('my-1 list-group-item');
-            li.appendTo($('#events'))
+            const trow = $('<tr>')
+            const td1 = $('<td>').text(eventName);
+            const td2 = $('<td>').text(JSON.stringify(args));
+            
+            td1.appendTo(trow);
+            td2.appendTo(trow);
+            trow.appendTo($('#events-body'))
         }
         
         $('#data').on('submit', (event) => {
@@ -39,7 +43,7 @@
                     })
                     .then(res => res.json())
                     .then(res => {
-                        var socket = io(`http://localhost:8000/user-io/${$('#handle').val()}`, {
+                        var socket = io(`http://localhost:8000/user-io/${res.user._id}`, {
                             extraHeaders: {
                                 Authorization: `Bearer ${res.token}`
                             },
@@ -61,13 +65,20 @@
                     })
                         .then(res => res.json())
                         .then(res => {
-                            console.log("AAAAAAAA")
-                            var socket = io(`http://localhost:8000/pro-io/${$('#handle').val()}`, {
+                            
+                            var socket = io(`http://localhost:8000/user-io/${res.user._id}`, {
+                                extraHeaders: {
+                                    Authorization: `Bearer ${res.token}`
+                                },
+                            });
+
+                            var socketPro = io(`http://localhost:8000/pro-io/${res.user._id}`, {
                                 extraHeaders: {
                                     Authorization: `Bearer ${res.token}`
                                 },
                             });
                             socket.onAny(add_li_node);
+                            socketPro.onAny(add_li_node);
                         })
 
                     break;
@@ -84,20 +95,24 @@
                         })
                             .then(res => res.json())
                             .then(res => {
-                                var socket = io(`http://localhost:8000/admin-io/${$('#handle').val()}`, {
+                                var socket = io(`http://localhost:8000/user-io/${res.user._id}`, {
+                                    extraHeaders: {
+                                        Authorization: `Bearer ${res.token}`
+                                    },
+                                });
+
+                                var socketAdmin = io(`http://localhost:8000/admin-io/${res.user._id}`, {
                                     extraHeaders: {
                                         Authorization: `Bearer ${res.token}`
                                     },
                                 });
                                 socket.onAny(add_li_node);
+                                socketAdmin.onAny(add_li_node);
                             })
                     break;
                 default:
-                    throw Error("HUH")
+                    throw Error("Unknown User Type")
             }
-
-
-
         })
     </script>
 </head>
@@ -129,7 +144,16 @@
                 <button type="submit" class="btn btn-primary">Submit</button>
             </form>
     
-            <ul id="events" class="list-group mt-2"></ul>
+            <table id="events" class="table mt-2">
+                <caption class="caption-top">Captured events</caption>
+                <thead>
+                    <th>Event Name</th>
+                    <th>Contents</th>
+                </thead>
+                <tbody id="events-body">
+
+                </tbody>
+            </table>
         </div>
     </div>
     

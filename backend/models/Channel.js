@@ -23,7 +23,7 @@ const ChannelSchema = new mongoose.Schema(
         }],
         members: [{
             type: mongoose.ObjectId,
-            ref: 'Message',
+            ref: 'User',
         }],
         publicChannel: { type: Boolean, default: true, required: true, },
         official: { type: Boolean, default: false, required: true, },

@@ -69,26 +69,34 @@ class ExpressServer {
         const middleWareWrapper = (middleware) => {
             return (socket, next) => middleware(socket.request, {}, next);
         }
+
         this.io.use(middleWareWrapper(passport.initialize()));
 
         // Auths
-        const userNms = this.io.of(/^\/user-io\/(\w+)$/);  // /user-io/HANDLE
+        const userNms = this.io.of(/^\/user-io\/(\w+)$/);  // /user-io/id
         userNms.use(middleWareWrapper(passport.authenticate('basicAuth', { session: false })));
         userNms.on('connection', (socket) => {
             socket.emit("Hello There", {message:"General Kenobi"})
         })
 
-        const proNms = this.io.of(/^\/pro-io\/(\w+)$/);  // /pro-io/HANDLE
+        const proNms = this.io.of(/^\/pro-io\/(\w+)$/);  // /pro-io/id
         proNms.use(middleWareWrapper(passport.authenticate('proAuth', { session: false })));
         proNms.on('connection', (socket) => {
             socket.emit("Hello There (pro)", { message: "General Kenobi (But Pro)" })
         })
 
-        const adminNms = this.io.of(/^\/admin-io\/(\w+)$/);  // /admin-io/HANDLE
+        const adminNms = this.io.of(/^\/admin-io\/(\w+)$/);  // /admin-io/id
         adminNms.use(middleWareWrapper(passport.authenticate('adminAuth', { session: false })));
         adminNms.on('connection', (socket) => {
             socket.emit("Hello There (admin)", { message: "General Kenobi (But admin)" })
         })
+
+        const channelNms = this.io.of(/^\/channel-io\/(\w+)$/);  // /channel-io/NAME not implemented
+
+        this.app.set('userNms', userNms);
+        this.app.set('proNms', proNms);
+        this.app.set('adminNms', adminNms);
+        this.app.set('channelNms', channelNms);
 
         logger.info("Socket Server Initialized")
     }

@@ -9,7 +9,6 @@ const Channel = require('./models/Channel');
 const Plan = require('./models/Plan');
 const { makeDefaultUsers } = require('./utils/defaultUsers');
 
-// TODO document arrays have an id field SOOOOO use it
 
 const {
     dailyCharsJob,
@@ -28,14 +27,11 @@ mongoose.connect(config.db_url).then(async () => {
     await Channel.deleteMany({});
     await Plan.deleteMany({});
 
-    makeDefaultUsers();
+    await makeDefaultUsers();
 
     dailyCharsJob.start();
     weeklyCharsJob.start();
     monthlyCharsJob.start();
-
-
-    //await makeDefaultUsers()
 
     const exp_server = new ExpressServer();
 
