@@ -78,6 +78,14 @@ adminSocket.on('some event', (...args) => {
 
 More on namespaces [here](https://socket.io/docs/v4/namespaces/). The file ./SocketExample.html contains a page that allows to see the events in real time.
 
+| Namespace | Event | Args |
+|-------|-------|-------|
+| /user-io/{id} | message:received | message object |
+| /user-io/{id} | message:reactions | { id: message id, reactions Object } |
+| /user-io/{id} | characters | { charLeft} |
+| /pro-io/{id} | message:reactions | same as the /user-io one but gets emitted to the smm |
+| /pro-io/{id} | characters | same as the /user-io one but gets emitted to the smm, sends also the user's handle |
+
 ## Logger
 
 Logging is done using Winston and Morgan, like so:

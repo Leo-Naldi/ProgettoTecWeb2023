@@ -21,8 +21,8 @@ class SquealSocket {
         messageRes.author = authorHandle;
 
         message.destUser.map(u => {
-            socket.of('/user-io/' + u).emit('message:recieved', messageRes)
-            SquealSocket.logEvent('message:recieved', '/user-io/' + u)
+            socket.of('/user-io/' + u).emit('message:received', messageRes)
+            SquealSocket.logEvent('message:received', '/user-io/' + u)
         });
 
         message.destChannel.map(c => {
