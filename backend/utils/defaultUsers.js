@@ -6,8 +6,204 @@ const { getDateWithin, getRandom } = require('./getDateWithin');
 const config = require('../config/index');
 const dayjs = require('dayjs');
 
+const { logger } = require('../config/logging');
+
+
+class Setup {
+
+    #baseUsers;   // users that will be used as randomic destinations
+    #messages = [];
+    #randomChannels = [];   // public channels that will be used as randomic destinations
+    #channelId = 0;
+
+
+    constructor(baseUsers=[], baseChannels=[]) {
+
+        this.#baseUsers = baseUsers;
+        this.#randomChannels = baseChannels;
+    }
+
+    addMessage({ 
+        authorHandle, created=null, content=null, 
+        randomDestUsers=false, randomDestChannels=false,
+        popular=false, unpopular=false, maxDate = new dayjs(),
+        reactions = null, answering = false, 
+        destChannel=null, destUser=null,
+    }) {
+
+        const authInd = this.#baseUsers.findIndex(u => u.handle === authorHandle);
+        if (authInd < 0) {
+            logger.error(`Could not find index for user ${authorHandle}`)
+        }
+
+        let minDate = new dayjs(this.#baseUsers[authInd].meta.created);
+
+        let message = new Message({
+            content: content || {
+                text: lorem.generateSentences(getRandom(3) + 1),
+            },
+            author: this.#baseUsers[authInd]._id,
+            reactions: reactions || {
+                positive: (popular) ? config.fame_threshold + getRandom(50) + 1 : getRandom(10),
+                negative: (unpopular) ? config.fame_threshold + getRandom(50) + 1 : getRandom(10),
+            },
+        })
+
+        if (destUser?.length) {
+
+            message.destUser = destUser;
+
+        } else if (randomDestUsers) {
+            // scegli un numero randomico di utenti
+            const dests = this.#baseUsers.filter(u => u.handle !== authorHandle);
+            let randIdx = Array.from({ length: dests.length }, (v, i) => i);
+
+            randIdx = shuffle(randIdx).slice(getRandom(dests.length));
+            
+            randIdx.map(i => {
+                message.destUser.push(this.#baseUsers[i]._id);
+                
+                // message cannot be sent to a user that did not yet exist
+                const tmp = new dayjs(this.#baseUsers[i].meta.created);
+                if (tmp.isAfter(minDate)) {
+                    minDate = tmp;
+                }
+            });
+        }
+
+        if (destChannel?.length) {
+
+            message.destChannel = destChannel;
+            
+            
+            let dests = destChannel.reduce((acc, cur) => {
+
+                const i = this.#randomChannels.findIndex(c => c._id.equals(cur));
+
+                if (i >= 0) return [...acc, i];
+                return acc;
+
+            }, []);
+
+            dests.map(i => this.#randomChannels[i].messages.push(message._id));
+
+        } else if (randomDestChannels) {
+            // scegli un numero randomico di utenti
+            const dests = this.#randomChannels.filter(c => c.publicChannel);
+            let randIdx = Array.from({ length: dests.length }, (v, i) => i);
+
+            randIdx = shuffle(randIdx).slice(getRandom(dests.length));
+
+            randIdx.map(i => {
+                message.destChannel.push(this.#randomChannels[i]._id)
+                this.#randomChannels[i].messages.push(message._id);
+                
+                const tmp = new dayjs(this.#randomChannels[i].created);
+                if (tmp.isAfter(minDate)) {
+                    minDate = tmp;
+                }
+            });
+        }
+
+        if (answering) {
+            const m = this.#messages[this.#getRandom(0, this.#messages.length)];
+
+            const tmp = new dayjs(m.meta.created);
+            if (tmp.isAfter(minDate)) {
+                minDate = tmp;
+            }
+
+            m.answering = m._id;
+        }
+
+        message.meta.created = created || 
+            this.#getRandomDate(minDate, new dayjs(maxDate)).toDate();
+
+        this.#baseUsers[authInd].messages.push(message._id);
+
+        this.#messages.push(message);
+    }
+
+    addChannel({ creatorHandle, name=null, description=null, members=[] }) {
+
+        const authInd = this.#baseUsers.findIndex(u => u.handle === creatorHandle);
+
+        this.#randomChannels.push(new Channel({
+            name: name || `Randomic Cannel ${this.#channelId++}`,
+            creator: this.#baseUsers[authInd]._id,
+            description: description || lorem.generateParagraphs(1),
+            publicChannel: true,
+            members: [this.#baseUsers[authInd]._id].concat(
+                    members.map(
+                        handle => this.#baseUsers.find(u => u.handle === handle)._id
+                    )
+                )
+
+        }))
+    }
+
+    async saveAll() {
+        await Promise.all([ Promise.all(this.#baseUsers.map(u => u.save())),
+                            Promise.all(this.#randomChannels.map(c => c.save())),
+                            Promise.all(this.#messages.map(m => m.save())) ]);
+    }
+
+    addBulkMessages({ authorHandle, 
+        allTime=0, year=0, month=0, week=0, today=0, 
+        popular=false, unpopular=false,
+        randomDestUsers=false, randomDestChannels=false,
+        answering=false,
+    }) {
+
+
+        const addMiniBulk = (period, amount) => {
+            for (let i = 0; i < amount; i++) {
+                this.addMessage({
+                    authorHandle,
+                    created: getDateWithin(period).toDate(),
+                    randomDestUsers, randomDestChannels, popular, unpopular,
+                    answering
+                })
+            }
+        }
+
+        addMiniBulk('today', today);
+        addMiniBulk('week', week);
+        addMiniBulk('month', month);
+        addMiniBulk('year', year);
+
+        const authInd = this.#baseUsers.findIndex(u => u.handle === authorHandle);
+
+        const min = this.#baseUsers[authInd].meta.created;
+        const max = (new dayjs()).startOf('year');
+
+        for (let i = 0; i < allTime; i++) {
+            
+            this.addMessage({
+                authorHandle,
+                created: this.#getRandomDate(min, max),
+                randomDestUsers, randomDestChannels, popular, unpopular,
+            })
+        }
+    }
+
+    #getRandom(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    #getRandomDate(min, max) {
+
+        const dmin = (new dayjs(min)).valueOf();
+        const dmax = (new dayjs(max)).valueOf();
+
+        return new dayjs(this.#getRandom(dmin, Math.max(dmin, dmax)));
+    }
+
+}
+
 
 async function makeDefaultUsers() {
+
     const pw = '12345678';
 
     // Utenti richiesti
@@ -78,6 +274,48 @@ async function makeDefaultUsers() {
         },
     })
 
+    // Modify the character balance of user2, user5, user6
+    user2.charLeft = {
+        day: 50,
+        week: getRandom(config.weekly_quote - 50) + 50,
+        month: getRandom(config.monthly_quote - 50) + 50,
+    }
+    user5.charLeft = {
+        day: 50,
+        week: getRandom(config.weekly_quote - 50) + 50,
+        month: getRandom(config.monthly_quote - 50) + 50,
+    }
+    user6.charLeft = {
+        day: 50,
+        week: getRandom(config.weekly_quote - 50) + 50,
+        month: getRandom(config.monthly_quote - 50) + 50,
+    }
+
+    user2.smm = user3._id;
+    user5.smm = user3._id;
+    user6.smm = user3._id;
+
+    let answering_users = [
+        new User({
+            handle: 'handlebella1234',
+            username: 'franco tiratori',
+            email: 'mailfrancajdcwbkjcd@mail.com',
+            password: pw,
+        }),
+        new User({
+            handle: 'handlebrutta12345',
+            username: 'marco tiratori',
+            email: 'mailfrancajvfvervrtdcwbkjcd@mail.com',
+            password: pw,
+        }),
+        new User({
+            handle: 'pieraldo1234',
+            username: 'piero albertini',
+            email: 'dcerfccccverytruemail@mail.com',
+            password: pw,
+        }),
+    ]
+
     //  channel1: daily_news
     const channel1 = new Channel({
         name: 'daily_news',
@@ -127,34 +365,6 @@ async function makeDefaultUsers() {
         publicChannel: true,
     });
 
-    // Canali automatici
-
-    // Account Per creare i canali automatici
-    const cronUser = new User({
-        handle: '__cron',
-        password: pw,
-        email: 'mailMod@mail.com',
-        admin: true,
-    })
-
-    // Will contain 100 random public messages, they will change every hour
-    const random100Channel = new Channel({
-        name: 'RANDOM100',
-        creator: cronUser._id,
-        description: "100 random squeals that change every hour",
-        publicChannel: true,
-        official: true,
-    })
-
-    // 100 most voted
-    const top100today = new Channel({
-        name: 'TOP100',
-        creator: cronUser._id,
-        description: "The 100 most upvoted squeals of today",
-        publicChannel: true,
-        official: true,
-    })
-
     // Handle reference relations between data tables, all creators are members of the channels they created
     user1.joinedChannels.push(channel1._id);
     channel1.members.push(user1._id);   // creator
@@ -198,423 +408,21 @@ async function makeDefaultUsers() {
 
     user5.joinedChannels.push(channel5._id);
     channel5.members.push(user5._id);   // creator
-    channel5.members.push(user4._id); 
-    channel5.members.push(user6._id); 
+    channel5.members.push(user4._id);
+    channel5.members.push(user6._id);
     user5.joinedChannels.push(channel2._id);
     user5.joinedChannels.push(channel4._id);
 
 
     user6.joinedChannels.push(channel6._id);
     channel6.members.push(user6._id);   // creator
-    channel6.members.push(user1._id); 
-    channel6.members.push(user3._id); 
+    channel6.members.push(user1._id);
+    channel6.members.push(user3._id);
     user6.joinedChannels.push(channel4._id);
     user6.joinedChannels.push(channel5._id);
 
-
-
-    user2.smm = user3._id;
-    user5.smm = user3._id;
-    user6.smm = user3._id;
- 
-    // Generate 10 random messages for user5 and user6, with randomly generated content and fixed fields
-    let messages = []
-
-    let u5startMessages = getRandom(50);
-    let u6startMessages = getRandom(50);
-
-    // old messages
-    for (let i = 0; i < u5startMessages; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user5._id,
-            reactions: {
-                positive: config.fame_threshold + getRandom(50) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').subtract(getRandom(2), 'year').toDate(),
-            }
-        }));
-
-        user5.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user5._id,
-            reactions: {
-                positive: config.fame_threshold + getRandom(50) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }));
-
-        user5.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user5._id,
-            reactions: {
-                positive: config.fame_threshold + getRandom(50) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('month').toDate(),
-            }
-        }));
-
-        user5.messages.push(messages.at(-1)._id);
-    }
-
-    for (let i = 0; i < u6startMessages; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user6._id,
-            reactions: {
-                negative: config.fame_threshold + getRandom(20) + 1,
-                positive: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').subtract(getRandom(2), 'year').toDate(),
-            }
-        }))
-        user6.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user6._id,
-            reactions: {
-                negative: config.fame_threshold + getRandom(20) + 1,
-                positive: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }))
-        user6.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user6._id,
-            reactions: {
-                negative: config.fame_threshold + getRandom(20) + 1,
-                positive: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('month').toDate(),
-            }
-        }))
-        user6.messages.push(messages.at(-1)._id);
-    }
-
-    u5startMessages *= 3;
-    u6startMessages *= 3;
-
-    // new messages to make user 5 and 6 two messages away from increasing/decreasing characters
-    while (u5startMessages % (config.num_messages_reward - 2) !== 0) {
-        
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user5._id,
-            reactions: {
-                positive: config.fame_threshold + getRandom(20) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        }));
-
-        user5.messages.push(messages.at(-1)._id);
-        u5startMessages++;
-    }
-
-    while (u6startMessages % (config.num_messages_reward - 2) !== 0) {
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user6._id,
-            reactions: {
-                negative: config.fame_threshold + getRandom(20) + 1,
-                positive: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        }))
-        user6.messages.push(messages.at(-1)._id);
-        u6startMessages++;
-    }
-
-    // Generate a separate message for user5 and user6
-    messages.push(new Message({
-        content: {
-            text: lorem.generateSentences(getRandom(3) + 1),
-        },
-        author: user5._id,
-        reactions: {
-            positive: config.fame_threshold - 1,
-            negative: getRandom(13),
-        },
-        meta: {
-            created: getDateWithin('today').toDate(),
-        }
-    }));
-
-    user5.messages.push(messages.at(-1)._id);
-
-    messages.push(new Message({
-        content: {
-            text: lorem.generateSentences(getRandom(3) + 1),
-        },
-        author: user6._id,
-        reactions: {
-            negative: config.fame_threshold - 1,
-            positive: getRandom(13),
-        },
-        meta: {
-            created: getDateWithin('today').toDate(),
-        }
-    }))
-    user6.messages.push(messages.at(-1)._id);
-
-
-    // Generate 20 messages for user5, user6 and user2 respectively
-    for (let i = 0; i < 20; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user5._id,
-            reactions: {
-                positive: config.fame_threshold + 1 + getRandom(170),
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }));
-        user5.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user6._id,
-            reactions: {
-                negative: config.fame_threshold + 1 + getRandom(170),
-                positive: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }))
-        user6.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user2._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }))
-        user2.messages.push(messages.at(-1)._id);
-    }
-
-    // make user2 messages look better
-
-    // Dayly u2
-    for (let i = 0; i < 10; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user2._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: getDateWithin('day').toDate(),
-            }
-        }))
-        user2.messages.push(messages.at(-1)._id);
-    }
-
-    // weekly
-    for (let i = 0; i < 30; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user2._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        }))
-        user2.messages.push(messages.at(-1)._id);
-    }
-
-    for (let i = 0; i < 50; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user2._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: getDateWithin('month').toDate(),
-            }
-        }))
-        user2.messages.push(messages.at(-1)._id);
-    }
-
-    // This Year
-    for (let i = 0; i < 100; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user2._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }))
-        user2.messages.push(messages.at(-1)._id);
-    }
-
-    // All Time
-    for (let i = 0; i < 100; i++) {
-
-        let minTime = new dayjs(user2.meta.created);
-        let maxTime = (new dayjs()).startOf('year').unix();
-
-        let created = minTime.add(getRandom(maxTime - minTime.unix()), 'second')
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user2._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: created.toDate(),
-            }
-        }))
-        user2.messages.push(messages.at(-1)._id);
-    }
-    
-
-    // Modify the character balance of user2, user5, user6
-    user2.charLeft = {
-        day: 50,
-        week: getRandom(config.weekly_quote - 50) + 50,
-        month: getRandom(config.monthly_quote - 50) + 50,
-    }
-    user5.charLeft = {
-        day: 50,
-        week: getRandom(config.weekly_quote - 50) + 50,
-        month: getRandom(config.monthly_quote - 50) + 50,
-    }
-    user6.charLeft = {
-        day: 50,
-        week: getRandom(config.weekly_quote - 50) + 50,
-        month: getRandom(config.monthly_quote - 50) + 50,
-    }
-
-    // Randomly select a user from the list to send a random message
-    // [0]: handlebella1234
-    // [1]: handlebrutta12345
-    // [2]: pieraldo1234
-    let answering_users = [
-        new User({
-            handle: 'handlebella1234',
-            username: 'franco tiratori',
-            email: 'mailfrancajdcwbkjcd@mail.com',
-            password: pw,
-        }),
-        new User({
-            handle: 'handlebrutta12345',
-            username: 'marco tiratori',
-            email: 'mailfrancajvfvervrtdcwbkjcd@mail.com',
-            password: pw,
-        }),
-        new User({
-            handle: 'pieraldo1234',
-            username: 'piero albertini',
-            email: 'dcerfccccverytruemail@mail.com',
-            password: pw,
-        }),
-    ]
-
-    let answers = [];
-
     let channel_lists = [channel1, channel2, channel3, channel4, channel5, channel6];
 
-    for (let i = 0; i < getRandom(u6startMessages) + 20; i++) {
-        const user_ind = getRandom(answering_users.length);
-        const mess_ind = getRandom(messages.length);
-
-        let created = dayjs(messages[mess_ind].meta.created).add(getRandom(120), 'minute');
-        
-        if (created.isAfter(dayjs(), 'second')) {
-            created = dayjs();
-        }
-
-        answers.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: answering_users[user_ind]._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: created.toDate(),
-            },
-            answering: messages[mess_ind]._id,
-        }))
-        answering_users[user_ind].messages.push(answers.at(-1)._id);
-    }
     // hanlde 3 users in the list
     answering_users[0].joinedChannels.push(channel_lists[0])
     answering_users[0].joinedChannels.push(channel_lists[1])
@@ -636,96 +444,196 @@ async function makeDefaultUsers() {
     channel_lists[5].members.push(answering_users[2]._id)
 
 
+    let baseUsers = [user1, user2, user3, user4, user5, user6].concat(answering_users);
+
+    const setup = new Setup(baseUsers, [channel1, channel2, channel3, channel4, channel5, channel6]);
+
+    for (let i = 0; i < baseUsers.length; i++) {
+        setup.addChannel({ creatorHandle: baseUsers[i].handle });
+        setup.addChannel({ creatorHandle: baseUsers[i].handle });
+        setup.addChannel({ creatorHandle: baseUsers[i].handle });
+    }
+
+    // Canali automatici
+
+    // Account Per creare i canali automatici
+    const cronUser = new User({
+        handle: '__cron',
+        password: pw,
+        email: 'mailMod@mail.com',
+        admin: true,
+    })
+
+    // Will contain 100 random public messages, they will change every hour
+    const random100Channel = new Channel({
+        name: 'RANDOM100',
+        creator: cronUser._id,
+        description: "100 random squeals that change every hour",
+        publicChannel: true,
+        official: true,
+    })
+
+    // 100 most voted
+    const top100today = new Channel({
+        name: 'TOP100',
+        creator: cronUser._id,
+        description: "The 100 most upvoted squeals of today",
+        publicChannel: true,
+        official: true,
+    })
+ 
+    // Generate 10 random messages for user5 and user6, with randomly generated content and fixed fields
+    let messages = []
+
+    let u5startMessages = getRandom(50)+1;
+    let u6startMessages = getRandom(50)+1;
+
+    setup.addBulkMessages({
+        authorHandle: user5.handle,
+        popular: true, 
+        allTime: u5startMessages,
+        year: u5startMessages + 20,
+        month: u5startMessages,
+        randomDestChannels: true,
+        randomDestUsers: true,
+    })
+
+    setup.addBulkMessages({
+        authorHandle: user6.handle,
+        unpopular: true,
+        allTime: u6startMessages,
+        year: u6startMessages + 20,
+        month: u6startMessages,
+        randomDestChannels: true,
+        randomDestUsers: true,
+    })
+
+    setup.addBulkMessages({
+        authorHandle: user2.handle,
+        unpopular: true,
+        popular: true,
+        allTime: 100,
+        year: 120,
+        month: 50,
+        week: 30,
+        today: 10,
+        randomDestChannels: true,
+        randomDestUsers: true,
+    })
+
+    u5startMessages *= 3;
+    u6startMessages *= 3;
+
+    // new messages to make user 5 and 6 two messages away from increasing/decreasing characters
+    while (u5startMessages % (config.num_messages_reward - 2) !== 0) {
+        
+        setup.addMessage({
+            authorHandle: user5.handle,
+            randomDestUsers: true,
+            randomDestChannels: true,
+            popular: true,
+            created: getDateWithin('week').toDate(),
+        });
+
+        u5startMessages++;
+    }
+
+    while (u6startMessages % (config.num_messages_reward - 2) !== 0) {
+
+        setup.addMessage({
+            authorHandle: user6.handle,
+            randomDestUsers: true,
+            randomDestChannels: true,
+            unpopular: true,
+            created: getDateWithin('week').toDate(),
+        });
+
+        u6startMessages++;
+    }
+
+    // Generate a separate message for user5 and user6
+    setup.addMessage({
+        authorHandle: user5.handle,
+        randomDestUsers: true,
+        randomDestChannels: true,
+        created: getDateWithin('today').toDate(),
+        reactions: {
+            positive: config.fame_threshold - 1,
+            negative: getRandom(13),
+        }
+    });
+
+    setup.addMessage({
+        authorHandle: user6.handle,
+        randomDestUsers: true,
+        randomDestChannels: true,
+        created: getDateWithin('today').toDate(),
+        reactions: {
+            negative: config.fame_threshold - 1,
+            positive: getRandom(13),
+        }
+    });
+
+    // Replies
+    setup.addBulkMessages({
+        authorHandle: answering_users[0].handle,
+        allTime: getRandom(30) + 100,
+        answering: true,
+        popular: true,
+        unpopular: true,
+        randomDestUsers: true,
+    })
+
+    setup.addBulkMessages({
+        authorHandle: answering_users[1].handle,
+        allTime: getRandom(30) + 100,
+        answering: true,
+        unpopular: true,
+        randomDestChannel: true,
+    })
+
+    setup.addBulkMessages({
+        authorHandle: answering_users[2].handle,
+        allTime: getRandom(30) + 100,
+        answering: true,
+        popular: true,
+        randomDestChannel: true,
+        randomDestUser: true,
+    })
+
+
+    let answers = [];
+
+
 /* 
-    Generate 25 random messages for channel6: test6, with randomly generated content and fixed fields
+    Generate 15 random messages for channel6: test6, with randomly generated content and fixed fields
     Only channel6 has content 
 */
-    // fv sent 5 posts in channel6
     for (let i = 0; i < 5; i++) {
-        var msg_tmp = new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user1._id,
+
+        setup.addMessage({ 
+            authorHandle: user1.handle ,
             destChannel: [channel6._id],
-            reactions: {
-                positive: config.fame_threshold + getRandom(20) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        });
-        // msg_tmp.destChannel.push(channel6._id);
-        msg_tmp.save();
-        user1.messages.push(msg_tmp._id);
-        channel6.messages.push(msg_tmp._id);
+            popular: true,
+            created: getDateWithin('week').toDate(),
+        })
+
+        setup.addMessage({
+            authorHandle: answering_users[1].handle,
+            destChannel: [channel6._id],
+            popular: true,
+            created: getDateWithin('week').toDate(),
+        })
+
+        setup.addMessage({
+            authorHandle: answering_users[2].handle,
+            destChannel: [channel6._id],
+            popular: true,
+            created: getDateWithin('week').toDate(),
+        })
     }
 
-    // handlebrutta12345 sent 5 posts in channel6
-    for (let i = 0; i < 5; i++) {
-        var msg_tmp = new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: answering_users[1]._id,
-            destChannel: [channel6._id],
-            reactions: {
-                positive: config.fame_threshold + getRandom(20) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        });
-        // msg_tmp.destChannel.push(channel6._id);
-        msg_tmp.save();
-        answering_users[1].messages.push(msg_tmp._id);
-        channel6.messages.push(msg_tmp._id);
-    }
-
-    // pieraldo1234 sent 5 posts in channel6
-    for (let i = 0; i < 5; i++) {
-        var msg_tmp = new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: answering_users[2]._id,
-            destChannel: [channel6._id],
-            reactions: {
-                positive: config.fame_threshold + getRandom(20) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        });
-        // msg_tmp.destChannel.push(channel6._id);
-        msg_tmp.save();
-        answering_users[2].messages.push(msg_tmp._id);
-        channel6.messages.push(msg_tmp._id);
-    }
-
-
-
-
-
-
-
-    await Promise.all([
-        user1.save(),
-        user2.save(),
-        user3.save(),
-        user4.save(),
-        user5.save(),
-        user6.save(),
-        channel1.save(),
-        channel2.save(),
-        channel3.save(),
-        channel4.save(),
-        channel5.save(),
-        channel6.save(),
-    ].concat(answering_users.map(u => u.save())));
+    await setup.saveAll();
 
     await Promise.all(messages.concat(answers).map(m => m.save()));
 }

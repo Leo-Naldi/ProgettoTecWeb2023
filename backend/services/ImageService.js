@@ -23,8 +23,8 @@ class ImageService {
     static generateImgName (originalFilename, path, newFilename){
         let names = originalFilename.split(".");
         let paths = path.split("/");
-        console.log(names)
-        console.log(paths)
+        //console.log(names)
+        //console.log(paths)
         let paths1 = paths.slice(0, paths.length - 1)
         let final_path = paths1.join('/') + '/'
         path = path.replace('invalid-name', '')
@@ -32,7 +32,7 @@ class ImageService {
             "fullPath": `${final_path}${newFilename}_${names[0]}.${names[names.length - 1]}`,
             "fileName": `${newFilename}_${names[0]}.${names[names.length - 1]}`
         }
-        console.log(result)
+        //console.log(result)
         // return Service.successResponse(result);
         return result;
     }

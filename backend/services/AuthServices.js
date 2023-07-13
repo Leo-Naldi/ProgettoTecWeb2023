@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Service = require('./Service');
 const makeToken = require('../utils/makeToken');
+const { logger } = require('../config/logging');
 
 class AuthServices {
     static async login({ handle, password }) {
@@ -110,6 +111,21 @@ class AuthServices {
         } else {
             return Service.rejectResponse({ message: 'passwords did not match' })
         }
+    }
+
+    static async refreshToken({ reqUser }) {
+        
+        if (!reqUser) return Service.rejectResponse({ message: 'Must provide a valid token' })
+        
+        
+        return Service.successResponse({ 
+                token: makeToken({
+                    handle: reqUser.handle,
+                    accountType: reqUser.accountType,
+                    admin: reqUser.admin
+                })
+            });
+
     }
 }
 
