@@ -117,6 +117,10 @@ export default function Squeals({ managed }) {
                     </TableHead>
                     <TableBody>
                         {messages.map(m => {
+
+                            const destChannel = m.dest.filter(d => d.charAt(0) === '§');
+                            const destUser = m.dest.filter(d => d.charAt(0) === '@');
+
                             return (<TableRow key={m._id}>
                                 <TableCell>{m.meta.created.format('YYYY/MM/DD')}</TableCell>
                                 <TableCell>
@@ -128,8 +132,8 @@ export default function Squeals({ managed }) {
                                         {m.content.text}
                                     </Typography>
                                 </TableCell>
-                                <TableCell>{(m.destChannel.length) ? m.destChannel.join(',') : "-"}</TableCell>
-                                <TableCell>{(m.destUser.length) ? m.destUser.join(',') : "-"}</TableCell>
+                                <TableCell>{(destChannel.length) ? destChannel.join(', ') : "-"}</TableCell>
+                                <TableCell>{(destUser.length) ? destUser.join(', ') : "-"}</TableCell>
                                 <TableCell>{m.reactions.positive}</TableCell>
                                 <TableCell>{m.reactions.negative}</TableCell>
                             </TableRow>)
