@@ -158,6 +158,23 @@ class MessageService {
         return query;
     }
 
+    static _makeMessageObjectArr(messageArr, deleteAuthor = false) {
+
+        return messageArr
+            .map(m => m.toObject())
+            .map(o => {
+                o.dest = o.destUser.map(u => '@' + u.handle)
+                    .concat(o.destChannel.map(c => '§' + c.name));
+                
+                delete o.destUser; delete o.destChannel;
+
+                if (deleteAuthor) delete o.author;  // useless in .getUserMessages
+                else o.author = o.author.handle;
+
+                return o;
+            })
+    }
+
     static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage }={ page: 1, reqUser: null }) {
 
@@ -200,8 +217,7 @@ class MessageService {
 
         const res = await messagesQuery;
 
-        return Service.successResponse(res.map(m => m.toObject()));
-        
+        return Service.successResponse(MessageService._makeMessageObjectArr(res, true));
     }
 
     static async getMessagesStats({ reqUser, handle, popular, unpopular, controversial, risk,

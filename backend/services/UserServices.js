@@ -8,6 +8,14 @@ const Channel = require("../models/Channel");
 
 class UserService {
 
+    static _makeUserObjectArr(userArr) {
+        return userArr.map(u => u.toObject())
+            .map(u => {
+                // turns [{ name: 'channel' }, ...] into ['channel', ...]
+                u.joinedChannels = u.joinedChannels.map(c => c.name);
+            })
+    }
+
     static async getUsers({ handle, admin, accountType, handleOnly, page = 1 } = { page: 1}){
         let filter = new Object();
 
@@ -20,15 +28,18 @@ class UserService {
             users = await User.find(filter)
                 .sort('meta.created')
                 .select('handle');
+            
+            return Service.successResponse(users.map(u => u.toObject()));
         } else {
             users = await User.find(filter)
                 .select('-__v -password')
                 .sort('meta.created')
                 .skip((page - 1) * config.results_per_page)
-                .limit(config.results_per_page);
+                .limit(config.results_per_page).populate('joinedChannels', 'name');
+
+                return Service.successResponse(UserService._makeUserObjectArr(user));
         }
 
-        return Service.successResponse(users.map(u => u.toObject()));
     }
 
     static async getUser({ handle }) {
