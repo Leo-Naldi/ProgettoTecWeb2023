@@ -4,6 +4,7 @@ const passport = require('passport');
 const Controller = require('../controllers/Controller');
 const MessageServices = require('../services/MessageServices');
 const User = require('../models/User');
+const { logger } = require('../config/logging');
 
 
 const MessageRouter = express.Router();
@@ -37,6 +38,8 @@ MessageRouter.post('/:handle/messages', passport.authenticate('basicAuth', { ses
 
         const socket = req.app.get('socketio');
 
+        //logger.debug(JSON.stringify(req.body))
+
         await Controller.handleRequest(req,res, MessageServices.postUserMessage, socket);
     }
 );
@@ -57,7 +60,7 @@ MessageRouter.delete('/:handle/:id', passport.authenticate('basicAuth', { sessio
 );
 
 // user add positive reactions
-MessageRouter.post('/:handle/up/:id', passport.authenticate('basicAuth', { session: false }),
+MessageRouter.post('/up/:id', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
         const socket = req.app.get('socketio');
         await Controller.handleRequest(req, res, MessageServices.addPositiveReaction, socket);
@@ -65,7 +68,7 @@ MessageRouter.post('/:handle/up/:id', passport.authenticate('basicAuth', { sessi
 );
 
 // user add negative reactions
-MessageRouter.post('/:handle/down/:id', passport.authenticate('basicAuth', { session: false }),
+MessageRouter.post('/down/:id', passport.authenticate('basicAuth', { session: false }),
     async (req, res) => {
         const socket = req.app.get('socketio');
         await Controller.handleRequest(req, res, MessageServices.addNegativeReaction, socket);

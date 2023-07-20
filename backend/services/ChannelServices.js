@@ -52,13 +52,19 @@ class ChannelServices{
     }
 
     // get all channels
-    static async getChannels({ reqUser = null, page = 1, owner = null, postCount = -1, publicChannel=null,
-        member=null, name=null } = {
+    static async getChannels({ 
+        reqUser = null, page = 1, owner = null, postCount = -1, publicChannel=null,
+        member=null, name=null, namesOnly=false } = {
             reqUser: null, page: 1, owner: null, postCount: -1, publicChannel: null,
-            member: null
+            member: null, namesOnly: false,
         }) {
 
         const query = Channel.find();
+
+        if (namesOnly) {
+            const res = await Channel.find().select('name');
+            return Service.successResponse(res.map(c => c.name));
+        }
 
         // TODO use name as pattern
 

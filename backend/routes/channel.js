@@ -22,7 +22,8 @@ ChannelRouter.get('/:handle/created', passport.authenticate('basicAuth', {sessio
     await Controller.handleRequest(req, res, ChannelServices.getUserChannels);
 })
 
-// Get all channels that a user has joined
+// Get all channels that a user has joined 
+// TODO this is a user route
 ChannelRouter.get('/:handle/joined', passport.authenticate('basicAuth', {session: false}), async(req, res) =>{
     await Controller.handleRequest(req, res, ChannelServices.getJoinedChannels);
 })

@@ -51,19 +51,19 @@ All namespaces except /public-io (TODO) require the same JSON Web Token as the A
 const socket = io("https://localhost:8000/public-io"); // Public namespace
 
 // replace HANDLE and JWT_TOKEN with the appropriate values
-const userSocket = io("https://localhost:8000/user-io/id", {
+const userSocket = io("https://localhost:8000/user-io/handle", {
     extraHeaders: {
         Authorization: 'Bearer JWT_TOKEN'
     }
 }); // For app non pro users
 
-const proSocket = io("https://localhost:8000/pro-io/id", {
+const proSocket = io("https://localhost:8000/pro-io/handle", {
     extraHeaders: {
         Authorization: 'Bearer JWT_TOKEN'
     }
 }); // For app/smm dashboard pro users
 
-const adminSocket = io("https://localhost:8000/admin-io/id", {
+const adminSocket = io("https://localhost:8000/admin-io/handle", {
     extraHeaders: {
         Authorization: 'Bearer JWT_TOKEN'
     }
@@ -80,11 +80,11 @@ More on namespaces [here](https://socket.io/docs/v4/namespaces/). The file ./Soc
 
 | Namespace | Event | Args |
 |-------|-------|-------|
-| /user-io/{id} | message:received | message object |
-| /user-io/{id} | message:reactions | { id: message id, reactions Object } |
-| /user-io/{id} | characters | { charLeft} |
-| /pro-io/{id} | message:reactions | same as the /user-io one but gets emitted to the smm |
-| /pro-io/{id} | characters | same as the /user-io one but gets emitted to the smm, sends also the user's handle |
+| /user-io/{handle} | message:received | message object |
+| /user-io/{handle} | message:reactions | {  } |
+| /user-io/{handle} | characters | { charLeft} |
+| /pro-io/{handle} | message:reactions | same as the /user-io one but gets emitted to the smm |
+| /pro-io/{handle} | characters | same as the /user-io one but gets emitted to the smm, sends also the user's handle |
 
 ## Logger
 

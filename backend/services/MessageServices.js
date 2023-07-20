@@ -166,7 +166,10 @@ class MessageService {
                 o.dest = o.destUser.map(u => '@' + u.handle)
                     .concat(o.destChannel.map(c => '§' + c.name));
                 
-                delete o.destUser; delete o.destChannel;
+                o.id = o._id.toString();
+
+                delete o.destUser; delete o.destChannel; delete o._id;
+                delete o.__v;
 
                 if (deleteAuthor) delete o.author;  // useless in .getUserMessages
                 else o.author = o.author.handle;
@@ -175,7 +178,7 @@ class MessageService {
             })
     }
 
-    static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
+    static async getMessages({ reqUser=null, author=null, page=1, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage }={ page: 1, reqUser: null }) {
 
         let query = await MessageService._addQueryChains({ query: Message.find(),
@@ -185,13 +188,13 @@ class MessageService {
 
         const res = await query;
 
-        return Service.successResponse(res.map(m => m.toObject()));
+        return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
 
-    static async getChannelMessages({reqUser, channelId}){
+    static async getChannelMessages({ reqUser, channelId }){
         const query = Message.find({ destChannel: { $elemMatch: { $eq: channelId } } });
         const res = await query
-        return Service.successResponse(res.map(m => m.toObject()));
+        return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
 
     static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
@@ -217,7 +220,7 @@ class MessageService {
 
         const res = await messagesQuery;
 
-        return Service.successResponse(MessageService._makeMessageObjectArr(res, true));
+        return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
 
     static async getMessagesStats({ reqUser, handle, popular, unpopular, controversial, risk,
@@ -272,9 +275,9 @@ class MessageService {
 
         let user = reqUser;
         if (user.handle !== handle) {  // SMM posting for the user
-            user = await User.findOne({ handle: handle });
+            user = await User.findOne({ handle: handle }).populate('smm', 'handle _id');
 
-            if (!user?.smm.equals(reqUser._id))
+            if (!user?.smm._id.equals(reqUser._id))
                 return Service.rejectResponse({ message: "Invalid user handle" });
 
             publicMessage = true;  // smm is only for public messages
@@ -286,7 +289,8 @@ class MessageService {
         if (destUser?.length) {
             destUser = await User.find()
                 .where('handle')
-                .in(destUser);
+                .in(destUser)
+                .select('-messages');
         }
 
         if (destChannel?.length) {
@@ -298,6 +302,7 @@ class MessageService {
         
         if (destChannel?.some(c => c.publicChannel)) publicMessage = true;
        
+
         // Messaggi privati indirizzati a soli utenti non diminuiscono la quota
         if ((publicMessage) || (destChannel?.length)) {
 
@@ -327,6 +332,8 @@ class MessageService {
             meta: meta,
             author: user._id,
             publicMessage: publicMessage,
+            destChannel: [], 
+            destUser: [],
         });
 
         if (destChannel?.length) message.destChannel = destChannel.map(c => c._id);
@@ -335,30 +342,41 @@ class MessageService {
 
         // TODO test answering
         let err = null;
+        let resbody;
 
         try {
+            
+            let smmHandle = user.smm?.handle;
             
             user.messages.push(message._id);
             
             message = await message.save();
-            await user.save();
+            user = await user.depopulate();
+            let author = await user.save();
 
-            if (socket) {
-                SquealSocket.messageCreated({
-                    message: message,
-                    socket: socket,
-                    destChannel: destChannel,
-                    authorHandle: user.handle,
-                })
-            }
+            message.destUser = destUser;
+            message.destChannel = destChannel;
+            message.author = user;
+
+            resbody = MessageService._makeMessageObjectArr([message])[0];
+
+            SquealSocket.messageCreated({ 
+                message: resbody, 
+                destChannel, 
+                destUser, 
+                authorHandle: author.handle,
+                smmHandle,
+                socket,
+            })
 
         } catch (e) {
             err = e;
+            logger.error(`postUserMessage Error: ${e.message}`);
         }
 
         if (err) return Service.rejectResponse(err);
         
-        return Service.successResponse(message.toObject());
+        return Service.successResponse({ message: resbody, charLeft: user.charLeft});
     }
 
     static async deleteUserMessages({ reqUser, handle }) {
@@ -458,10 +476,15 @@ class MessageService {
         if (!mongoose.isObjectIdOrHexString(id))
             return Service.rejectResponse({ message: "Invalid message id" })
 
-        const message = await Message.findById(id);
+        let message = await Message.findById(id).populate({
+            path: 'author',
+            select: 'handle smm',
+            populate: { path: 'smm', select: 'handle' }
+        });
 
-        if (!message)
+        if (!message) {
             return Service.rejectResponse({ message: "Id not found" });
+        }
 
 
         const num_inf_messages = await Message.find({ author: message.author._id })
@@ -475,8 +498,7 @@ class MessageService {
             ((num_inf_messages + 1) % config.num_messages_reward === 0)
             && (message.publicMessage || (message.destChannel?.length))) {
 
-            user = await User.findById(message.author).orFail();
-
+            user = await User.findById(message.author).pupulate('smm', 'handle');
             
             user.charLeft.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
             user.charLeft.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
@@ -489,15 +511,20 @@ class MessageService {
 
         let err = null;
         try {
-            await message.save();
+            const authorHandle = message.author.handle;
+            const smmHandle = message.author.smm?.handle;
+            message = await message.depopulate();
+            message = await message.save();
             if (user) {
-                await user.save();
-                SquealSocket.charsChanged({ user, socket });
+                user = await user.depopulate();
+                user = await user.save();
+                SquealSocket.charsChanged({ user, smmHandle, socket });
             }
-            await SquealSocket.reactionsChanged({ message, socket });
+            await SquealSocket.reactionsChanged({ message, authorHandle, smmHandle, socket });
 
         } catch (e) {
             err = e;
+            logger.error(`AddNegativeReaction Error: ${e.message}`);
         }
 
         if (err)
@@ -510,7 +537,11 @@ class MessageService {
         if (!mongoose.isValidObjectId(id))
         return Service.rejectResponse({ message: "Invalid message id" })
         
-        const message = await Message.findById(id);
+        let message = await Message.findById(id).populate({
+            path: 'author',
+            select: 'handle smm',
+            populate: { path: 'smm', select: 'handle' }
+        });
         
         if (!message)
             return Service.rejectResponse({ message: "Id not found" });
@@ -526,7 +557,7 @@ class MessageService {
             ((num_fam_messages + 1) % config.num_messages_reward === 0)
             && (message.publicMessage || (message.destChannel?.length))) {
 
-            user = await User.findById(message.author)._id.orFail();
+            user = await User.findById(message.author).pupulate('smm', 'handle');
 
 
             user.charLeft.day += Math.max(1, Math.ceil(config.daily_quote / 100));
@@ -536,15 +567,19 @@ class MessageService {
 
         let err = null;
         try {
-            await message.save();
+            const authorHandle = message.author.handle;
+            const smmHandle = message.author.smm?.handle;
+            message = await message.depopulate();
+            message = await message.save();
             if (user) {
-                await user.save();
-                SquealSocket.charsChanged({ user, socket });
+                user = await user.depopulate();
+                user = await user.save();
+                SquealSocket.charsChanged({ user, smmHandle, socket });
             }
-            await SquealSocket.reactionsChanged({ message, socket });
+            await SquealSocket.reactionsChanged({ message, authorHandle, smmHandle, socket });
         } catch (e) {
-            
             err = e;
+            logger.error(`AddPositiveReaction Error: ${e.message}`);
         }
 
         if (err)

@@ -4,7 +4,6 @@ const dayjs = require('dayjs');
 const config = require('../config/index');
 
 
-
 const ReactionSchema = new mongoose.Schema({
     positive: { type: Number, default: 0, min: 0 },
     negative: { type: Number, default: 0, min: 0 },
@@ -14,13 +13,14 @@ const pointSchema = new mongoose.Schema({
     type: {
       type: String,
       enum: ['Point'],
-      required: true
+      required: true,
+      default: 'Point',
     },
     coordinates: {
       type: [Number],
       required: true
     }
-  });
+}, { _id: false });
 
 const MessageMetaSchema = new mongoose.Schema({
     created: { type: Date, default: Date.now },

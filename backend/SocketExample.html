@@ -44,7 +44,7 @@
                     .then(res => res.json())
                     .then(res => {
                         // 64ac2760e9fbb645a50c3623
-                        var socket = io(`http://localhost:8000/user-io/${res.user._id}`, {
+                        var socket = io(`http://localhost:8000/user-io/${res.user.handle}`, {
                             extraHeaders: {
                                 Authorization: `Bearer ${res.token}`
                             },
@@ -67,7 +67,7 @@
                         .then(res => res.json())
                         .then(res => {
 
-                            var socketPro = io(`http://localhost:8000/pro-io/${res.user._id}`, {
+                            var socketPro = io(`http://localhost:8000/pro-io/${res.user.handle}`, {
                                 extraHeaders: {
                                     Authorization: `Bearer ${res.token}`
                                 },
@@ -91,7 +91,7 @@
                             .then(res => res.json())
                             .then(res => {
 
-                                var socketAdmin = io(`http://localhost:8000/admin-io/${res.user._id}`, {
+                                var socketAdmin = io(`http://localhost:8000/admin-io/${res.user.handle}`, {
                                     extraHeaders: {
                                         Authorization: `Bearer ${res.token}`
                                     },

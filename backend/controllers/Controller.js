@@ -52,6 +52,10 @@ class Controller {
             requestParams.handleOnly = Controller.handleBoolean(requestParams.handleOnly);
         }
 
+        if (requestParams.namesOnly) {
+            requestParams.namesOnly = Controller.handleBoolean(requestParams.namesOnly);
+        }
+
         if (requestParams.admin) {
             requestParams.admin = Controller.handleBoolean(requestParams.admin);
         }

@@ -28,7 +28,7 @@ class Setup {
         randomDestUsers=false, randomDestChannels=false,
         popular=false, unpopular=false, maxDate = new dayjs(),
         reactions = null, answering = false, 
-        destChannel=null, destUser=null,
+        destChannel=null, destUser=null, reaction_function=null,
     }) {
 
         const authInd = this.#baseUsers.findIndex(u => u.handle === authorHandle);
@@ -38,15 +38,24 @@ class Setup {
 
         let minDate = new dayjs(this.#baseUsers[authInd].meta.created);
 
+        let r = reactions ?? new Object();
+
+        if (!reactions) {
+            if (popular) r.positive = config.fame_threshold + this.#getRandom(0, 50) + 1
+            else if (reaction_function) r.positive = reaction_function().positive;
+            else r.positive = this.#getRandom(0, 10);
+    
+            if (unpopular) r.negative = config.fame_threshold + this.#getRandom(0, 50) + 1
+            else if (reaction_function) r.negative = reaction_function().negative;
+            else r.negative = this.#getRandom(0, 10);
+        }
+
         let message = new Message({
             content: content || {
                 text: lorem.generateSentences(getRandom(3) + 1),
             },
             author: this.#baseUsers[authInd]._id,
-            reactions: reactions || {
-                positive: (popular) ? config.fame_threshold + getRandom(50) + 1 : getRandom(10),
-                negative: (unpopular) ? config.fame_threshold + getRandom(50) + 1 : getRandom(10),
-            },
+            reactions: r,
         })
 
         if (destUser?.length) {
@@ -152,7 +161,7 @@ class Setup {
         allTime=0, year=0, month=0, week=0, today=0, 
         popular=false, unpopular=false,
         randomDestUsers=false, randomDestChannels=false,
-        answering=false,
+        answering=false, reaction_function=null
     }) {
 
 
@@ -162,7 +171,7 @@ class Setup {
                     authorHandle,
                     created: getDateWithin(period).toDate(),
                     randomDestUsers, randomDestChannels, popular, unpopular,
-                    answering
+                    answering, reaction_function,
                 })
             }
         }
@@ -182,7 +191,7 @@ class Setup {
             this.addMessage({
                 authorHandle,
                 created: this.#getRandomDate(min, max),
-                randomDestUsers, randomDestChannels, popular, unpopular,
+                randomDestUsers, randomDestChannels, popular, unpopular, reaction_function
             })
         }
     }
@@ -508,10 +517,11 @@ async function makeDefaultUsers() {
         randomDestUsers: true,
     })
 
+    const u2_r_max = 2 * config.fame_threshold;
+    const u2_rfunc = () => ({ positive: getRandom(u2_r_max), negative: (getRandom(u2_r_max)) })
+
     setup.addBulkMessages({
         authorHandle: user2.handle,
-        unpopular: true,
-        popular: true,
         allTime: 100,
         year: 120,
         month: 50,
@@ -519,6 +529,7 @@ async function makeDefaultUsers() {
         today: 10,
         randomDestChannels: true,
         randomDestUsers: true,
+        reaction_function: u2_rfunc
     })
 
     u5startMessages *= 3;

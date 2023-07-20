@@ -7,6 +7,7 @@ const AnonymousStrategy = require('passport-anonymous').Strategy;
 
 const User = require('../models/User');
 const config = require('../config/index');
+const { logger } = require('../config/logging');
 
 
 passport.use( 'basicAuth',
