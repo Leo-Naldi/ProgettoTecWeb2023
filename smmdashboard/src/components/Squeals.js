@@ -15,6 +15,7 @@ import dayjs from 'dayjs';
 import Spinner from './Spinner';
 import { Box, Button, Pagination } from '@mui/material';
 import fetchCheckPointData from '../utils/fetchStats';
+import { useManagedAccounts } from '../context/ManagedAccountsContext';
 
 
 export default function Squeals({ managed }) {
@@ -27,6 +28,8 @@ export default function Squeals({ managed }) {
     const [messagesPerPage, setMessagesPerPage] = useState(100);
 
     const smm = useAccount();
+    const managedUsers = useManagedAccounts()
+    const userAccount = managedUsers?.find(u => u.handle === managed)
 
     useEffect(() => {
 
@@ -72,7 +75,7 @@ export default function Squeals({ managed }) {
     useEffect(() => {
         setPage(1);
         setFetchingStats(true);
-        fetchCheckPointData(new dayjs(), managed, smm.token)
+        fetchCheckPointData(new dayjs(), new dayjs(userAccount.meta.created), managed, smm.token)
         .then(res => res.json())
         .then(res => {
             setMaxPages(Math.ceil(res.total / messagesPerPage));

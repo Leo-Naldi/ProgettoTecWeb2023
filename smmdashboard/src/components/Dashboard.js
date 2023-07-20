@@ -39,6 +39,7 @@ export default function Dashboard({ managed }) {
         // If managed changes the whole prop will be refetched so its ok
 
         setFetchingChartData(true);
+        
         const checkpoints = getCheckpoints(
             selectedPeriod, 
             num_checkpoints, 
@@ -46,19 +47,22 @@ export default function Dashboard({ managed }) {
         );
 
         if (checkpoints !== null) {
-            // TODO put a spinner in place of the chart
-            Promise.all(checkpoints.map(c => {
-                return fetchCheckPointData(c, managed, smm.token)
-                    .then(res => res.json())
-                    .then(res => {
+            
+            let stat_promises = [];
 
-                        return ({
-                            start: c,
-                            end: new dayjs(),
-                            stats: res,
-                        })
-                    })
-            })).then(vals => {
+            for (let i = 0; i < checkpoints.length - 1; i++) {
+                stat_promises.push(fetchCheckPointData(checkpoints[i + 1], 
+                        checkpoints[0], managed, smm.token)
+                        .then(res => res.json())
+                        .then(res => {
+                            return ({
+                                start: checkpoints[i + 1],
+                                end: checkpoints[0],
+                                stats: res,
+                            })
+                }))
+            }
+            Promise.all(stat_promises).then(vals => {
                 setChartData(vals);
                 setFetchingChartData(false);
             })

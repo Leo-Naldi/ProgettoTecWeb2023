@@ -8,7 +8,7 @@ export const time_periods = [
     'All Time',
 ];
 
-export function getStartDate(timePeriod, created) {
+export function getAfterDate(timePeriod, created) {
 
     let ret_val = null;
 
@@ -42,7 +42,7 @@ function getDatesBetween(startDate, endDate, n) {
 
     if (!startDate) throw Error("Start date was Null")
 
-    let dates = [];
+    let dates = [new dayjs(startDate)];
     const startTime = startDate.valueOf();
     const endTime = endDate.valueOf();
     const interval = Math.floor((endTime - startTime) / (n + 1));
@@ -60,16 +60,14 @@ function getDatesBetween(startDate, endDate, n) {
 
 export function getCheckpoints(period, num, created=null) {
 
-    const start = getStartDate(period, created);
+    let after = getAfterDate(period, created);
 
-    if (start === null) {
-        throw Error('KILLMEEEEEEEEEE')
-    }
+    if (after === null) after = new dayjs(0);
 
-    return getDatesBetween(start, new dayjs(), num);
+    return getDatesBetween(after, new dayjs(), num);
 }
 
-export default function fetchCheckPointData(checkpoint, handle, token) {
+export default function fetchCheckPointData(before, after, handle, token) {
 
     // Define the base URL
     const baseUrl = `http://localhost:8000/users/${handle}/messages/stats`;
@@ -81,7 +79,8 @@ export default function fetchCheckPointData(checkpoint, handle, token) {
     const params = new URLSearchParams();
 
     // Add query parameters
-    params.append('before', checkpoint.toISOString());
+    params.append('before', before.toISOString());
+    params.append('after', after.toISOString());
 
     // Attach the query parameters to the URL
     url.search = params.toString();

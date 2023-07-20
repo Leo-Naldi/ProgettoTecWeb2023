@@ -4,8 +4,10 @@ export default function accountReducer(state, action) {
         case ('USER_CHANGED'): {
 
             const newUser = {
-                ...state,
-                ...action.payload.user,
+                _id: action.payload.user._id,
+                managed: action.payload.user.managed,
+                handle: action.payload.user.handle,
+                email: action.payload.user.email,
                 loggedIn: true,
                 token: action.payload.token,
                 timestamp: (new Date()).getTime(),

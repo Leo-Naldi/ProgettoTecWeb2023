@@ -22,6 +22,10 @@ export function ManagedAccountsContextProvider({ children }) {
                 }
             })
             .then(res => res.json())
+            .then(res => res.map(u => {
+                if (u.messages) delete u.messages 
+                return u
+            }))
             .then(res => managedAccountsDispatch({
                 type: 'FETCHED_ACCOUNTS',
                 payload: res,

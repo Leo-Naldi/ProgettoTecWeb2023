@@ -30,7 +30,6 @@ export function AccountContextProvider({ children }) {
     });
 
 
-
     return (
         <AccountContext.Provider value={user}>
             <AccountDispatchContext.Provider value={accountDispatch}>

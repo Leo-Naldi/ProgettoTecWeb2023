@@ -5,23 +5,14 @@ import reportWebVitals from './reportWebVitals';
 
 import router from './routes/Router';
 import { RouterProvider } from 'react-router-dom';
-import { ThemeProvider } from '@emotion/react';
-import { Theme } from './context/ThemeContext';
-import AccountContextProvider from './context/CurrentAccountContext';
-import { ManagedAccountsContextProvider } from './context/ManagedAccountsContext';
-import { CssBaseline } from '@mui/material';
+import AppContext from './context/AppContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ThemeProvider theme={Theme}>
-        <AccountContextProvider>
-          <ManagedAccountsContextProvider>
-            <CssBaseline />
-              <RouterProvider router={router} />
-          </ManagedAccountsContextProvider>
-        </AccountContextProvider>
-    </ThemeProvider>
+    <AppContext>
+      <RouterProvider router={router} />
+    </AppContext>
   </React.StrictMode>
 );
 
