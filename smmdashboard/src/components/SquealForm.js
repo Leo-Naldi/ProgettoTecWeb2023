@@ -9,6 +9,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents, Tooltip } from 'react-le
 import FetchOptionsAutocomplete from './FetchOptionsAutocomplete';
 import { useAccount } from '../context/CurrentAccountContext';
 import Spinner from './Spinner';
+import UploadAndDisplayImage from './ImageUpload';
 
 
 function LocationMarker({ position, setPosition }) {
@@ -52,6 +53,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const [destChannels, setDestChannels] = useState([]);
     const [text, setText] = useState('');
     const [geolocate, setGeolocate] = useState(false);
+    const [uploadedImage, setUploadedImage] = useState(false);
 
     const handleOpen = () => setOpen(true);
 
@@ -70,7 +72,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             dest: destUsers.map(u => '@' + u.handle).concat(destChannels.map(c => '§' + c))
         };
 
-        if (geolocate) {
+        if (geolocate && position) {
             body.meta = {
                 geo: {
                     type: 'Point',
@@ -218,6 +220,9 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         if (posting) {
             return (<Spinner />)
         } else {
+            
+            let disabled = (usedChars > maxLength) || ((usedChars === 0) && !uploadedImage)
+            
             return (
                 <Box sx={{
                     maxWidth: 'md',
@@ -278,7 +283,24 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                             />
                         </Box>
 
-                        <Box sx={{ mt: 1 }}>
+                        <FormControlLabel
+                            sx={{ width: '100%', mt: 1 }}
+                            control={
+                                <Checkbox
+                                    value="location"
+                                    id="location"
+                                    color="primary"
+                                    onChange={(e) => {
+                                        setPosition(null);
+                                        setGeolocate(e.target.checked);
+                                    }}
+                                    checked={geolocate} />
+                            }
+                            label="Geolocate Squeal"
+                            name='geolocate'
+                        />
+
+                        {geolocate && <Box sx={{ mt: 1 }}>
                             <MapContainer
                                 center={[41.9027, 12.4963]}
                                 zoom={13}
@@ -292,28 +314,17 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                                 />
                                 <LocationMarker position={position} setPosition={setPosition} />
                             </MapContainer>
-                        </Box>
+                        </Box>}
 
-                        <FormControlLabel
-                            sx={{ width: '100%', mt: 1 }}
-                            control={
-                                <Checkbox
-                                    value="location"
-                                    id="location"
-                                    color="primary"
-                                    onChange={(e) => setGeolocate(e.target.checked)}
-                                    checked={geolocate} />
-                            }
-                            label="Geolocate Squeal"
-                            disabled={position === null}
-                            name='geolocate'
-                        />
+                        <Box>
+                            <UploadAndDisplayImage imageUploaded={setUploadedImage}/>
+                        </Box>
 
                         <Button
                             type="submit"
                             variant="contained"
                             sx={{ mt: 1, mb: 2 }}
-                            disabled={usedChars > maxLength}
+                            disabled={disabled}
                         >
                             Post Squeal
                         </Button>

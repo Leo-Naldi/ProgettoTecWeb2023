@@ -16,64 +16,56 @@ import Spinner from './Spinner';
 import { Box, Button, Pagination } from '@mui/material';
 import fetchCheckPointData from '../utils/fetchStats';
 import { useManagedAccounts } from '../context/ManagedAccountsContext';
+import { useSocket } from '../context/SocketContext';
+import authorizedRequest from '../utils/authorizedRequest';
 
 
 export default function Squeals({ managed }) {
+
+
+    const messagesPerPage = 100;
 
     const [page, setPage] = useState(1);
     const [messages, setMessages] = useState([]);
     const [fetchingMessages, setFetchingMessages] = useState(true);
     const [fetchingStats, setFetchingStats] = useState(true);
     const [maxPages, setMaxPages] = useState(null);
-    const [messagesPerPage, setMessagesPerPage] = useState(100);
 
     const smm = useAccount();
-    const managedUsers = useManagedAccounts()
-    const userAccount = managedUsers?.find(u => u.handle === managed)
+    const managedUsers = useManagedAccounts();
+    const userAccount = managedUsers?.find(u => u.handle === managed);
+    const socket = useSocket();
 
-    useEffect(() => {
+    const fetchMessages = () => {
+        setFetchingMessages(true);
 
-        if (managed) {
-            
-            setFetchingMessages(true);
-
-            const baseUrl = `http://localhost:8000/messages/${managed}/messages`;
-            
-            // Create a new URL object
-            const url = new URL(baseUrl);
-            
-            // Create a new URLSearchParams object
-            const params = new URLSearchParams();
-            
-            // Add query parameters
-            params.append('page', page);
-            
-            url.search = params.toString();
-    
-            fetch(url.href, {
-                headers: {
-                    'Authorization': 'Bearer ' + smm.token,
-                }
-            })
+        authorizedRequest({
+            endpoint: `messages/${managed}/messages`,
+            token: smm.token,
+            query: { page: page }
+        })
             .then(res => res.json())
             .then(res => res.map(m => ({
-                    ...m,
-                    meta: {
-                        created: new dayjs(m.meta.created),
-                        lastModified: new dayjs(m.meta.lastModified)
-                    }
-                }))
+                ...m,
+                meta: {
+                    created: new dayjs(m.meta.created),
+                    lastModified: new dayjs(m.meta.lastModified)
+                }
+            }))
             )
             .then(res => {
                 setMessages(res);
                 setFetchingMessages(false);
             })
-        }
-
-    }, [page, managed]);
+    }
 
     useEffect(() => {
-        setPage(1);
+        if (managed) {
+            fetchMessages();
+        }
+    }, [page]);
+
+    useEffect(() => {
         setFetchingStats(true);
         fetchCheckPointData(new dayjs(), new dayjs(userAccount.meta.created), managed, smm.token)
         .then(res => res.json())
@@ -81,7 +73,36 @@ export default function Squeals({ managed }) {
             setMaxPages(Math.ceil(res.total / messagesPerPage));
             setFetchingStats(false);
         })
-    }, [])
+        setPage(1);
+        fetchMessages();
+    }, [managed])
+
+    useEffect(() => {
+
+        socket.on('message:created', (message) => {
+            if (message.author === managed) {
+                // for now refetch messages
+               fetchMessages()
+            }
+        })
+
+        socket.on('message:reactions', (message) => {  
+            if (message.author === managed) {
+                // for now refetch messages
+                const ind = messages.findIndex(m => m.id === message.id) 
+
+                if (ind > -1) {
+                    let newMessages = [...messages];
+                    newMessages[ind].reactions = message.reactions;
+                }
+            }
+        })
+
+        return () => {
+            socket.off('message:changed');
+            socket.off('message:reactions');
+        }
+    }, [socket])
 
     return (
         <React.Fragment>

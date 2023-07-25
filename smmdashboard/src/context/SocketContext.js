@@ -32,7 +32,7 @@ export default function SocketContextProvider({ children }) {
 
         return () => {
             if (socket) {
-                // socket.off bla bla
+                
                 socket.removeAllListeners()
                 socket.disconnect();
             }
