@@ -1,8 +1,8 @@
 const { logger } = require("../config/logging");
 
-function matchReqUidToToken(socket, next) {
+function matchReqHandleToToken(socket, next) {
     /*
-     * Middleware that checks weathere the user handle extracted from the token matches
+     * Middleware that checks whether the user handle extracted from the token matches
      * the one in the namespace
     */
 
@@ -20,4 +20,4 @@ function matchReqUidToToken(socket, next) {
     }
 }
 
-module.exports = matchReqUidToToken;
+module.exports = matchReqHandleToToken;

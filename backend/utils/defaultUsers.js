@@ -197,7 +197,7 @@ class Setup {
     }
 
     #getRandom(min, max) {
-        return Math.random() * (max - min) + min;
+        return Math.floor(Math.random() * (max - min)) + min;
     }
 
     #getRandomDate(min, max) {
@@ -207,7 +207,6 @@ class Setup {
 
         return new dayjs(this.#getRandom(dmin, Math.max(dmin, dmax)));
     }
-
 }
 
 
