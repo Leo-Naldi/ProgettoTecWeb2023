@@ -10,6 +10,7 @@ import FetchOptionsAutocomplete from './FetchOptionsAutocomplete';
 import { useAccount } from '../context/CurrentAccountContext';
 import Spinner from './Spinner';
 import UploadAndDisplayImage from './ImageUpload';
+import authorizedRequest from '../utils/authorizedRequest';
 
 
 function LocationMarker({ position, setPosition }) {
@@ -53,7 +54,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const [destChannels, setDestChannels] = useState([]);
     const [text, setText] = useState('');
     const [geolocate, setGeolocate] = useState(false);
-    const [uploadedImage, setUploadedImage] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
 
     const handleOpen = () => setOpen(true);
 
@@ -102,6 +103,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                 })
             } else {
                 console.log(`Posting Squeal failed with code: ${res.status}`);
+                setPosting(false);
             }
 
         })
@@ -150,48 +152,22 @@ export default function SquealFormModal({ managed, open, setOpen }) {
 
     function getUserHandlesFetch() {
 
-        // Define the base URL
-        const baseUrl = `http://localhost:8000/users/`;
-
-        // Create a new URL object
-        const url = new URL(baseUrl);
-
-        // Create a new URLSearchParams object
-        const params = new URLSearchParams();
-
-        // Add query parameters
-        params.append('handleOnly', "true");
-
-        // Attach the query parameters to the URL
-        url.search = params.toString();
-
-        return fetch(url.href, {
-            headers: {
-                'Authorization': 'Bearer ' + smm.token,
+        return authorizedRequest({
+            endpoint: '/users/',
+            token: smm.token,
+            query: {
+                handleOnly: 'true'
             }
         }).then(res => res.json())
     }
 
     function getChannelNamesFetch() {
 
-        // Define the base URL
-        const baseUrl = `http://localhost:8000/channels/`;
-
-        // Create a new URL object
-        const url = new URL(baseUrl);
-
-        // Create a new URLSearchParams object
-        const params = new URLSearchParams();
-
-        // Add query parameters
-        params.append('namesOnly', "true");
-
-        // Attach the query parameters to the URL
-        url.search = params.toString();
-
-        return fetch(url.href, {
-            headers: {
-                'Authorization': 'Bearer ' + smm.token,
+        return authorizedRequest({
+            endpoint: '/channels/',
+            token: smm.token,
+            query: {
+                namesOnly: 'true'
             }
         }).then(res => res.json())
     }
@@ -221,7 +197,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             return (<Spinner />)
         } else {
             
-            let disabled = (usedChars > maxLength) || ((usedChars === 0) && !uploadedImage)
+            let disabled = (usedChars > maxLength) || ((usedChars === 0) && !selectedImage)
             
             return (
                 <Box sx={{
@@ -317,7 +293,9 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                         </Box>}
 
                         <Box>
-                            <UploadAndDisplayImage imageUploaded={setUploadedImage}/>
+                            <UploadAndDisplayImage 
+                                selectedImage={selectedImage} 
+                                setSelectedImage={setSelectedImage}/>
                         </Box>
 
                         <Button

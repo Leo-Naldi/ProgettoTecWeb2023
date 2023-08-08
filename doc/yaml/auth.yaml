@@ -17,7 +17,7 @@ paths:
       tags:
         - Login
       description: login endpoint
-      operationId: userLogin
+      operationId: login
       requestBody:
         description: user's mail and password
         required: True

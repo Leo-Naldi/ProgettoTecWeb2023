@@ -16,6 +16,7 @@ export function AccountContextProvider({ children }) {
         mem = JSON.parse(mem);
     
         const memoryTimeStamp = new dayjs(mem.timestamp);
+        
         if ((new dayjs()).diff(memoryTimeStamp, 'day') > 1) {
             // Expired
             localStorage.removeItem('smmDashboardUser');

@@ -112,7 +112,7 @@ export default function Squeals({ managed }) {
 
                 <Pagination 
                     color='primary'
-                    count={maxPages}
+                    count={maxPages || 1}
                     onChange={(_, p) => setPage(p)}
                     sx={{ mt: 2 }}/>
             </Box>
@@ -145,7 +145,7 @@ export default function Squeals({ managed }) {
                             const destChannel = m.dest.filter(d => d.charAt(0) === '§');
                             const destUser = m.dest.filter(d => d.charAt(0) === '@');
 
-                            return (<TableRow key={m._id}>
+                            return (<TableRow key={m.id}>
                                 <TableCell>{m.meta.created.format('YYYY/MM/DD')}</TableCell>
                                 <TableCell>
                                     <Typography

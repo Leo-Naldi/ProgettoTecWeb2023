@@ -31,10 +31,10 @@ export default function SocketContextProvider({ children }) {
         }
 
         return () => {
-            if (socket) {
-                
+            if (socket) {   
                 socket.removeAllListeners()
                 socket.disconnect();
+                setSocket(null);
             }
         }
     }, [smm.loggedIn]);
