@@ -6,7 +6,7 @@ function makeToken({ handle, accountType, admin }) {
         handle: handle,
         accountType: accountType,
         admin: admin,
-    }, config.secrect);
+    }, config.secrect, { expiresIn: '7d' });
 }
 
 module.exports = makeToken;

@@ -6,6 +6,7 @@ const Controller = require('../controllers/Controller');
 const UserService = require('../services/UserServices');
 const makeToken = require('../utils/makeToken');
 const MessageServices = require('../services/MessageServices');
+const getAuthStrat = require('../auth/auth');
 
 const UserRouter = express.Router();
 
@@ -31,7 +32,7 @@ UserRouter.post('/:handle', passport.authenticate('basicAuth', { session: false 
         
         // Some fields can only be modified by an admin
         if (((req.body?.charLeft) || req.body?.blocked) && (!req.user.admin)) 
-            res.sendStatus(401);
+            return res.sendStatus(401);
         // TODO a user can only modify himself or his managed accounts
 
         await Controller.handleRequest(req, res, UserService.writeUser);
@@ -57,7 +58,7 @@ UserRouter.post('/:handle/smm', passport.authenticate('proAuth', { session: fals
     }
 );
 
-UserRouter.post('/:handle/managed', passport.authenticate('proAuth', { session: false }),
+UserRouter.post('/:handle/managed', getAuthStrat('proAuth'),
     async (req, res) => {
 
         // TODO a user can only modify his own managed
@@ -66,7 +67,7 @@ UserRouter.post('/:handle/managed', passport.authenticate('proAuth', { session: 
     }
 );
 
-UserRouter.get('/:handle/managed', passport.authenticate('proAuth', { session: false }),
+UserRouter.get('/:handle/managed', getAuthStrat('proAuth'),
     async (req, res) => {
 
         // TODO a user can only modify his own managed

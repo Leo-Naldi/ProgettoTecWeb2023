@@ -20,9 +20,10 @@ class ExpressServer {
         const app = express()
 
         // middleware setup
-        app.use(bodyParser.json())
+        app.use(bodyParser.json({ limit: '50mb' }))
         app.use(bodyParser.urlencoded({
             extended: false,
+            limit: '50mb'
         }))
         app.use('*', cors());
         app.use((req, res, next) => {
@@ -39,7 +40,6 @@ class ExpressServer {
         app.use('/messages', MessageRouter);
         app.use('/channels', ChannelRouter);
         app.use('/image', ImageRouter);
-        app.get('/hello', (req, res) => res.json({ message: 'hello world' }))
 
 
         this.app = app;
@@ -52,14 +52,14 @@ class ExpressServer {
         this.server = this.app.listen(port, () =>
             logger.info(`Listening on port ${port}`));
 
-        const socketServer = new SocketServer(this.server)
+        this.socketServer = new SocketServer(this.server)
         
-        this.app.set('socketio', socketServer.io);  
+        this.app.set('socketio', this.socketServer.io);  
 
-        this.app.set('userNms', socketServer.userNms);
-        this.app.set('proNms', socketServer.proNms);
-        this.app.set('adminNms', socketServer.adminNms);
-        this.app.set('channelNms', socketServer.channelNms);
+        this.app.set('userNms', this.socketServer.userNms);
+        this.app.set('proNms', this.socketServer.proNms);
+        this.app.set('adminNms', this.socketServer.adminNms);
+        this.app.set('channelNms', this.socketServer.channelNms);
     }
 }
 

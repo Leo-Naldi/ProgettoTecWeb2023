@@ -20,7 +20,7 @@ export default function authorizedRequest({ endpoint, token, method='get', query
 
     let opt = {
         headers: {
-            'Authorization': 'Bearer ' + token,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         },
         method: method,

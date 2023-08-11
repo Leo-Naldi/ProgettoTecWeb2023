@@ -26,6 +26,17 @@ export default function accountReducer(state, action) {
                 token: null,
             }
         }
+        case 'REFRESH_TOKEN': {
+            const newUser = {
+                ...state,
+                token: action.payload.token,
+                timestamp: (new Date()).getTime(),
+            };
+
+            localStorage.setItem('smmDashboardUser', JSON.stringify(newUser));
+
+            return newUser;
+        }
         default: {
             throw Error(`User Reducer: Unknown action type "${action.type}"`);
         }

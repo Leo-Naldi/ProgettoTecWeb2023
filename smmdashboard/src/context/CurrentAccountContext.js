@@ -1,4 +1,5 @@
-import { React, createContext, useReducer, useContext } from 'react';
+import { React, createContext, useReducer, useContext, useEffect } from 'react';
+import authorizedRequest from '../utils/authorizedRequest';
 
 import accountReducer from '../reducers/AccountReducer';
 import dayjs from 'dayjs';
@@ -10,18 +11,25 @@ const AccountDispatchContext = createContext(null);
 export function AccountContextProvider({ children }) {
 
     let mem = localStorage.getItem('smmDashboardUser');
+    //console.log(mem);
+
+    const getTimeDiff = (timestamp) => {
+        const memoryTimeStamp = new dayjs(timestamp);
+        return (new dayjs()).diff(memoryTimeStamp, 'hour');
+    }
 
     if (mem) {
      
         mem = JSON.parse(mem);
     
-        const memoryTimeStamp = new dayjs(mem.timestamp);
+        const diff = getTimeDiff(mem.timestamp);
         
-        if ((new dayjs()).diff(memoryTimeStamp, 'day') > 1) {
+        if (diff >= 7*24) {
+
             // Expired
             localStorage.removeItem('smmDashboardUser');
-    
             mem = null;
+
         }
     }
 
@@ -29,6 +37,53 @@ export function AccountContextProvider({ children }) {
         loggedIn: false, 
         token: null,
     });
+
+    useEffect(() => {
+
+        let ignore = false;  // react stuff
+
+        const refreshToken = () => {
+            return authorizedRequest({
+                endpoint: '/auth/refresh',
+                token: user.token,
+                method: 'post',
+            }).then(res => {
+                if (res.ok) {
+                    return res.json()
+                } else {
+                    console.log(`Refresh Token Failed with code: ${res.status}`)
+                    throw Error(`Refresh Token Failed with code: ${res.status}`)
+                }
+            }).then(res => {
+                if (!ignore) {
+                    accountDispatch({
+                        type: 'REFRESH_TOKEN',
+                        payload: {
+                            token: res.token,
+                        }
+                    })
+                }  
+            }).catch(err => {
+                accountDispatch({
+                    type: 'USER_LOGOUT',  // TODO add some error message
+                })
+            })
+        }
+
+        if (user.loggedIn) {
+
+            // refresh the token when the user first logs in ...
+            refreshToken();
+
+            // ... and every 60 minutes
+            const iid = setInterval(refreshToken, 1000*60*60);
+
+            return () => {
+                clearInterval(iid);
+                ignore = true;
+            }
+        }
+    }, [user.loggedIn])
 
 
     return (

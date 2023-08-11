@@ -1,11 +1,17 @@
-import * as React from 'react';
+import React, { useEffect } from 'react';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
+import { useSocket } from '../context/SocketContext';
+import { useManagedAccounts, useManagedAccountsDispatch } from '../context/ManagedAccountsContext';
 
 
-export default function CharacterCount({ managed, managedUsers }) {
+export default function CharacterCount({ managed }) {
 
+    const managedUsers = useManagedAccounts();
     const user = managedUsers.find(u => u.handle === managed);
+    const socket = useSocket()
+
+    const managedAccountsDispatch = useManagedAccountsDispatch();
 
     const getTextColor = (count) => {
         if (count <= 10) {
@@ -16,6 +22,24 @@ export default function CharacterCount({ managed, managedUsers }) {
             return 'text.primary';
         }
     };
+
+    useEffect(() => {
+        socket?.on('characters', ({ charLeft, handle }) => {
+            if (handle === user.handle) {
+                managedAccountsDispatch({
+                    action: 'CHANGE_CHARLEFT',
+                    payload: {
+                        handle: handle,
+                        charLeft: charLeft,
+                    }
+                })
+            }
+        })
+
+        return () => {
+            socket?.off('characters');
+        }
+    }, [])
 
     return (
         <React.Fragment>

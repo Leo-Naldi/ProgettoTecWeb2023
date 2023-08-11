@@ -66,6 +66,25 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        if (selectedImage) {
+
+            let data = new FormData();
+            data.append('file', selectedImage);
+
+            authorizedRequest({ 
+                endpoint: '/image/upload/' + managed,
+                token: smm.token,
+                method: 'post',
+             }).then(res => {
+                console.log(res.ok);
+                return res.body()
+            }).then(res => {
+                console.log(res)
+            })
+
+            return;
+        }
+
         let body = {
             content: {
                 text: text,

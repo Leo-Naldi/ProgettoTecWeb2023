@@ -16,7 +16,7 @@ passport.use( 'basicAuth',
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             secretOrKey: config.secrect,
             jsonWebTokenOptions: {
-                maxAge: "1d",  // TODO
+                maxAge: "7d",  // TODO
             }
         },
         async function (jwtPayload, done) {
@@ -27,12 +27,15 @@ passport.use( 'basicAuth',
                 user = await User.findOne({ handle: jwtPayload.handle });
             } catch (error) {
                 err = error;
+                logger.error(`basicAuth Error: ${err.message || err}`)
             }
                 
             if (err) 
                 return done(err);
-            if (!user) 
+            if (!user) {
+                logger.info(`basicAuth: no user named [${jwtPayload.handle}]`)
                 return done(null, false);
+            }
             
             user.lastLoggedin = new Date();
 
@@ -47,7 +50,7 @@ passport.use('adminAuth',
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             secretOrKey: config.secrect,
             jsonWebTokenOptions: {
-                maxAge: "1d",  // TODO
+                maxAge: "7d",  // TODO
             }
         },
         async function (jwtPayload, done) {
@@ -61,14 +64,16 @@ passport.use('adminAuth',
                 });
             } catch (error) {
                 err = error;
+                logger.error(`adminAuth Error: ${err.message || err}`)
             }
-
 
             if (err)
                 return done(err);
-            if (!user)
+            if (!user) {
+                logger.info(`adminAuth: no admin user named [${jwtPayload.handle}]`)
                 return done(null, false);
-            
+            }
+
             user.lastLoggedin = new Date();
 
             return done(null, await user.save());
@@ -82,7 +87,7 @@ passport.use('proAuth',
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             secretOrKey: config.secrect,
             jsonWebTokenOptions: {
-                maxAge: "1d",  // TODO
+                maxAge: "7d", 
             }
         },
         async function (jwtPayload, done) {
@@ -96,17 +101,39 @@ passport.use('proAuth',
                 });
             } catch (error) {
                 err = error;
+                logger.error(`proAuth Error: ${err.message || err}`)
             }
-
 
             if (err)
                 return done(err);
-            if (!user)
+            if (!user) {
+                logger.info(`proAuth: no pro user named [${jwtPayload.handle}]`)
                 return done(null, false);
+            }
 
-            return done(null, user);
+            user.lastLoggedin = new Date();
+
+            return done(null, await user.save());
         }
     )
 );
 
-passport.use(new AnonymousStrategy())
+passport.use(new AnonymousStrategy());
+
+// Use this instead of the passport.authenticate middleware
+function getAuthStrat(name) {
+    return (req, res, next) => {
+        passport.authenticate(name, function (err, user, info) {
+            if (err) {
+                return next(err);
+            }
+            if (!user) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+            req.user = user
+            next()
+        })(req, res, next);
+    }
+}
+
+module.exports = getAuthStrat;
