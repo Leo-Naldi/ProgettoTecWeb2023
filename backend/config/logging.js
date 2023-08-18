@@ -1,3 +1,8 @@
+/**
+ * Logging configuration
+ * @module congfig/logging
+ */
+
 const winston = require('winston');
 require('winston-daily-rotate-file');
 const morgan = require('morgan');
@@ -6,6 +11,10 @@ const config = require('./index');
 
 const { combine, timestamp, json, colorize, printf } = winston.format;
 
+/**
+ * Default logs file, files older than  5 days are rotated out daily
+ * @type {winston.transports.DailyRotateFile}
+ */
 const combinedFileRotateTransport = new winston.transports.DailyRotateFile({
     filename: 'combined-%DATE%.log',
     datePattern: 'YYYY-MM-DD',
@@ -14,6 +23,10 @@ const combinedFileRotateTransport = new winston.transports.DailyRotateFile({
     dirname: './logs',
 });
 
+/**
+ * Error logs file, files older than  5 days are rotated out daily
+ * @type {winston.transports.DailyRotateFile}
+ */
 const errorFileRotateTransport = new winston.transports.DailyRotateFile({
     filename: 'error-%DATE%.log',
     datePattern: 'YYYY-MM-DD',
@@ -23,6 +36,10 @@ const errorFileRotateTransport = new winston.transports.DailyRotateFile({
     level: 'error',
 });
 
+/**
+ * Logger
+ * @type {winston.Logger}
+ */
 const logger = winston.createLogger({ 
     level: config.log_level,
     format: combine(timestamp(), json()),
@@ -33,7 +50,7 @@ const logger = winston.createLogger({
             format: combine(
                 colorize({ level: true, colors: { http: 'magenta' } }),
                 timestamp({
-                    format: 'YYYY-MM-DD hh:mm:ss.SSS A',
+                    format: 'YYYY-MM-DD hh:mm:ss.SSS A',  // A is PM/AM
                 }),
                 printf((info) => `[${info.timestamp}] ${info.level}: ${info.message}`)
             ) 
@@ -41,7 +58,10 @@ const logger = winston.createLogger({
     ],
 });
 
-
+/**
+ * Express requests middleware. 
+ * @type {morgan}
+ */
 const morganLogMiddleware = morgan(
     ':method :url :status :res[content-length] - :response-time ms',
     {

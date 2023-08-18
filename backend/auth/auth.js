@@ -1,22 +1,30 @@
+/**
+ * Contains the Authentication strategies. It is advised to use the middleware
+ * from {@link module:middleware/auth} instead of the strategies directly.
+ * @module auth/auth
+ */
+
 const passport = require('passport');
 const passportJwt = require("passport-jwt");
 const ExtractJwt = passportJwt.ExtractJwt;
 const StrategyJwt = passportJwt.Strategy;
-const mongoose = require('mongoose');
 const AnonymousStrategy = require('passport-anonymous').Strategy;
 
 const User = require('../models/User');
 const config = require('../config/index');
 const { logger } = require('../config/logging');
 
-
-passport.use( 'basicAuth',
+/**
+ * Basic Authentication strategy for default users. Parses the token from the 
+ * Authentication header with the bearer format.
+ */
+passport.use('basicAuth',
     new StrategyJwt(
         {
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             secretOrKey: config.secrect,
             jsonWebTokenOptions: {
-                maxAge: "7d",  // TODO
+                maxAge: "7d",
             }
         },
         async function (jwtPayload, done) {
@@ -119,21 +127,3 @@ passport.use('proAuth',
 );
 
 passport.use(new AnonymousStrategy());
-
-// Use this instead of the passport.authenticate middleware
-function getAuthStrat(name) {
-    return (req, res, next) => {
-        passport.authenticate(name, function (err, user, info) {
-            if (err) {
-                return next(err);
-            }
-            if (!user) {
-                return res.status(401).json({ message: 'Unauthorized' });
-            }
-            req.user = user
-            next()
-        })(req, res, next);
-    }
-}
-
-module.exports = getAuthStrat;

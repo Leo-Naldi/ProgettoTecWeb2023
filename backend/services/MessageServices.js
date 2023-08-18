@@ -534,8 +534,11 @@ class MessageService {
     };
 
     static async addPositiveReaction({ id, socket }) { 
-        if (!mongoose.isValidObjectId(id))
-        return Service.rejectResponse({ message: "Invalid message id" })
+        if (!mongoose.isValidObjectId(id)) {
+
+            logger.error(`addPositiveReaction: ${id} is not a valid id`)
+            return Service.rejectResponse({ message: "Invalid message id" });
+        }
         
         let message = await Message.findById(id).populate({
             path: 'author',
@@ -543,8 +546,10 @@ class MessageService {
             populate: { path: 'smm', select: 'handle' }
         });
         
-        if (!message)
+        if (!message){
+            logger.error(`addPositiveReaction: no message with id ${id}`)
             return Service.rejectResponse({ message: "Id not found" });
+        }
         
         const num_fam_messages = await Message.find({ author: message.author })
             .byPopularity('popular').count();

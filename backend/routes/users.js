@@ -1,20 +1,18 @@
 const express = require('express');
-const passport = require('passport');
 const User = require("../models/User");
 
 const Controller = require('../controllers/Controller');
 const UserService = require('../services/UserServices');
-const makeToken = require('../utils/makeToken');
 const MessageServices = require('../services/MessageServices');
-const getAuthStrat = require('../auth/auth');
+const getAuthMiddleware = require('../middleware/auth');
 
 const UserRouter = express.Router();
 
-UserRouter.get('/', passport.authenticate('basicAuth', {session: false}), async (req, res) => {
+UserRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
     await Controller.handleRequest(req, res, UserService.getUsers);
 })
 
-UserRouter.get('/:handle', passport.authenticate('basicAuth', { session: false }),
+UserRouter.get('/:handle', getAuthMiddleware('basicAuth'),
     async (req, res) => {
 
         await Controller.handleRequest(req, res, UserService.getUser);
@@ -27,7 +25,7 @@ UserRouter.put('/:handle', async (req, res) => {
 
 })
 
-UserRouter.post('/:handle', passport.authenticate('basicAuth', { session: false }),
+UserRouter.post('/:handle', getAuthMiddleware('basicAuth'),
     async (req, res) => {
         
         // Some fields can only be modified by an admin
@@ -39,7 +37,7 @@ UserRouter.post('/:handle', passport.authenticate('basicAuth', { session: false 
     }
 );
 
-UserRouter.delete('/:handle', passport.authenticate('basicAuth', { session: false }),
+UserRouter.delete('/:handle', getAuthMiddleware('basicAuth'),
     async (req, res) => {
         if (req.params.handle !== req.user.handle) {
             res.sendStatus(401)
@@ -49,7 +47,7 @@ UserRouter.delete('/:handle', passport.authenticate('basicAuth', { session: fals
     }
 );
 
-UserRouter.post('/:handle/smm', passport.authenticate('proAuth', { session: false }),
+UserRouter.post('/:handle/smm', getAuthMiddleware('proAuth'),
     async (req, res) => {
 
         // TODO a user can only modify his own smm
@@ -58,7 +56,7 @@ UserRouter.post('/:handle/smm', passport.authenticate('proAuth', { session: fals
     }
 );
 
-UserRouter.post('/:handle/managed', getAuthStrat('proAuth'),
+UserRouter.post('/:handle/managed', getAuthMiddleware('proAuth'),
     async (req, res) => {
 
         // TODO a user can only modify his own managed
@@ -67,7 +65,7 @@ UserRouter.post('/:handle/managed', getAuthStrat('proAuth'),
     }
 );
 
-UserRouter.get('/:handle/managed', getAuthStrat('proAuth'),
+UserRouter.get('/:handle/managed', getAuthMiddleware('proAuth'),
     async (req, res) => {
 
         // TODO a user can only modify his own managed
@@ -76,21 +74,21 @@ UserRouter.get('/:handle/managed', getAuthStrat('proAuth'),
     }
 );
 
-UserRouter.post('/:handle/grantAdmin', passport.authenticate('adminAuth', { session: false }),
+UserRouter.post('/:handle/grantAdmin', getAuthMiddleware('adminAuth'),
     async (req, res) => {
 
         await Controller.handleRequest(req, res, UserService.grantAdmin);
     }
 );
 
-UserRouter.post('/:handle/revokeAdmin', passport.authenticate('adminAuth', { session: false }),
+UserRouter.post('/:handle/revokeAdmin', getAuthMiddleware('adminAuth'),
     async (req, res) => {
 
         await Controller.handleRequest(req, res, UserService.revokeAdmin);
     }
 );
 
-UserRouter.get('/:handle/messages/stats', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+UserRouter.get('/:handle/messages/stats', getAuthMiddleware('basicAuth'), async (req, res) => {
 
     if (req.user.handle !== req.params.handle) {
         const requestedUser = await User.findOne({ handle: req.params.handle }) 
@@ -106,14 +104,14 @@ UserRouter.get('/:handle/messages/stats', passport.authenticate('basicAuth', { s
     await Controller.handleRequest(req, res, MessageServices.getMessagesStats);
 })
 
-UserRouter.get('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+UserRouter.get('/:handle/messages', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     // this way you can see any user's messages
     
     await Controller.handleRequest(req, res, MessageServices.getUserMessages);
 })
 
-UserRouter.post('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+UserRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     // TODO posting to a channel can only be done if the user is a write member
     // TODO add fetched destchannels to postUserMessage
@@ -121,21 +119,21 @@ UserRouter.post('/:handle/messages', passport.authenticate('basicAuth', { sessio
     await Controller.handleRequest(req, res, MessageServices.postUserMessage);
 })
 
-UserRouter.delete('/:handle/messages', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+UserRouter.delete('/:handle/messages', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     // TODO a user can only delete his own squeals
     
     await Controller.handleRequest(req, res, MessageServices.deleteUserMessages);
 })
 
-UserRouter.delete('/:handle/messages/:id', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+UserRouter.delete('/:handle/messages/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     // TODO a user can only delete his own squeals
     
     await Controller.handleRequest(req, res, MessageServices.deleteMessage);
 })
 
-UserRouter.post('/:handle/messages/:id', passport.authenticate('basicAuth', { session: false }), async (req, res) => {
+UserRouter.post('/:handle/messages/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     // TODO a user can only modify his own messages or the ones from the users he manages
     

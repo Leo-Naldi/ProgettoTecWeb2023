@@ -1,5 +1,17 @@
+/**
+ * Socketio Middleware module
+ * @module middleware/socketio
+ */
+
 const { logger } = require("../config/logging");
 
+/**
+ * Authentication middleware that checks weather the handle in the token matches
+ * with the namespace.
+ * 
+ * @param {socket} socket Socket instance 
+ * @param {function} next Next middleware
+ */
 function matchReqHandleToToken(socket, next) {
     /*
      * Middleware that checks whether the user handle extracted from the token matches
