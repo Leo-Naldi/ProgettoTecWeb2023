@@ -24,10 +24,6 @@ export function ManagedAccountsContextProvider({ children }) {
                 if (res.ok) return res.json()
                 else throw Error(`Fetch Managed Users failed with code: ${res.status}`)
             })
-            .then(res => res.map(u => {
-                if (u.messages) delete u.messages 
-                return u
-            }))
             .then(res => managedAccountsDispatch({
                 type: 'FETCHED_ACCOUNTS',
                 payload: res,

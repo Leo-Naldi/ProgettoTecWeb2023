@@ -5,15 +5,32 @@ const User = require("../models/User");
 const makeToken = require("../utils/makeToken");
 const Service = require("./Service");
 const Channel = require("../models/Channel");
+const { logger } = require("../config/logging");
 
 class UserService {
 
+
+    static #getSecureUserRecord(filter) {
+        return User.find(filter)
+            .select('-__v -password')
+            .populate('joinedChannels', 'name')
+            .populate('smm', 'handle')
+    }
+
+    static #makeUserObject(user) {
+
+        let res = user.toObject();
+
+        // if joinedChannels is populated it replaces every channel with its name
+        res.joinedChannels = res.joinedChannels.map(c => c?.name || c);
+
+        res.smm = res.smm?.handle || res.smm;
+
+        return res;
+    }
+
     static _makeUserObjectArr(userArr) {
-        return userArr.map(u => u.toObject())
-            .map(u => {
-                // turns [{ name: 'channel' }, ...] into ['channel', ...]
-                u.joinedChannels = u.joinedChannels.map(c => c.name);
-            })
+        return userArr.map(UserService.#makeUserObject)
     }
 
     static async getUsers({ handle, admin, accountType, handleOnly, page = 1 } = { page: 1}){
@@ -25,44 +42,33 @@ class UserService {
 
         let users;
         if ((handleOnly === true) || (handleOnly === false)) {
-            users = await User.find(filter)
+            users = await UserService.#getSecureUserRecord(filter)
                 .sort('meta.created')
                 .select('handle');
             
-            return Service.successResponse(users.map(u => u.toObject()));
+            return Service.successResponse(UserService._makeUserObjectArr(users));
         } else {
-            users = await User.find(filter)
-                .select('-__v -password')
+            users = await UserService.#getSecureUserRecord(filter)
                 .sort('meta.created')
                 .skip((page - 1) * config.results_per_page)
                 .limit(config.results_per_page).populate('joinedChannels', 'name');
 
-                return Service.successResponse(UserService._makeUserObjectArr(user));
+                return Service.successResponse(UserService._makeUserObjectArr(users));
         }
 
     }
 
     static async getUser({ handle }) {
-        
-        //console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let user = await User.findOne({ handle: handle }).select('-__v -password');
+        let userRes = await UserService.#getSecureUserRecord({ handle: handle });
 
-        if (!user) return Service.rejectResponse({ message: "User not found" });
+        if (!(userRes?.length)) return Service.rejectResponse({ message: "User not found" });
 
-        if (user.messages instanceof Array) {
-            user = await user.populate('messages');
-        }
+        let user = userRes[0];
 
-        let managed = await User.find({ smm: user._id }).select('-password -messages');
-
-        //console.log(managed)
-
-        let result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
-
-        return Service.successResponse(result);        
+        return Service.successResponse(UserService.#makeUserObject(user));        
     }
 
     static async createUser({ handle, email, password,
@@ -374,9 +380,10 @@ class UserService {
             if (!user) return Service.rejectResponse({ message: "Must provide a valid handle" })
         }
 
-        const res = await User.find({ smm: user._id }).select('-__v -password');
+        const res = await UserService.#getSecureUserRecord({ smm: user._id })
+            .select('handle charLeft');
 
-        return Service.successResponse(res.map( u => u.toObject()));
+        return Service.successResponse(res.map(u => u.toObject()));
     }
 }
 
