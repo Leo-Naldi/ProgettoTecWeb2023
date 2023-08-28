@@ -4,6 +4,7 @@ const Controller = require('../controllers/Controller');
 const MessageServices = require('../services/MessageServices');
 const User = require('../models/User');
 const getAuthMiddleware = require('../middleware/auth');
+const { logger } = require('../config/logging');
 
 
 const MessageRouter = express.Router();
@@ -48,6 +49,7 @@ MessageRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'),
 MessageRouter.get('/:handle/messages', getAuthMiddleware('basicAuth'),
     async (req, res) => {
 
+        logger.info('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa')
         await Controller.handleRequest(req, res, MessageServices.getUserMessages);
     });
 

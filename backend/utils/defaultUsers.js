@@ -467,9 +467,32 @@ async function makeDefaultUsers() {
     // Account Per creare i canali automatici
     const cronUser = new User({
         handle: '__cron',
+        username: 'redazione',
         password: pw,
-        email: 'mailMod@mail.com',
+        email: 'mailCRonnnnnnn@mail.com',
         admin: true,
+        charLeft: {
+            day: 999999999,
+            week: 999999999,
+            month: 9999999999,
+        }
+    })
+
+    const catFacts = new Channel({
+        name: 'CAT_FACTS',
+        creator: cronUser._id,
+        description: 'A new fact about felines every minute',
+        publicChannel: true,
+        official: true,
+    })
+
+
+    const dogPics = new Channel({
+        name: 'DOG_PICTURES',
+        creator: cronUser._id,
+        description: 'A new dog picture every 10 minutes',
+        publicChannel: true,
+        official: true,
     })
 
     // Will contain 100 random public messages, they will change every hour
@@ -646,6 +669,9 @@ async function makeDefaultUsers() {
     await setup.saveAll();
 
     await Promise.all(messages.concat(answers).map(m => m.save()));
+    await cronUser.save()
+    await catFacts.save()
+    await dogPics.save()
 }
 
 module.exports = { makeDefaultUsers }

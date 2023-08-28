@@ -30,7 +30,7 @@ const MessageMetaSchema = new mongoose.Schema({
 
 const ContentSchema = new mongoose.Schema({
     text: String,
-    image: String,
+    image: String,  // image url
 }, { _id: false })
 
 

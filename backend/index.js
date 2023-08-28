@@ -14,6 +14,8 @@ const {
     dailyCharsJob,
     weeklyCharsJob,
     monthlyCharsJob,
+    catJob,
+    imgJob,
 } = require('./config/crons');
 
 
@@ -32,6 +34,8 @@ mongoose.connect(config.db_url).then(async () => {
     dailyCharsJob.start();
     weeklyCharsJob.start();
     monthlyCharsJob.start();
+    catJob.start();
+    imgJob.start();
 
     const exp_server = new ExpressServer();
 

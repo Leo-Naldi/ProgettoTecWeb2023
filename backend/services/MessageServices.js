@@ -271,6 +271,7 @@ class MessageService {
 
     static async postUserMessage({ reqUser, handle, content, meta, dest=[], publicMessage=true,
         answering=null, socket=null }) {
+            
         if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
         let user = reqUser;

@@ -5,7 +5,6 @@ const User = require("../models/User");
 const makeToken = require("../utils/makeToken");
 const Service = require("./Service");
 const Channel = require("../models/Channel");
-const { logger } = require("../config/logging");
 
 class UserService {
 
@@ -347,22 +346,14 @@ class UserService {
             if (!urec) return Service.rejectResponse({ message: `No user called ${handle}` })
         }
 
-        if (users instanceof Array) {
-          
-            if (users.length > 0) {
-
-                for (let i = 0; i < users.length; i++) {
-
-                    let u = await User.findOne({ handle: users[i] });
-
-                    if ((u.smm) && (u.smm.equals(urec._id))) {
-
-                        u.smm = null;
-                        await u.save();
-                    }
+        if (users?.length) {
+            for (let i = 0; i < users.length; i++) {
+                let u = await User.findOne({ handle: users[i] });
+                if ((u.smm) && (u.smm.equals(urec._id))) {
+                    u.smm = null;
+                    await u.save();
                 }
-            }
-            
+            }    
         }
 
         return Service.successResponse()
