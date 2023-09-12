@@ -1,4 +1,4 @@
-const { default: mongoose } = require('mongoose');
+const { mongoose } = require('mongoose');
 
 const Message = require('../models/Message');
 const User = require('../models/User');
@@ -14,6 +14,7 @@ const SquealSocket = require('../socket/Socket');
     Refer to doc/yaml/messages.yaml
 */
 
+
 const allowedSortFields = [
     'meta.created',
     'created',
@@ -26,18 +27,25 @@ const allowedSortFields = [
 
 class MessageService {
 
-    /*
-     *  Aux function to build a mongoose query chain query paramenters.
-    */
+    // TODO only admins can write to official channels and write official messages
+
+    /**
+     * Transforms the given field into a mongodb find filter and either adds it
+     * to the given query or returns it.
+     * 
+     * @param {Object} param0 The fuctions parameters
+     * @returns The query or the query filter
+     */
     static async _addQueryChains({ 
         query=Message.find(), popular, unpopular, controversial, risk,
         before, after, dest, page = 1, official=null, mentions=[], 
-        reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false } = 
+        reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
+        answering= null } = 
         { query: Message.find(), page: 1, 
             official: null, mentions: [], 
             reqUser: null, author: null, 
             sortField: null, filterOnly: false,
-            publicMessage: null }) {
+            publicMessage: null, answering: null,  }) {
 
         // TODO mentions => only get messages that mention a channel/keyword/user
         // TODO official => only get messages destined to official/unofficial channels
@@ -109,10 +117,7 @@ class MessageService {
 
             if (users?.length) {
                 query.where('destUser').in(users.map(u => u._id));
-            }
-
-            
-            
+            } 
         } 
         
         if (author) {
@@ -122,6 +127,10 @@ class MessageService {
         if ((publicMessage === true) || (publicMessage === false)) {
             query.find({ publicMessage: publicMessage })
         }
+
+        if (answering) query.where('answering').equals(answering);
+
+        if (official) query.where('official').equals(true);
 
         if (filterOnly) return query.getFilter()
 
@@ -158,6 +167,15 @@ class MessageService {
         return query;
     }
 
+    /**
+     * Turns the given array of message records into an array of Objects. 
+     * Destinations are replaced with the corresponding name/handle and an 
+     * id field is added. (The _id field is also present),
+     * 
+     * @param {Message[]} messageArr The array of messages 
+     * @param {boolean} deleteAuthor True if the author should be deleted from the messages
+     * @returns An array of objects representing the given messages
+     */
     static _makeMessageObjectArr(messageArr, deleteAuthor = false) {
 
         return messageArr
@@ -178,6 +196,12 @@ class MessageService {
             })
     }
 
+    /**
+     * Generic Read operation for messages
+     * 
+     * @param {Object} param0 The request values
+     * @returns A message object array
+     */
     static async getMessages({ reqUser=null, author=null, page=1, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage }={ page: 1, reqUser: null }) {
 
@@ -191,12 +215,36 @@ class MessageService {
         return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
 
-    static async getChannelMessages({ reqUser, channelId }){
-        const query = Message.find({ destChannel: { $elemMatch: { $eq: channelId } } });
+    /**
+     * Returns the messages of a given channel
+     * 
+     * @param {Object} param0 The request values
+     * @returns A message object array
+     */
+    static async getChannelMessages({ reqUser, name }){
+        const ch = await Channel.findOne({ name: name });
+        if (!ch) return Service.rejectResponse({ message: `No channel named ${name}` })
+
+        if (!ch.privateChannel) {
+            if (!ch.members.find(id => reqUser._id.equals(id))) {
+                return Service.rejectResponse({ 
+                    message: `Cannot access private channel §${name} since you are not a member.`
+                })
+            }
+        }
+        
+        const query = Message.find().where('destChannel').in([ch._id]);
+        
         const res = await query
         return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
 
+    /**
+     * Returns the messages authored by a given user
+     * 
+     * @param {Object} param0 The request values
+     * @returns A message object array
+     */
     static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage }){
         
@@ -223,6 +271,33 @@ class MessageService {
         return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
 
+    /**
+     * Returns a specific message
+     * 
+     * @param {Object} param0 The request values
+     * @param {Object} param0.reqUser The requesting user
+     * @param {string} param0.id The message's id
+     * @returns The message object if possible
+     */
+    static async getMessage({ reqUser, id}) {
+        const message = await Message.findById(id);
+
+        if (!message) return Service.rejectResponse({ message: `No message with id ${id}` });
+
+        if (message.privateMessage) {
+            // TODO
+        }
+
+        return Service.successResponse(MessageService._makeMessageObjectArr([message])[0])
+    }
+
+    /**
+     * Like getMessages but instead of returning the messages returns information about them
+     * (i.e. likes/dislikes, count)
+     * 
+     * @param {Object} param0 The request values
+     * @returns An object containing the message's stats
+     */
     static async getMessagesStats({ reqUser, handle, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage }) {
         
@@ -269,20 +344,18 @@ class MessageService {
         return Service.successResponse(res[0]);
     }
 
+    /**
+     * Create a message
+     * 
+     * @param {Object} param0 The request values
+     * @returns 
+     */
     static async postUserMessage({ reqUser, handle, content, meta, dest=[], publicMessage=true,
         answering=null, socket=null }) {
             
         if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
         let user = reqUser;
-        if (user.handle !== handle) {  // SMM posting for the user
-            user = await User.findOne({ handle: handle }).populate('smm', 'handle _id');
-
-            if (!user?.smm._id.equals(reqUser._id))
-                return Service.rejectResponse({ message: "Invalid user handle" });
-
-            publicMessage = true;  // smm is only for public messages
-        }
 
         let destUser = dest?.filter(h => h.charAt(0) === '@').map(h => h.slice(1)), 
             destChannel = dest?.filter(h => h.charAt(0) === '§').map(h => h.slice(1));
@@ -347,17 +420,11 @@ class MessageService {
 
         try {
             
-            let smmHandle = user.smm?.handle;
-            
-            user.messages.push(message._id);
+            let smmHandle = user.smm?.handle;  // populated during authentication
             
             message = await message.save();
             user = await user.depopulate();
             let author = await user.save();
-
-            message.destUser = destUser;
-            message.destChannel = destChannel;
-            message.author = user;
 
             resbody = MessageService._makeMessageObjectArr([message])[0];
 
@@ -380,6 +447,9 @@ class MessageService {
         return Service.successResponse({ message: resbody, charLeft: user.charLeft});
     }
 
+    /**
+     * Deletes all messages of the given user.
+     */
     static async deleteUserMessages({ reqUser, handle }) {
         
         let user = reqUser;
@@ -393,17 +463,12 @@ class MessageService {
 
         //console.log(deleted.deletedCount);
 
-        // You may think that this line is useless, and i would agree with you,
-        // unfortunately without it user.messages doesn't actually get cleared, 
-        // so here it will stay
-        user = await User.findOne({ handle: handle });
-        
-        user.messages = [];
-        await user.save()
-
         return Service.successResponse();
     }
 
+    /**
+     * Deletes a message
+     */
     static async deleteMessage({ id }) {
 
         if (!mongoose.isObjectIdOrHexString(id)) 
@@ -430,15 +495,12 @@ class MessageService {
         const mid = message._id;
         await message.deleteOne();
 
-        let author = await User.findById(message.author);
-
-        author.messages = author.messages.filter(m => !m.equals(mid));
-
-        await author.save()
-
         return Service.successResponse();
     }
 
+    /**
+     * Modifies a message.
+     */
     static async postMessage({ id, reactions=null }) {
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
@@ -472,6 +534,9 @@ class MessageService {
         return Service.successResponse();
     }
 
+    /**
+     * Adds a dislike to a message.
+     */
     static async addNegativeReaction({ id, socket }){
 
         if (!mongoose.isObjectIdOrHexString(id))
@@ -534,6 +599,9 @@ class MessageService {
         return Service.successResponse();
     };
 
+    /**
+     * Adds a like to a message.
+     */
     static async addPositiveReaction({ id, socket }) { 
         if (!mongoose.isValidObjectId(id)) {
 
@@ -594,6 +662,10 @@ class MessageService {
         return Service.successResponse();
     };
 
+    /**
+     * Removes the given channel from all message's destination. If it was the only destination
+     * the message is deleted.
+     */
     static async deleteChannelMessages({ name }) {
         const channel = await Channel.findOne({ name: name });
 

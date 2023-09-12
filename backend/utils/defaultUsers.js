@@ -1,14 +1,13 @@
-const Message = require('../models/Message');
 const User = require('../models/User');
-const Channel = require('../models/Channel')
-const { lorem, shuffle } = require('./randomUtils');
-const { getDateWithin, getRandom } = require('./getDateWithin');
+const Channel = require('../models/Channel');
+const Plan = require('../models/Plan');
 const config = require('../config/index');
 const dayjs = require('dayjs');
 
 const { logger } = require('../config/logging');
+const TestEnv = require('./DataCreation');
 
-
+/*
 class Setup {
 
     #baseUsers;   // users that will be used as randomic destinations
@@ -209,7 +208,8 @@ class Setup {
     }
 }
 
-
+*/
+/*
 async function makeDefaultUsers() {
 
     const pw = '12345678';
@@ -638,10 +638,10 @@ async function makeDefaultUsers() {
     let answers = [];
 
 
-/* 
-    Generate 15 random messages for channel6: test6, with randomly generated content and fixed fields
-    Only channel6 has content 
-*/
+
+    // Generate 15 random messages for channel6: test6, with randomly generated content and fixed fields
+    // Only channel6 has content 
+
     for (let i = 0; i < 5; i++) {
 
         setup.addMessage({ 
@@ -673,5 +673,504 @@ async function makeDefaultUsers() {
     await catFacts.save()
     await dogPics.save()
 }
+*/
+
+async function makeDefaultUsers() {
+
+    const pw = '12345678';
+
+
+    const monthly_plan = new Plan({
+        name: 'Monthly subscription plan',
+        price: 4.99,
+        period: 'month',
+        extraCharacters: {
+            day: 300,
+            week: 320*7,
+            month: 330*31,
+        },
+        pro: true,
+    })
+
+    const yearly_plan = new Plan({
+        name: 'Yearly subscription plan',
+        price: 49.99,
+        period: 'year',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: true,
+    })
+
+    const test_env = new TestEnv('main-db', 0, 0, [monthly_plan, yearly_plan]);
+
+    // Utenti richiesti
+    const user1 = new User({
+        handle: 'fv',
+        username: 'fv',
+        email: 'mailBase@mail.com',
+        password: pw,
+    });
+
+    // user2: fvPro
+    const user2 = new User({
+        handle: 'fvPro',
+        username: 'fvPro',
+        email: 'mailPro@mail.com',
+        accountType: 'pro',
+        password: pw,
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: monthly_plan._id,
+            expires: (new dayjs()).add(1, 'month').toDate(),
+            autoRenew: true,
+        }
+    });
+
+    // user3: fvSMM
+    const user3 = new User({
+        handle: 'fvSMM',
+        username: 'fvSMM',
+        email: 'mailSMM@mail.com',
+        password: pw,
+        accountType: 'pro',
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: yearly_plan._id,
+            expires: (new dayjs()).add(1, 'year').toDate(),
+            autoRenew: true,
+        }
+    });
+
+    // user4: fvMod
+    const user4 = new User({
+        handle: 'fvMod',
+        username: 'fvMod',
+        email: 'mailMod@mail.com',
+        password: pw,
+        admin: true,
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+    });
+
+    // user5: Nome Buffo1
+    const user5 = new User({
+        handle: 'Nome Buffo1',
+        username: 'Nome Buffo1',
+        accountType: 'pro',
+        email: 'mailBuffa@mail.com',
+        password: pw,
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: monthly_plan._id,
+            expires: (new dayjs()).add(1, 'month').toDate(),
+            autoRenew: true,
+        }
+    });
+
+    // user6: Nome Buffo2
+    const user6 = new User({
+        handle: 'Nome Buffo2',
+        username: 'Nome Buffo2',
+        email: 'mailBuffa2@mail.com',
+        password: pw,
+        accountType: 'pro',
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: monthly_plan._id,
+            expires: (new dayjs()).add(1, 'month').toDate(),
+            autoRenew: true,
+        }
+    })
+
+    // Modify the character balance of user2, user5, user6
+    user2.charLeft = {
+        day: 50,
+        week: TestEnv.getRandom(0, config.weekly_quote - 49) + 50,
+        month: TestEnv.getRandom(0, config.monthly_quote - 49) + 50,
+    }
+    user5.charLeft = {
+        day: 50,
+        week: TestEnv.getRandom(0, config.weekly_quote - 49) + 50,
+        month: TestEnv.getRandom(0, config.monthly_quote - 49) + 50,
+    }
+    user6.charLeft = {
+        day: 50,
+        week: TestEnv.getRandom(0, config.weekly_quote - 49) + 50,
+        month: TestEnv.getRandom(0, config.monthly_quote - 49) + 50,
+    }
+
+    user2.smm = user3._id;
+    user5.smm = user3._id;
+    user6.smm = user3._id;
+
+    const u1_index = test_env.addUser(user1);
+    const u2_index = test_env.addUser(user2);
+    const u3_index = test_env.addUser(user3);
+    const u4_index = test_env.addUser(user4);
+    const u5_index = test_env.addUser(user5);
+    const u6_index = test_env.addUser(user6);
+
+    let main_user_indexes = [
+        u1_index,
+        u2_index,
+        u3_index,
+        u4_index,
+        u5_index,
+        u6_index,
+    ]
+    
+
+    let answering_users_indexes = [
+        test_env.addTestUser(),
+        test_env.addTestUser(),
+        test_env.addTestUser(),
+    ]
+
+
+    const channel_indexes = [
+        test_env.addRandomChannel(u1_index, 2),
+        test_env.addRandomChannel(u2_index, 2),
+        test_env.addRandomChannel(u3_index, 2), 
+        test_env.addRandomChannel(u4_index, 2),
+        test_env.addRandomChannel(u5_index, 2),
+        test_env.addRandomChannel(u6_index, 2),
+    ]
+
+    channel_indexes.map(cind => {
+        test_env.channels[cind].publicChannel = true;
+    })
+
+    main_user_indexes.map(uind => {
+        test_env.addRandomChannel(uind);
+        test_env.addRandomChannel(uind);
+        test_env.addRandomChannel(uind);
+    })
+
+
+    // MANUALLY CREATED CHANNELS
+
+    //  channel1: daily_news
+    const channel1 = new Channel({
+        name: 'daily_news',
+        creator: user1._id,
+        description: "i'm going to take a short digest of the world news everyday",
+        publicChannel: true,
+    });
+
+    //  channel2: RANDOM_1000
+    const channel2 = new Channel({
+        name: 'RANDOM_1000',
+        creator: user2._id,
+        description: "generate random messages",
+        publicChannel: true,
+        official: true,
+    });
+
+    //  channel3: my diary
+    const channel3 = new Channel({
+        name: 'my diary',
+        creator: user3._id,
+        description: "my diaries",
+        publicChannel: false,
+    });
+
+    //  channel4: test4
+    const channel4 = new Channel({
+        name: 'test4',
+        creator: user4._id,
+        description: "test4 is a test channel",
+        publicChannel: true,
+    });
+
+    //  channel5: test5
+    const channel5 = new Channel({
+        name: 'test5',
+        creator: user5._id,
+        description: "test5 is a test channel",
+        publicChannel: true,
+    });
+
+    //  channel6: test6
+    const channel6 = new Channel({
+        name: 'test6',
+        creator: user6._id,
+        description: "test6 is a test channel",
+        publicChannel: true,
+    });
+
+    // Handle reference relations between data tables, all creators are members of the channels they created
+    user1.joinedChannels.push(channel1._id);
+    channel1.members.push(user1._id);   // creator
+    channel1.members.push(user2._id);
+    channel1.members.push(user3._id);
+    channel1.members.push(user4._id);
+    user1.joinedChannels.push(channel2._id);
+    user1.joinedChannels.push(channel3._id);
+    user1.joinedChannels.push(channel4._id);
+    user1.joinedChannels.push(channel6._id);
+
+
+    user2.joinedChannels.push(channel2._id);
+    channel2.members.push(user2._id);   // creator
+    channel2.members.push(user1._id);
+    channel2.members.push(user3._id);
+    channel2.members.push(user5._id);
+    user2.joinedChannels.push(channel1._id);
+    user2.joinedChannels.push(channel3._id);
+
+
+    user3.joinedChannels.push(channel3._id);
+    channel3.members.push(user3._id);   // creator
+    channel3.members.push(user1._id);
+    channel3.members.push(user2._id);
+    channel3.members.push(user4._id);
+    user3.joinedChannels.push(channel1._id);
+    user3.joinedChannels.push(channel2._id);
+    user3.joinedChannels.push(channel6._id);
+
+
+    user4.joinedChannels.push(channel4._id);
+    channel4.members.push(user4._id);   // creator
+    channel4.members.push(user1._id);
+    channel4.members.push(user5._id);
+    channel4.members.push(user6._id);
+    user4.joinedChannels.push(channel1._id);
+    user4.joinedChannels.push(channel3._id);
+    user4.joinedChannels.push(channel5._id);
+
+
+    user5.joinedChannels.push(channel5._id);
+    channel5.members.push(user5._id);   // creator
+    channel5.members.push(user4._id);
+    channel5.members.push(user6._id);
+    user5.joinedChannels.push(channel2._id);
+    user5.joinedChannels.push(channel4._id);
+
+
+    user6.joinedChannels.push(channel6._id);
+    channel6.members.push(user6._id);   // creator
+    channel6.members.push(user1._id);
+    channel6.members.push(user3._id);
+    user6.joinedChannels.push(channel4._id);
+    user6.joinedChannels.push(channel5._id);
+
+    let manually_created_channel_idexes = [
+        test_env.addChannel(channel1),
+        test_env.addChannel(channel2),
+        test_env.addChannel(channel3),
+        test_env.addChannel(channel4),
+        test_env.addChannel(channel5),
+        test_env.addChannel(channel6),
+    ]
+
+    let u5startMessages = TestEnv.getRandom(0, 51) + 1;
+    let u6startMessages = TestEnv.getRandom(0, 51) + 1;
+
+    const popular_reaction = () => {
+        return {
+            positive: config.fame_threshold + TestEnv.getRandom(0, 201),
+            negative: TestEnv.getRandom(0, 11),
+        }
+    }
+
+    const unpopular_reaction = () => {
+        return {
+            negative: config.fame_threshold + TestEnv.getRandom(0, 201),
+            positive: TestEnv.getRandom(0, 11),
+        }
+    }
+
+    const controversial_reaction = () => {
+        return {
+            positive: config.fame_threshold + TestEnv.getRandom(0, 201),
+            negative: config.fame_threshold + TestEnv.getRandom(0, 201),
+        }
+    }
+
+    test_env.addRandomMessages({
+        authorIndex: u5_index, 
+        allTime: u5startMessages,
+        year: u5startMessages + 20,
+        month: u5startMessages,
+        reaction_function: popular_reaction
+    })
+
+    test_env.addRandomMessages({
+        authorIndex: u6_index,
+        allTime: u6startMessages,
+        year: u6startMessages + 20,
+        month: u6startMessages,
+        reaction_function: unpopular_reaction,
+    })
+
+    const u2_r_max = 2 * config.fame_threshold;
+    const u2_rfunc = () => ({ positive: TestEnv.getRandom(0, u2_r_max), negative: TestEnv.getRandom(0, u2_r_max), })
+
+
+    test_env.addRandomMessages({
+        authorIndex: u2_index,
+        allTime: 100,
+        year: 120,
+        month: 50,
+        today: 10,
+        reaction_function: u2_rfunc,
+    })
+
+    u5startMessages *= 3;
+    u6startMessages *= 3;
+
+    // new messages to make user 5 and 6 two messages away from increasing/decreasing characters
+    while (u5startMessages % (config.num_messages_reward - 2) !== 0) {
+
+
+        test_env.addRandomMessages({
+            week: 1,
+            authorIndex: u5_index,
+            reaction_function: popular_reaction,
+        })
+
+        u5startMessages++;
+    }
+
+    while (u6startMessages % (config.num_messages_reward - 2) !== 0) {
+
+        test_env.addRandomMessages({
+            week: 1,
+            authorIndex: u6_index,
+            reaction_function: unpopular_reaction,
+        })
+
+        u6startMessages++;
+    }
+
+    // Generate a separate message for user5 and user6
+    test_env.addRandomMessages({
+        today: 1,
+        authorIndex: u5_index,
+        reaction_function: () => ({
+            positive: config.fame_threshold - 1,
+            negative: TestEnv.getRandom(0, 13),
+        }),
+    })
+
+    test_env.addRandomMessages({
+        today: 1,
+        authorIndex: u6_index,
+        reaction_function: () => ({
+            negative: config.fame_threshold - 1,
+            positive: TestEnv.getRandom(0, 13),
+        }),
+    })
+
+    // Replies
+
+    test_env.addRandomMessages({
+        allTime: TestEnv.getRandom(0, 31) + 100,
+        authorIndex: answering_users_indexes[0],
+        reaction_function: controversial_reaction,
+        answering: true,
+    })
+
+    test_env.addRandomMessages({
+        allTime: TestEnv.getRandom(0, 31) + 100,
+        authorIndex: answering_users_indexes[1],
+        reaction_function: unpopular_reaction,
+        answering: true,
+    })
+
+    test_env.addRandomMessages({
+        allTime: TestEnv.getRandom(0, 31) + 100,
+        authorIndex: answering_users_indexes[2],
+        reaction_function: popular_reaction,
+        answering: true,
+    })
+
+    /* 
+        Generate 15 random messages for channel6: test6, with randomly generated content and fixed fields
+        Only channel6 has content 
+    */
+    for (let i = 0; i < 5; i++) {
+
+        test_env.addMessage({
+            authorIndex: u1_index,
+            meta: {
+                created: TestEnv.getDateWithinPeriod('week'),
+            },
+            destChannelIndexes: [manually_created_channel_idexes[5]],
+            reactions: popular_reaction(),
+        })
+
+        test_env.addMessage({
+            authorIndex: answering_users_indexes[1],
+            meta: {
+                created: TestEnv.getDateWithinPeriod('week'),
+            },
+            destChannelIndexes: [manually_created_channel_idexes[5]],
+            reactions: popular_reaction(),
+        })
+
+        test_env.addMessage({
+            authorIndex: answering_users_indexes[2],
+            meta: {
+                created: TestEnv.getDateWithinPeriod('week'),
+            },
+            destChannelIndexes: [manually_created_channel_idexes[5]],
+            reactions: popular_reaction(),
+        })
+    }
+
+    await test_env.saveAll();
+
+    // Canali automatici
+
+    // Account Per creare i canali automatici
+    const cronUser = new User({
+        handle: '__cron',
+        username: 'redazione',
+        password: pw,
+        email: 'mailCRonnnnnnn@mail.com',
+        admin: true,
+        charLeft: {
+            day: 999999999,
+            week: 999999999,
+            month: 9999999999,
+        }
+    })
+
+    const catFacts = new Channel({
+        name: 'CAT_FACTS',
+        creator: cronUser._id,
+        description: 'A new fact about felines every minute',
+        publicChannel: true,
+        official: true,
+    })
+
+
+    const dogPics = new Channel({
+        name: 'DOG_PICTURES',
+        creator: cronUser._id,
+        description: 'A new dog picture every 10 minutes',
+        publicChannel: true,
+        official: true,
+    })
+
+
+    await cronUser.save()
+    await catFacts.save()
+    await dogPics.save()
+}
+
 
 module.exports = { makeDefaultUsers }

@@ -3,52 +3,110 @@ const User = require('../models/User');
 const Channel = require('../models/Channel');
 const Service = require('./Service');
 const config = require('../config');
+const { logger } = require('../config/logging');
 
 class ChannelServices{
 
+    /**
+     * Takes a channel record and return a pojo containing its front end representation
+     * (i.e. id field, handles for creator and members).
+     * 
+     * @param {Channel} channel The channel to turn into an object
+     * @returns An object giving the front end representation of the channel
+     */
+    static #makeChannelObject(channel) {
+        let res = channel.toObject();
+        res.id = res._id.toString();
+        delete res.__v;
+
+        res.members = res.members.map(m => m.handle);
+        res.creator = res.creator.handle;
+
+        return res
+    }
+
+
+    /**
+     * Maps #makeChannelObject onto the given channel record array.
+     * 
+     * @param {Channel[]} channels Channel records to turn into objects
+     * @returns An array of channel objects
+     */
+    static #makeChannelObjectArray(channels) {
+        return channels.map(c => ChannelServices.#makeChannelObject(c));
+    }
+
+
     // Get all channels created by the user
-    static async getUserChannels({ page = 1, reqUser }){
+    static async getUserChannels({ page = 1, reqUser, handle, publicChannel }){
         let user = reqUser;
 
+        if (user.handle !== handle) {
+
+            user = await User.findOne({ handle: handle });
+
+            if (!user)
+                return Service.rejectResponse({ message: `No user named ${handle}` })
+        }
+
+
         let channelsQuery = Channel.find();
-        channelsQuery.where('creator').equals(user._id);
-        channelsQuery.skip((page - 1) * config.results_per_page);
-        channelsQuery.limit(config.results_per_page);
+        channelsQuery.where('creator').equals(user._id)
+            .populate('members', 'handle')
+            .populate('creator', 'handle _id');
+
+        if (page > 0) {
+            channelsQuery.skip((page - 1) * config.results_per_page);
+            channelsQuery.limit(config.results_per_page);
+        }
+
+        if ((publicChannel === true) || (publicChannel === false)) 
+            channelsQuery.where('publicChannel').equals(publicChannel)
 
         const res = await channelsQuery;
 
-        return Service.successResponse(res.map(m => m.toObject()));
+        return Service.successResponse(ChannelServices.#makeChannelObjectArray(res));
 
     }
 
     // Get all channels that users have joined
-    static async getJoinedChannels({ page = 1, reqUser}){
+    static async getJoinedChannels({ page = 1, reqUser, handle }){
+
         let user = reqUser;
-        let joinedChannelsArr = user.joinedChannels;    // get an array of ObjectIds
-        let tmpRes = [];
-        for (let i = 0; i < joinedChannelsArr.length; i++) {
-            tmpRes.push(await Channel.findById(joinedChannelsArr[i]) )
+
+        if (user.handle !== handle) {
+            
+            user = await User.findOne({ handle: handle });
+
+            if (!user)
+                return Service.rejectResponse({ message: `No user named ${handle}` }) 
         }
+
+        const channelsQuery = Channel.find({ members: { $in: user._id } })
+                .populate('members', 'handle')
+                .populate('creator', 'handle');
+
+        if (page >= 1) 
+            channelsQuery.skip((page - 1) * config.results_per_page)
+                .limit(config.results_per_page);
         
-        return Service.successResponse(tmpRes)
+        const channels = await channelsQuery;
+        
+        return Service.successResponse(ChannelServices.#makeChannelObjectArray(channels))
     }
 
     // Get the handle of the creator of the channel based on the channel name 
     static async getChannelCreator({name}){
-        // console.log(name)
 
-        let channelsQuery = Channel.findOne();
-        channelsQuery.where('name').equals(name);
+        let channel = await Channel.findOne({ name: name }).populate('creator', 'handle _id');
 
-        const channelRes = await channelsQuery;
-        // console.log(channelRes)
-
-        var channelCreator = channelRes.creator
-        // console.log(channelCreator)
-
-        const res = await User.findById(channelCreator);
-        // console.log(res);
-        return Service.successResponse(res.handle);
+        if (!channel) {
+            return Service.rejectResponse({ 
+                message: `No channel named ${name}`
+             })
+        }
+        
+        return Service.successResponse(channel.creator.handle);
     }
 
     // get all channels
@@ -91,13 +149,11 @@ class ChannelServices{
 
         }
 
-        if (postCount >= 0) {
-            query.find({ $expr: { $gte: [{ $size: "$messages" }, postCount] } })
-        }
-
         if ((publicChannel === true) || (publicChannel === false)) 
             query.find({ publicChannel: publicChannel })
 
+        query.populate('members', 'handle')
+            .populate('creator', 'handle _id');
 
         query.sort('created')
             .skip((page - 1 )*config.results_per_page)
@@ -106,17 +162,16 @@ class ChannelServices{
         const res = await query;
 
         if (owner || member) {
-            return Service.successResponse(res);
+            return Service.successResponse(ChannelServices.#makeChannelObjectArray(res));
         } else {
 
             return Service.successResponse(res.map(channel => {
-                let c = channel.toObject();
+                let c = ChannelServices.#makeChannelObject(channel);
     
                 if ((!c.publicChannel) && 
                     !(reqUser && reqUser?.joinedChannels.some(id => id.equals(channel._id)))) {
                     
                     // private channels can only be viewed by members
-                    delete c.messages;
                     delete c.members;
                 }
 
@@ -131,14 +186,16 @@ class ChannelServices{
     static async getChannel({ name, reqUser = null }) {
         if (!name) return Service.rejectResponse({ message: "Must Provide a valid name" });
 
-        const channel = await Channel.findOne({ name: name });
+        const channel = await Channel.findOne({ name: name })
+            .populate('members', 'handle')
+            .populate('creator', 'handle _id');
 
         if (!channel) return Service.rejectResponse({ message: `Channnel ${name} not found` })
 
-        let res = channel.toObject();
+        let res = ChannelServices.#makeChannelObject(channel);
 
         if (!((res.publicChannel) || (reqUser?.joinedChannels.some(id => id.equals(channel._id))))){
-            delete res.messages;
+            //delete res.messages;
             delete res.members;
             //console.log('cough')
         }
@@ -173,7 +230,10 @@ class ChannelServices{
 
         if (err) return Service.rejectResponse(err);
 
-        return Service.successResponse(channel.toObject());
+        // Manual population since a newly created channel will only have one member
+        channel.members = [{ handle: reqUser.handle }];
+        channel.creator = { handle: reqUser.handle }
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
     static async deleteChannel({ name }) {
@@ -251,7 +311,7 @@ class ChannelServices{
 
         if (err) return Service.rejectResponse(err.message ? { message: err.message }: err);
 
-        return Service.successResponse(channel.toObject());
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
     static async availableChannel({ name }) {

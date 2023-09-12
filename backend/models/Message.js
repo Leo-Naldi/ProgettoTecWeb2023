@@ -69,7 +69,12 @@ const MessageSchema = new mongoose.Schema({
             type: Boolean, 
             required: true, 
             default: true 
-        }
+        },
+        official: {
+            type: Boolean,
+            required: true,
+            default: false
+        },
     }, {
         virtuals: {
             // Le info ridondanti possono essere messe come virtual

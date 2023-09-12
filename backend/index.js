@@ -10,13 +10,7 @@ const Plan = require('./models/Plan');
 const { makeDefaultUsers } = require('./utils/defaultUsers');
 
 
-const {
-    dailyCharsJob,
-    weeklyCharsJob,
-    monthlyCharsJob,
-    catJob,
-    imgJob,
-} = require('./config/crons');
+const crons = require('./config/crons');
 
 
 mongoose.connect(config.db_url).then(async () => {
@@ -31,13 +25,7 @@ mongoose.connect(config.db_url).then(async () => {
 
     await makeDefaultUsers();
 
-    dailyCharsJob.start();
-    weeklyCharsJob.start();
-    monthlyCharsJob.start();
-    catJob.start();
-    imgJob.start();
-
-    const exp_server = new ExpressServer();
+    const exp_server = new ExpressServer(crons);
 
     exp_server.launchServer();
 });

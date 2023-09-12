@@ -13,9 +13,10 @@ const ImageRouter = require('./routes/image');
 
 const { logger, morganLogMiddleware } = require('./config/logging');
 const SocketServer = require('./socket/SocketServer');
+const PlansRouter = require('./routes/plans');
 
 class ExpressServer {
-    constructor() {
+    constructor(crons=[]) {
 
         const app = express()
 
@@ -40,12 +41,14 @@ class ExpressServer {
         app.use('/messages', MessageRouter);
         app.use('/channels', ChannelRouter);
         app.use('/image', ImageRouter);
+        app.use('/plans', PlansRouter);
 
 
         this.app = app;
 
         this.server = null;
         this.io = null;
+        this.crons = crons;
     }
 
     launchServer(port=config.port) {
@@ -60,6 +63,8 @@ class ExpressServer {
         this.app.set('proNms', this.socketServer.proNms);
         this.app.set('adminNms', this.socketServer.adminNms);
         this.app.set('channelNms', this.socketServer.channelNms);
+
+        this.crons.map(cron_job => cron_job.start());
     }
 }
 

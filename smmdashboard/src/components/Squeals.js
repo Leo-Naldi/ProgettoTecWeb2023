@@ -40,7 +40,7 @@ export default function Squeals({ managed }) {
         setFetchingMessages(true);
 
         authorizedRequest({
-            endpoint: `messages/${managed}/messages`,
+            endpoint: `messages/user/${managed}`,
             token: smm.token,
             query: { page: page }
         })

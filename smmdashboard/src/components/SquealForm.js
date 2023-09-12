@@ -194,7 +194,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     function postSqueal(body) {
 
         // Define the base URL
-        const baseUrl = `http://localhost:8000/messages/${managed}/messages`;
+        const baseUrl = `http://localhost:8000/messages/user/${managed}`;
 
         // Create a new URL object
         const url = new URL(baseUrl);

@@ -15,6 +15,8 @@ const Channel = require('../models/Channel');
 
 const { randomizedSetup, testUser, lorem } = require('../utils/randomUtils');
 const Plan = require('../models/Plan');
+const { logger } = require('../config/logging');
+const TestEnv = require('../utils/DataCreation');
 
 /*
  * 
@@ -80,12 +82,10 @@ async function addMessage(text, authorHandle, destHandles, destChannels=[], date
     message.meta.created = dated;
 
     await message.save();
-    author.messages.push(message._id);
 
     await Promise.all(destChannel.map(async id => {
         const channel = await Channel.findById(id);
 
-        channel.messages.push(message._id)
         await channel.save()
     }))
 
@@ -130,8 +130,78 @@ before(async function() {
         User.deleteMany({}),
         Message.deleteMany({}),
         Channel.deleteMany({}),
+        Plan.deleteMany({}),
     ])
 
+    const randomUsersCount = TestEnv.getRandom(0, 201) + 50;
+    const proUsers = Math.floor(randomUsersCount / 4) + TestEnv.getRandom(0, 21);
+    const admins = 30;
+    const randomChannelsCount = TestEnv.getRandom(0, Math.floor(randomUsersCount / 2)) + TestEnv.getRandom(0, 21);
+    const randomMessageCount = TestEnv.getRandom(0, 351) + 700
+
+    const monthly_plan = new Plan({
+        name: 'Monthly subscription plan',
+        price: 4.99,
+        period: 'month',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: true,
+    })
+
+    const yearly_plan = new Plan({
+        name: 'Yearly subscription plan',
+        price: 49.99,
+        period: 'year',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: true,
+    })
+
+    const te = new TestEnv('__TEST_ENTHROPY_DATA__', 
+        randomUsersCount - proUsers + admins, randomChannelsCount, [monthly_plan, yearly_plan]);
+
+    for (let i = 0; i < proUsers; i++) {
+        te.addTestUser({ pro: true, proPlanIndex: TestEnv.getRandom(0, 2), autoRenew: Math.random() > 0.5 });
+    }
+
+    // Randomly assign managers
+    const pro_indexes = te.getProUsersIndexes();
+    for (let i = 0; i < proUsers; i++) {
+
+        if (TestEnv.getRandom(0, 2) > 0) {
+            let double_index = TestEnv.getRandom(0, pro_indexes.lenght);
+
+            if ((double_index === i) && (i > 0)) double_index--;
+            else if ((double_index === i) && (i === 0)) double_index++;
+
+            te.users[pro_indexes[i]].smm = te.users[pro_indexes[double_index]]._id;
+        }
+    }
+
+    let periods = ['day', 'week', 'month', 'year'];
+
+    while (te.messages.length < randomMessageCount) {
+        te.addRandomMessages({
+            answering: Math.random() > 0.9,
+            reaction_function: () => ({
+                positive: TestEnv.getRandom(0, 1001),
+                negative: TestEnv.getRandom(0, 1001),
+            }),
+            allTime: TestEnv.getRandom(20, 31),
+            year: TestEnv.getRandom(20, 31),
+            month: TestEnv.getRandom(10, 31),
+            today: TestEnv.getRandom(5, 16), 
+        })
+    }
+    
+
+    /*
     let users = [];
 
     for (let i = 1; i <= users_count; i++) {
@@ -148,17 +218,14 @@ before(async function() {
     await Promise.all(users.map(async (u) => u.save()))
     await Promise.all(admins.map(async (u) => u.save()))
 
-    await randomizedSetup();
-    console.log('================= Setup Done =================')
-    console.log('\n\nDB Stats: \n');
+    await randomizedSetup(); */
+
+    logger.debug('================= Setup Done =================')
     const ucount = await User.find().count(), 
         ccount = await Channel.find().count(),
         mcount = await Message.find().count();
     
-    console.log(`   Users Count: ${ucount}`)
-    console.log(`   Channels Count: ${ccount}`)
-    console.log(`   Messages Count: ${mcount}\n\n`)
-    console.log('==============================================\n')
+    logger.debug(`\n\nDB Stats: \n Users Count: ${ucount} \n Channels Count: ${ccount} \n Messages Count: ${mcount}`);
     
 });
 

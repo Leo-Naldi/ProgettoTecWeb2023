@@ -1,6 +1,6 @@
 let expect = require('chai').expect;
 
-const config = require('../config/index');
+const config = require('../../config/index');
 
 function checkObject(o, properties=[]) {
     expect(o).to.not.be.null;
@@ -18,9 +18,6 @@ function checkArray(a, allowEmpty=false) {
 function checkSuccessCode(res){
     
     checkObject(res, ['status']);
-    //expect(res).to.not.be.null;
-    //expect(res).to.be.an("object");
-    //expect(res).to.have.property('status');
     expect(res.status).to.equal(config.default_success_code);
 }
 

@@ -16,11 +16,7 @@ const ChannelSchema = new mongoose.Schema(
             type: mongoose.ObjectId,
             ref: 'User',
             required: true,
-         },
-        messages: [{ 
-            type: mongoose.ObjectId,
-            ref: 'Message',
-        }],
+        },
         members: [{
             type: mongoose.ObjectId,
             ref: 'User',

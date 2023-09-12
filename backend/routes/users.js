@@ -4,7 +4,8 @@ const User = require("../models/User");
 const Controller = require('../controllers/Controller');
 const UserService = require('../services/UserServices');
 const MessageServices = require('../services/MessageServices');
-const getAuthMiddleware = require('../middleware/auth');
+const { getAuthMiddleware } = require('../middleware/auth');
+
 
 const UserRouter = express.Router();
 
@@ -30,8 +31,7 @@ UserRouter.post('/:handle', getAuthMiddleware('basicAuth'),
         
         // Some fields can only be modified by an admin
         if (((req.body?.charLeft) || req.body?.blocked) && (!req.user.admin)) 
-            return res.sendStatus(401);
-        // TODO a user can only modify himself or his managed accounts
+            return res.status(401).json({ message: 'Characters can only be modified by admins' });
 
         await Controller.handleRequest(req, res, UserService.writeUser);
     }
@@ -50,7 +50,8 @@ UserRouter.delete('/:handle', getAuthMiddleware('basicAuth'),
 UserRouter.post('/:handle/smm', getAuthMiddleware('proAuth'),
     async (req, res) => {
 
-        // TODO a user can only modify his own smm
+        if (req.user.handle !== req.params.handle)
+            return res.status(401).json({ message: 'A user can only change its own smm' })
 
         await Controller.handleRequest(req, res, UserService.changeSmm);
     }
@@ -59,9 +60,10 @@ UserRouter.post('/:handle/smm', getAuthMiddleware('proAuth'),
 UserRouter.post('/:handle/managed', getAuthMiddleware('proAuth'),
     async (req, res) => {
 
-        // TODO a user can only modify his own managed
+        if (req.user.handle !== req.params.handle)
+            return res.status(401).json({ message: 'A user can only remove its own managed users' })
 
-        await Controller.handleRequest(req, res, UserService.changeManaged);
+        await Controller.handleRequest(req, res, UserService.removeManaged);
     }
 );
 
@@ -146,5 +148,21 @@ UserRouter.get('/registration/',
         await Controller.handleRequest(req, res, UserService.checkAvailability);
     }
 );
+
+UserRouter.post('/:handle/subscription', getAuthMiddleware('basicAuth'), async (req, res) => {
+
+    if (req.user.handle !== req.params.handle) 
+        return res.status(401).json({ message: 'User can only change its own subscription plan.' })
+
+    return Controller.handleRequest(req, res, UserService.changeSubscription);
+})
+
+UserRouter.delete('/:handle/subscription', getAuthMiddleware('basicAuth'), async (req, res) => {
+
+    if (req.user.handle !== req.params.handle)
+        return res.status(401).json({ message: 'User can only change its own subscription plan.' })
+
+    return Controller.handleRequest(req, res, UserService.changeSubscription);
+})
 
 module.exports = UserRouter;

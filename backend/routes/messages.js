@@ -3,7 +3,7 @@ const express = require('express');
 const Controller = require('../controllers/Controller');
 const MessageServices = require('../services/MessageServices');
 const User = require('../models/User');
-const getAuthMiddleware = require('../middleware/auth');
+const { getAuthMiddleware, checkOwnUserOrSMM } = require('../middleware/auth');
 const { logger } = require('../config/logging');
 
 
@@ -17,23 +17,25 @@ MessageRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
     await Controller.handleRequest(req, res, MessageServices.getMessages);
 })
 
-MessageRouter.get('/:name', getAuthMiddleware('basicAuth'), async (req, res) => {
+MessageRouter.get('/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
+
+    await Controller.handleRequest(req, res, MessageServices.getMessage);
+})
+
+// formerly '/:name'
+MessageRouter.get('/channel/:name', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.getChannelMessages);
 })
 
 // Users send messages
-MessageRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'),
+// formerly '/:handle/messages'
+MessageRouter.post('/user/:handle', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM,
     async (req, res) => {
         
-        if (req.params.handle !== req.user.handle) {
-
-            // SMM posting for user
-            
-            const writer = await User.findOne({ handle: req.params.handle });
-            if (!req.user._id.equals(writer?.smm)) {
-                return res.sendStatus(409)
-            }
+        if (req.smm) {
+            logger.debug(`SMM with handle: ${req.smm.handle}`);
+            logger.debug(`Posting for user: ${req.user?.handle}`);
         }
 
         const socket = req.app.get('socketio');
@@ -46,15 +48,16 @@ MessageRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'),
 
 
 // Get all messages for a user
-MessageRouter.get('/:handle/messages', getAuthMiddleware('basicAuth'),
+// formerly '/:handle/messages
+MessageRouter.get('/user/:handle', getAuthMiddleware('basicAuth'),
     async (req, res) => {
 
-        logger.info('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa')
+        //logger.info('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa')
         await Controller.handleRequest(req, res, MessageServices.getUserMessages);
     });
 
 //delete post of a user
-MessageRouter.delete('/:handle/:id', getAuthMiddleware('basicAuth'),
+MessageRouter.delete('/:id', getAuthMiddleware('basicAuth'),
     async (req, res) => {
         await Controller.handleRequest(req, res, MessageServices.deleteMessage);
     }

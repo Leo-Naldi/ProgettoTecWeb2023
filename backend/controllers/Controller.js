@@ -85,6 +85,7 @@ class Controller {
         };
 
         if (request.user) requestParams.reqUser = request.user;
+        if (request.smm) requestParams.reqSmm = request.smm;
 
         if (requestParams.before) requestParams.before = new Date(requestParams.before)
         if (requestParams.after) requestParams.after = new Date(requestParams.after)
@@ -100,6 +101,18 @@ class Controller {
 
         if (requestParams.admin) {
             requestParams.admin = Controller.handleBoolean(requestParams.admin);
+        }
+
+        if (requestParams.publicChannel) {
+            requestParams.publicChannel = Controller.handleBoolean(requestParams.publicChannel);
+        }
+
+        if (requestParams.official) {
+            requestParams.official = Controller.handleBoolean(requestParams.official);
+        }
+
+        if (requestParams.publicMessage) {
+            requestParams.publicMessage = Controller.handleBoolean(requestParams.publicMessage);
         }
 
         return requestParams;

@@ -32,7 +32,7 @@ passport.use('basicAuth',
             let err = null, user = null;
             
             try {
-                user = await User.findOne({ handle: jwtPayload.handle });
+                user = await User.findOne({ handle: jwtPayload.handle }).populate('smm', 'handle _id');
             } catch (error) {
                 err = error;
                 logger.error(`basicAuth Error: ${err.message || err}`)
@@ -58,7 +58,7 @@ passport.use('adminAuth',
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             secretOrKey: config.secrect,
             jsonWebTokenOptions: {
-                maxAge: "7d",  // TODO
+                maxAge: "7d", 
             }
         },
         async function (jwtPayload, done) {
@@ -69,7 +69,7 @@ passport.use('adminAuth',
                 user = await User.findOne({ 
                     handle: jwtPayload.handle,
                     admin: true,
-                });
+                }).populate('smm', 'handle _id');
             } catch (error) {
                 err = error;
                 logger.error(`adminAuth Error: ${err.message || err}`)
@@ -106,7 +106,7 @@ passport.use('proAuth',
                 user = await User.findOne({
                     handle: jwtPayload.handle,
                     accountType: 'pro',
-                });
+                }).populate('smm', 'handle _id');
             } catch (error) {
                 err = error;
                 logger.error(`proAuth Error: ${err.message || err}`)

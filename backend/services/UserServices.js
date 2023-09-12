@@ -5,6 +5,7 @@ const User = require("../models/User");
 const makeToken = require("../utils/makeToken");
 const Service = require("./Service");
 const Channel = require("../models/Channel");
+const Plan = require("../models/Plan");
 
 class UserService {
 
@@ -28,7 +29,7 @@ class UserService {
         return res;
     }
 
-    static _makeUserObjectArr(userArr) {
+    static #makeUserObjectArr(userArr) {
         return userArr.map(UserService.#makeUserObject)
     }
 
@@ -45,14 +46,14 @@ class UserService {
                 .sort('meta.created')
                 .select('handle');
             
-            return Service.successResponse(UserService._makeUserObjectArr(users));
+            return Service.successResponse(UserService.#makeUserObjectArr(users));
         } else {
             users = await UserService.#getSecureUserRecord(filter)
                 .sort('meta.created')
                 .skip((page - 1) * config.results_per_page)
                 .limit(config.results_per_page).populate('joinedChannels', 'name');
 
-                return Service.successResponse(UserService._makeUserObjectArr(users));
+                return Service.successResponse(UserService.#makeUserObjectArr(users));
         }
 
     }
@@ -329,8 +330,7 @@ class UserService {
         return Service.successResponse()
     }
 
-    // TODO change name to remove managed
-    static async changeManaged({ handle, reqUser, users }) {
+    static async removeManaged({ handle, reqUser, users }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
@@ -375,6 +375,82 @@ class UserService {
             .select('handle charLeft');
 
         return Service.successResponse(res.map(u => u.toObject()));
+    }
+
+    /**
+     * Service to update a user subscription. Can be used to subscribe to a new plan or modify 
+     * the auto-renew feature.
+     * 
+     * Trying to set the autoRenew field in a user that has no subscription or trying to
+     * subscribe a user to a non-existent plan will result in a rejectResponse.
+     * 
+     * @param {Object} param0 The service parameters
+     * @param {User} param0.reqUser The user record fetched for authentication
+     * @param {string} param0.handle The user's handle
+     * @param {(mongoose.ObjectIdExpression|null)} param0.proPlanId The new plan's id
+     * @param {(boolean|null)} param0.autoRenew The new auto-renew value.
+     * @returns Service.successResponse or Service.rejectResponse
+     */
+    static async changeSubscription({ reqUser, handle, proPlanId=null, autoRenew=null }) {
+        
+        let pro_plan = null;
+        if (proPlanId) {
+
+            pro_plan = await Plan.findById(proPlanId);
+            
+            if (!pro_plan) return Service.rejectResponse({
+                message: `No pro plan with id ${proPlanId}`
+            })
+        }
+
+        let user = reqUser;
+
+        if (pro_plan) {
+            
+            let expiration_date;
+            
+            switch (pro_plan.period) {
+                case 'month':
+                    expiration_date = (new dayjs).add(1, 'month').toDate();
+                    break;
+                case 'year':
+                    expiration_date = (new dayjs).add(1, 'year').toDate();
+                    break;
+            }
+
+            user.subscription = {
+                proPlan: pro_plan._id,
+                expires: expiration_date,
+            }
+
+            if (pro_plan.pro) user.accountType = 'pro';
+            else user.accountType = 'user';
+        }
+
+        if (autoRenew !== null) {
+            if (!user.subscription) 
+                return Service.rejectResponse({ message: `User @${handle} has no subscription plan active` })
+            
+            user.subscription.autoRenew = autoRenew;
+        }
+
+        await user.save();
+
+        return Service.successResponse()
+    }
+
+    /**
+     * Sets the subscription field to null. If the execution gets to this function then the
+     * user exists, so it will always return sucessResponse.
+     * 
+     * @param {Object} param0 The sercice parameters
+     * @param {User} param0.reqUser The user record fetched for authentication
+     * @returns Service.successResponse
+     */
+    static async deleteSubscription({ reqUser }) {
+        reqUser.subscription = null;
+        await reqUser.save();
+        return Service.successResponse();   
     }
 }
 
