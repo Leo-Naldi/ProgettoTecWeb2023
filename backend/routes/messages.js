@@ -33,10 +33,10 @@ MessageRouter.get('/channel/:name', getAuthMiddleware('basicAuth'), async (req, 
 MessageRouter.post('/user/:handle', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM,
     async (req, res) => {
         
-        if (req.smm) {
-            logger.debug(`SMM with handle: ${req.smm.handle}`);
-            logger.debug(`Posting for user: ${req.user?.handle}`);
-        }
+        // if (req.smm) {
+        //     logger.debug(`SMM with handle: ${req.smm.handle}`);
+        //     logger.debug(`Posting for user: ${req.user?.handle}`);
+        // }
 
         const socket = req.app.get('socketio');
 

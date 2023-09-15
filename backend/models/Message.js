@@ -23,9 +23,25 @@ const pointSchema = new mongoose.Schema({
 }, { _id: false });
 
 const MessageMetaSchema = new mongoose.Schema({
-    created: { type: Date, default: Date.now },
-    lastModified: { type: Date, default: Date.now },
-    geo: { type: pointSchema},  // defined as GeoJSON Objects
+
+    created: { 
+        type: Date, 
+        default: Date.now 
+    },
+    lastModified: { 
+        type: Date, 
+        default: Date.now 
+    },
+    geo: { 
+        type: pointSchema
+    },  // defined as GeoJSON Objects
+    impressions: {
+        type: Number,
+        required: true,
+        default: 0,
+        min: 0,
+    }
+
 }, { _id: false });
 
 const ContentSchema = new mongoose.Schema({

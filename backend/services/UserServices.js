@@ -10,11 +10,23 @@ const Plan = require("../models/Plan");
 class UserService {
 
 
+
+    static #getSecureUserRecords(filter) {
+        return UserService.#populateQuery(User.find(filter))
+            .select('-__v -password');
+    }
+
     static #getSecureUserRecord(filter) {
-        return User.find(filter)
-            .select('-__v -password')
-            .populate('joinedChannels', 'name')
+        return UserService.#populateQuery(User.findOne(filter))
+            .select('-__v -password');
+    }
+
+    static #populateQuery(query) {
+        return query.populate('joinedChannels', 'name')
             .populate('smm', 'handle')
+            // .populate('messages', '_id')
+            .populate('editorChannels', 'name')
+            .populate('managed', 'handle');
     }
 
     static #makeUserObject(user) {
@@ -22,9 +34,18 @@ class UserService {
         let res = user.toObject();
 
         // if joinedChannels is populated it replaces every channel with its name
-        res.joinedChannels = res.joinedChannels.map(c => c?.name || c);
+        res.joinedChannels = res.joinedChannels?.map(c => c?.name || c);
+        res.editorChannels = res.editorChannels?.map(c => c?.name || c);
 
         res.smm = res.smm?.handle || res.smm;
+
+        if (user.messages) {
+            res.messages = user.messages.map(m => m._id?.toString() || m);
+        }
+
+        if (user.managed) {
+            res.managed = user.managed.map(u => '@' + (u.handle || u))
+        }
 
         return res;
     }
@@ -42,16 +63,16 @@ class UserService {
 
         let users;
         if ((handleOnly === true) || (handleOnly === false)) {
-            users = await UserService.#getSecureUserRecord(filter)
+            users = await UserService.#getSecureUserRecords(filter)
                 .sort('meta.created')
                 .select('handle');
             
             return Service.successResponse(UserService.#makeUserObjectArr(users));
         } else {
-            users = await UserService.#getSecureUserRecord(filter)
+            users = await UserService.#getSecureUserRecords(filter)
                 .sort('meta.created')
                 .skip((page - 1) * config.results_per_page)
-                .limit(config.results_per_page).populate('joinedChannels', 'name');
+                .limit(config.results_per_page);
 
                 return Service.successResponse(UserService.#makeUserObjectArr(users));
         }
@@ -62,11 +83,9 @@ class UserService {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let userRes = await UserService.#getSecureUserRecord({ handle: handle });
+        let user = await UserService.#getSecureUserRecord({ handle: handle });
 
-        if (!(userRes?.length)) return Service.rejectResponse({ message: "User not found" });
-
-        let user = userRes[0];
+        if (!user) return Service.rejectResponse({ message: "User not found" });
 
         return Service.successResponse(UserService.#makeUserObject(user));        
     }
@@ -129,17 +148,17 @@ class UserService {
 
         const user = await User.findOne({ handle: handle });
 
-        if (!user) return Service.rejectResponse({ message: 'User not found' })
-        const res = await user.deleteOne();
+        if (!user) return Service.rejectResponse({ message: `No user named @${handle}` });
+        await user.deleteOne();
         
-        return Service.successResponse()
+        return Service.successResponse();
     }
 
     static async writeUser({ handle, username,
         email, password, name, lastName, 
         phone, gender, blocked,
-        accountType, charLeft, addJoinedChannels, 
-        removeJoinedChannels,
+        accountType, charLeft, addMemberRequest, 
+        addEditorRequest, removeMember, removeEditor,
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -176,33 +195,79 @@ class UserService {
             }
         }
 
-        if (addJoinedChannels instanceof Array) {
-            for(let i = 0; i < addJoinedChannels.length; i++) {
-                let crec = await Channel.findOne({ name: addJoinedChannels[i] });
+        if (addMemberRequest?.length) {
 
-                if(!user.joinedChannels.some(cid => cid.equals(crec._id))) {
-                    user.joinedChannels.push(crec._id);
-                    crec.members.push(user._id);
+            let channels = await Channel.find().where('name').in(addMemberRequest);
 
-                    await crec.save();
+            await Promise.all(channels.map(c => {
+                if (!user.joinedChannels.find(cid => c._id.equals(cid))) {
+                    c.memberRequests.push(user._id);
+                
+
+                    return c.save();
                 }
-            }
+            }));
+
+            // Push the channels that are not already there
+            user.joinChannelRequests.push(...channels
+                .filter(c => 
+                    !user.joinChannelRequests.find(cid => c._id.equals(cid)))
+                .map(c => c._id));
         }
 
-        if (removeJoinedChannels instanceof Array) {
+        if (addEditorRequest?.length) {
 
-            let cids = []
+            let channels = await Channel.find().where('name').in(addEditorRequest);
 
-            for (let i = 0; i < removeJoinedChannels.length; i++) {
-                let crec = await Channel.findOne({ name: removeJoinedChannels[i] });
+            await Promise.all(channels.map(c => {
+                if (!user.editorChannels.find(cid => c._id.equals(cid))) {
+                    c.editorRequests.push(user._id);
 
-                cids.push(crec._id);
-                crec.members = crec.members.filter(uid => !uid.equals(user._id));
-                await crec.save();
-            }
+                    return c.save();
+                }
+            }));
+
+            user.editorChannelRequests.push(...channels
+                .filter(c =>
+                    !user.joinChannelRequests.find(cid => c._id.equals(cid)))
+                .map(c => c._id));
+        }
+
+        if (removeMember?.length) {
+
+            let channels = await Channel.find().where('name').in(addEditorRequest);
+
+            await Promise.all(channels.map(c => {
+                
+                if (user.joinedChannels.find(cid => c._id.equals(cid))) {
+                    
+                    c.members = c.members.filter(uid => !user._id.equals(uid));
+                    c.editors = c.editors.filter(uid => !user._id.equals(uid));
+
+                    return crec.save();
+                }
+            }));
 
             user.joinedChannels = user.joinedChannels.filter(cid =>
-                !cids.some(id => id.equals(cid)));
+                !channels.find(c =>  c._id.equals(cid)));
+        }
+
+        if (removeEditor?.length) {
+
+            let channels = await Channel.find().where('name').in(addEditorRequest);
+
+            await Promise.all(channels.map(c => {
+
+                if (user.joinedChannels.find(cid => c._id.equals(cid))) {
+
+                    c.editors = c.editors.filter(uid => !user._id.equals(uid));
+
+                    return crec.save();
+                }
+            }));
+
+            user.editorChannels = user.editorChannels.filter(cid =>
+                !channels.find(c => c._id.equals(cid)));
         }
 
         let err = null;
@@ -215,7 +280,9 @@ class UserService {
 
         if (err) return Service.rejectResponse(err);
         
-        return Service.successResponse(user);
+        user = await UserService.#getSecureUserRecord({ handle: user.handle })
+
+        return Service.successResponse(UserService.#makeUserObject(user));
     }
 
     static async grantAdmin({ handle }) {
@@ -330,31 +397,20 @@ class UserService {
         return Service.successResponse()
     }
 
-    static async removeManaged({ handle, reqUser, users }) {
+    static async removeManaged({ handle, users }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        // User Fetching
+        let urec = await UserService.#getSecureUserRecord({ handle: handle });
+        
+        let user_records = await User.find().where('handle').in(users);
 
-        let urec = reqUser;
-
-        // In theory this cant happen but oh well
-        if (urec.handle !== handle) {
-
-            urec = await User.findOne({ handle: handle });
-
-            if (!urec) return Service.rejectResponse({ message: `No user called ${handle}` })
-        }
-
-        if (users?.length) {
-            for (let i = 0; i < users.length; i++) {
-                let u = await User.findOne({ handle: users[i] });
-                if ((u.smm) && (u.smm.equals(urec._id))) {
-                    u.smm = null;
-                    await u.save();
-                }
-            }    
-        }
+        await Promise.all(user_records.map(u => {
+            if (urec._id.equals(u.smm)) {
+                u.smm = null;
+                return u.save()
+            }
+        }));
 
         return Service.successResponse()
     }
@@ -371,10 +427,12 @@ class UserService {
             if (!user) return Service.rejectResponse({ message: "Must provide a valid handle" })
         }
 
-        const res = await UserService.#getSecureUserRecord({ smm: user._id })
-            .select('handle charLeft');
+        const res = await user.populate('managed', 'handle charLeft');
 
-        return Service.successResponse(res.map(u => u.toObject()));
+        return Service.successResponse(res.managed.map(o => ({
+            handle: o.handle,
+            charLeft: o.charLeft,
+        })));
     }
 
     /**

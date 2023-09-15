@@ -65,6 +65,9 @@ class ExpressServer {
         this.app.set('channelNms', this.socketServer.channelNms);
 
         this.crons.map(cron_job => cron_job.start());
+
+        logger.info('Crons Started');
+        logger.info(`Server Secret is: ${config.secrect}`)
     }
 }
 

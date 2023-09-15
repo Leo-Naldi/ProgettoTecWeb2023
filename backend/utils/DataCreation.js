@@ -369,7 +369,6 @@ class TestEnv {
                 
                 destChannel = TestEnv.getRandomIndexes(possible_channels.length, 0);
 
-                // TODO answered message should be one the user can answer to
                 answered = (answering) ? 
                     TestEnv.getRandom(0, this.messages.length): -1;
 

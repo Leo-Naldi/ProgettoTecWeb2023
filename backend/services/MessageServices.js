@@ -40,7 +40,7 @@ class MessageService {
         query=Message.find(), popular, unpopular, controversial, risk,
         before, after, dest, page = 1, official=null, mentions=[], 
         reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
-        answering= null } = 
+        answering=null } = 
         { query: Message.find(), page: 1, 
             official: null, mentions: [], 
             reqUser: null, author: null, 
@@ -128,7 +128,9 @@ class MessageService {
             query.find({ publicMessage: publicMessage })
         }
 
-        if (answering) query.where('answering').equals(answering);
+        if (answering) {
+            query.find({ answering: answering });
+        }
 
         if (official) query.where('official').equals(true);
 
@@ -203,11 +205,13 @@ class MessageService {
      * @returns A message object array
      */
     static async getMessages({ reqUser=null, author=null, page=1, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage }={ page: 1, reqUser: null }) {
+        before, after, dest, publicMessage, answering }={ page: 1, reqUser: null }) {
+
+        logger.info(`Answering: ${answering}`)
 
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
-            before, after, dest, page, reqUser, publicMessage
+            before, after, dest, page, reqUser, publicMessage, answering
         })
 
         const res = await query;
@@ -246,7 +250,7 @@ class MessageService {
      * @returns A message object array
      */
     static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage }){
+        before, after, dest, publicMessage, answering }){
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
         
@@ -257,13 +261,11 @@ class MessageService {
 
             if (!user) return Service.rejectResponse({ message: `User @${handle} not found` });
         }
-        let messagesQuery = Message.find();
 
-        messagesQuery = await MessageService._addQueryChains({ 
-            query: messagesQuery,
+        let messagesQuery = await MessageService._addQueryChains({ 
             popular, unpopular, controversial, risk,
             before, after, dest, page, reqUser, author: user,
-            publicMessage
+            publicMessage, answering
          })
 
         const res = await messagesQuery;
@@ -425,6 +427,9 @@ class MessageService {
             message = await message.save();
             user = await user.depopulate();
             let author = await user.save();
+
+            message.destUser = destUser;
+            message.destChannel = destChannel;
 
             resbody = MessageService._makeMessageObjectArr([message])[0];
 

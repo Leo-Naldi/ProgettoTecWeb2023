@@ -6,6 +6,7 @@ const dayjs = require('dayjs');
 
 const { logger } = require('../config/logging');
 const TestEnv = require('./DataCreation');
+const Message = require('../models/Message');
 
 /*
 class Setup {
@@ -1076,25 +1077,30 @@ async function makeDefaultUsers() {
 
     // Replies
 
-    test_env.addRandomMessages({
-        allTime: TestEnv.getRandom(0, 31) + 100,
-        authorIndex: answering_users_indexes[0],
-        reaction_function: controversial_reaction,
-        answering: true,
+    answering_users_indexes.map(i => {
+        test_env.addRandomMessages({
+            allTime: TestEnv.getRandom(0, 31) + 100,
+            year: TestEnv.getRandom(0, 31) + 50,
+            month: TestEnv.getRandom(0, 31) + 10,
+            authorIndex: answering_users_indexes[2],
+            reaction_function: popular_reaction,
+            answering: true,
+        })
     })
 
-    test_env.addRandomMessages({
-        allTime: TestEnv.getRandom(0, 31) + 100,
-        authorIndex: answering_users_indexes[1],
-        reaction_function: unpopular_reaction,
-        answering: true,
-    })
+    main_user_indexes.map(i => {
+        
+        let messages = test_env.getUserMessages(i);
+        messages = messages.filter(m => m.publicMessage);
+        if (messages?.length){
+            let m = test_env.addRandomMessages({
+                allTime: 1,
+                answering: false,
+                authorIndex: TestEnv.getRandom(0, test_env.users.length),
+            });
 
-    test_env.addRandomMessages({
-        allTime: TestEnv.getRandom(0, 31) + 100,
-        authorIndex: answering_users_indexes[2],
-        reaction_function: popular_reaction,
-        answering: true,
+            test_env.messages[test_env.messages.length - 1].answering = messages[0]._id
+        }
     })
 
     /* 
@@ -1170,6 +1176,9 @@ async function makeDefaultUsers() {
     await cronUser.save()
     await catFacts.save()
     await dogPics.save()
+
+    //let answer = await Message.findOne({ answering: { $ne: null }, author: test_env.users[u1_index]._id });
+    //logger.info(`Message with answers: ${answer._id}`)
 }
 
 

@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
 
-const Message = require('./Message')
-
 
 const ChannelSchema = new mongoose.Schema(
     {
@@ -17,7 +15,23 @@ const ChannelSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
+        // users with reading permission
         members: [{
+            type: mongoose.ObjectId,
+            ref: 'User',
+        }],
+        // user with writing permission
+        editors: [{
+            type: mongoose.ObjectId,
+            ref: 'User',
+        }],
+        // users requesting reading permission
+        memberRequests: [{
+            type: mongoose.ObjectId,
+            ref: 'User',
+        }],
+        // users requesting writing permission
+        editorRequests: [{
             type: mongoose.ObjectId,
             ref: 'User',
         }],
@@ -28,8 +42,6 @@ const ChannelSchema = new mongoose.Schema(
             required: true,
             default: Date.now,
         },
-        // TODO add a waiting list of people who want to join
-        // TODO differentiate between people who can only read and people who can rw
     }, {
         virtuals: {
             privateChannel: {
@@ -40,6 +52,7 @@ const ChannelSchema = new mongoose.Schema(
         }
     }
 );
+
 
 const Channel = new mongoose.model('Channel', ChannelSchema);
 

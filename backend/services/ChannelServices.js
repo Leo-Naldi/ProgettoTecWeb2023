@@ -25,6 +25,14 @@ class ChannelServices{
         return res
     }
 
+    static getPopulatedChannelQuery() {
+        return Channel.find()
+            .populate('creator', 'handle _id')
+            .populate('members', 'handle _id')
+            .populate('editors', 'handle _id')
+            .populate('memberRequests', 'handle _id')
+            .populate('editorRequests', 'handle _id');
+    }
 
     /**
      * Maps #makeChannelObject onto the given channel record array.
@@ -96,7 +104,7 @@ class ChannelServices{
     }
 
     // Get the handle of the creator of the channel based on the channel name 
-    static async getChannelCreator({name}){
+    static async getChannelCreator({ name }){
 
         let channel = await Channel.findOne({ name: name }).populate('creator', 'handle _id');
 
@@ -269,7 +277,8 @@ class ChannelServices{
         return Service.successResponse();
     }
 
-    static async writeChannel({ name, channel=null, newName=null, owner=null, description=null, publicChannel=null }) {
+    static async writeChannel({ name, channel=null, newName=null, 
+        owner=null, description=null, publicChannel=null }) {
         
         if (!(newName || owner || description || (publicChannel === true) || (publicChannel === false))) 
             return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
@@ -310,6 +319,126 @@ class ChannelServices{
         }
 
         if (err) return Service.rejectResponse(err.message ? { message: err.message }: err);
+
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
+    }
+
+    static async writeMembers({ name, channel=null, addMembers, removeMembers }) {
+        if (channel === null) {
+            channel = await Channel.findOne({ name: name })
+                .populate('creator', 'handle _id')
+                .populate('members', 'handle _id')
+                .populate('memberRequests', 'handle _id')
+        }
+
+        if (!channel) {
+            return Service.rejectResponse({ 
+                message: `No channel named: ${name}`
+            });
+        }
+
+        if (addMembers?.length) {
+
+            let users = await User.find().where('handle').in(addMembers);
+            await Promise.all(users.map(async u => {
+                if (u.joinChannelRequests.find(cid => channel._id.equals(cid))) {
+
+                    u.joinedChannels.push(channel._id);
+                    u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
+                    
+                    channel.members.push(u._id);
+                    channel.memberRequests = channel.memberRequests.filter(uid => !u._id.equals(uid))
+
+                    return u.save();
+                }
+            }));
+        }
+
+        if (removeMembers?.length) {
+
+            let users = await User.find().where('handle').in(removeMembers);
+            await Promise.all(users.map(async u => {
+
+                u.joinedChannels = u.joinedChannels.filter(cid => !channel._id.equals(cid));
+
+                return u.save();
+            }));
+
+            channel.members = channel.members.filter(uid => 
+                !users.some(u => u._id.equals(uid)));
+        }
+
+        let err = null;
+        try {
+            channel = await channel.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
+
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
+    }
+
+    static async writeEditors({ name, channel = null, addEditors, removeEditors }) {
+        if (channel === null) {
+            channel = await Channel.findOne({ name: name })
+                .populate('creator', 'handle _id')
+                .populate('members', 'handle _id')
+                .populate('memberRequests', 'handle _id')
+        }
+
+        if (!channel) {
+            return Service.rejectResponse({
+                message: `No channel named: ${name}`
+            });
+        }
+
+        if (addEditors?.length) {
+
+            let users = await User.find().where('handle').in(addEditors);
+            await Promise.all(users.map(u => {
+                
+                if (u.editorChannelRequests.find(cid => channel._id.equals(cid))) {
+
+                    u.editorChannels.push(channel._id);
+                    u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid))
+
+                    channel.editors.push(u._id);
+                    channel.editorRequests = channel.editorRequests.filter(uid => !u._id.equals(uid))
+
+                    if (!channel.members.find(uid => u._id.equals(uid))) {
+                        u.joinedChannels.push(channel._id);
+                        channel.members.push(u._id);
+                    }
+
+                    return u.save();
+                }
+            }));
+        }
+
+        if (removeEditors?.length) {
+
+            let users = await User.find().where('handle').in(removeEditors);
+            await Promise.all(users.map(async u => {
+
+                u.editorChannels = u.editorChannels.filter(cid => !channel._id.equals(cid));
+
+                return u.save();
+            }));
+
+            channel.editors = channel.editors.filter(uid =>
+                !users.some(u => u._id.equals(uid)));
+        }
+
+        let err = null;
+        try {
+            channel = await channel.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
 
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }

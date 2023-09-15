@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "clear && mocha",
-    "start": "nodemon ./index.js",
-    "clearUsers": "node ./utils/deleteAllUsers.js"
+    "start": "nodemon ./index.js"
   },
   "author": "",
   "license": "ISC",
