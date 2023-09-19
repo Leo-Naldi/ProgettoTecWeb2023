@@ -5,7 +5,7 @@ const Controller = require('../controllers/Controller');
 const ChannelServices = require('../services/ChannelServices');
 const MessageServices = require('../services/MessageServices');
 const Channel = require('../models/Channel');
-const { getAuthMiddleware } = require('../middleware/auth');
+const { getAuthMiddleware, checkNameCreator } = require('../middleware/auth');
 
 
 const ChannelRouter = express.Router();
@@ -23,13 +23,8 @@ ChannelRouter.get('/:handle/created', getAuthMiddleware('basicAuth', {session: f
     await Controller.handleRequest(req, res, ChannelServices.getUserChannels);
 })
 
-// Get all channels that a user has joined 
-// TODO this is a user route
-ChannelRouter.get('/:handle/joined', getAuthMiddleware('basicAuth', {session: false}), async(req, res) =>{
-    await Controller.handleRequest(req, res, ChannelServices.getJoinedChannels);
-})
-
 // Get the name of the creator based on ObjectId
+// Deprecated
 ChannelRouter.get('/:name/creator', getAuthMiddleware('basicAuth', {session: false}), async(req, res) =>{
     await Controller.handleRequest(req, res, ChannelServices.getChannelCreator);
 })
@@ -50,46 +45,37 @@ ChannelRouter.post('/:name', getAuthMiddleware('basicAuth'), async (req, res) =>
             return res.status(401).json({ message: `Only admins can create official channels` });
         }
     }
+
     
     await Controller.handleRequest(req, res, ChannelServices.createChannel);
 })
 
+
 // modify a channle
-ChannelRouter.put('/:name', getAuthMiddleware('basicAuth'), async (req, res) => {
-
-    // TODO pass channel to request so one query is saved
-    const channel = await Channel.findOne({ name: req.params.name });
-
-    if (!channel) return res.status(409).json({ message: `No channel named ${req.params.name}` })
-
-    if (!channel.creator.equals(req.user._id))
-        return res.status(401).json({ message: 'Only the creator can modify the channel' })
+ChannelRouter.put('/:name', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.writeChannel);
 })
 
-ChannelRouter.delete('/:name', getAuthMiddleware('basicAuth'), async (req, res) => {
 
-    const channel = await Channel.findOne({ name: req.params.name });
-
-    if (!channel) return res.status(409).json({ message: `No channel named ${req.params.name}` })
-
-    if (!channel.creator.equals(req.user._id))
-        return res.status(401).json({ message: 'Only the creator can modify the channel' })
+ChannelRouter.delete('/:name', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.deleteChannel);
 })
 
-ChannelRouter.delete('/:name/messages', getAuthMiddleware('basicAuth'), async (req, res) => {
-    
-    const channel = await Channel.findOne({ name: req.params.name });
-    
-    if (!channel) return res.status(409).json({ message: `No channel named ${req.params.name}` })
-
-    if (!channel.creator.equals(req.user._id))
-        return res.status(401).json({ message: 'Only the creator can modify the channel' })
+ChannelRouter.delete('/:name/messages', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.deleteChannelMessages);
+})
+
+ChannelRouter.post('/:name/members', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+
+    await Controller.handleRequest(req, res, ChannelServices.writeMembers);
+})
+
+ChannelRouter.post('/:name/editors', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+
+    await Controller.handleRequest(req, res, ChannelServices.writeEditors);
 })
 
 

@@ -128,8 +128,9 @@ class Controller {
      * @param {Server} socket Socket instance that will be passed to the service
      * @static
      */
-    static async handleRequest(request, response, serviceOperation, socket=null) {
+    static async handleRequest(request, response, serviceOperation) {
         let serviceResponse = null;
+        let socket = request.app.get('socketio');
         try {
             let params = this.collectRequestParams(request);
             params.socket = socket;

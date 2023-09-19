@@ -10,6 +10,7 @@ const User = require('../models/User');
 const Service = require('./Service');
 const makeToken = require('../utils/makeToken');
 const { logger } = require('../config/logging');
+const UserService = require('./UserServices');
 
 
 class AuthServices {
@@ -39,8 +40,7 @@ class AuthServices {
         if (pro) filter.accountType = 'pro';
         if (admin) filter.admin = admin;
 
-        user = await User.findOne(filter).select('-__v').populate('joinedChannels', 'name');
-
+        user = await UserService.getSecureUserRecord(filter);
 
         if (!user) {
             logger.debug(`#generalLogIn: user @${handle} of type ${((admin) ? 'admin': (pro ? 'pro': 'user'))} not found`)
@@ -50,14 +50,11 @@ class AuthServices {
         if (user.password === password) {
             user.lastLoggedin = new Date();
 
-            let managed = await User.find({ smm: user._id });
-
             user = await user.save();
 
-            let ures = { ...user.toObject(), managed: managed.map(u => u.handle) };
+            let ures = UserService.makeUserObject(user);
 
             delete ures.password;
-            ures.joinedChannels = ures.joinedChannels.map(c => c.name);
 
             return Service.successResponse({
                 user: ures,
@@ -68,7 +65,7 @@ class AuthServices {
                 })
             });
         } else {
-            logger.debug(`#generalLogIn: passwords did not match, the recieved password was [${password}]`)
+            logger.debug(`#generalLogIn: passwords did not match, the recieved password was [${password}], actual password was [${user.password}]`)
             return Service.rejectResponse({ message: 'passwords did not match' })
         }
     }

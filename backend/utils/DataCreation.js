@@ -23,15 +23,6 @@ const LoremIpsum = require("lorem-ipsum").LoremIpsum;
  * @public
  */
 class TestEnv {
-    
-    /**
-     * Default password that will be used for all users.
-     * @type {string}
-     * @public
-     * @const
-     * @default
-     */
-    static password = '12345678';
 
     /**
      * Lorem ipsum generator.
@@ -75,9 +66,16 @@ class TestEnv {
      * @param {number} num_users Number of users to create. addUser with default parameters is used
      * @param {number} num_channels Number of channels to create. addChannels with default parameters is used
      */
-    constructor(prefix, num_users=0, num_channels=0, proPlans=[]) {
+    constructor(prefix, password, num_users=0, num_channels=0, proPlans=[]) {
     
         this.#prefix = prefix;
+
+        /**
+         * Default password that will be used for all users
+         * @type {string}
+         * @public
+         */
+        this.password = password;
 
         /**
          * Array of users belonging to the environment
@@ -147,7 +145,7 @@ class TestEnv {
         const u = new User({
             handle: handle,
             email: `${handle}.test_mail@gmail.com`,
-            password: TestEnv.password,
+            password: this.password,
             accountType: pro ? 'pro': 'user',
             admin: admin,
             charLeft: {
@@ -173,10 +171,7 @@ class TestEnv {
         if (created) u.meta = { created: created.toDate?.() || created };
 
         if (joinedChannelIndexes?.length) 
-            u.joinedChannels = joinedChannelIndexes.map(i => {
-                this.channels[i].members.push(u._id);
-                return this.channels[i]._id;
-            });
+            u.joinedChannels = joinedChannelIndexes.map(i => this.channels[i]._id);
 
         this.users.push(u);
 
@@ -240,14 +235,15 @@ class TestEnv {
      * The channel is not saved.
      * 
      * @param {Object} param0 The function parameters
-     * @param {number} param0.membersIndexes Array of indexes in this.users of the members
+     * @param {number[]} param0.membersIndexes Array of indexes in this.users of the members
+     * @param {number[]} param0.membersIndexes Array of indexes in this.users of the editors
      * @param {boolean} param0.publicChannel False if the channel is private
      * @param {boolean} param0.official True if the channel is official
      * @param {(dayjs|Date)} param0.created Channe's creation date
      * @returns The channel's index in this.channels
      * @public
      */
-    addTestChannel({ creatorIndex, membersIndexes=[], publicChannel=true, official=false, created=null, }) {
+    addTestChannel({ creatorIndex, membersIndexes=[], editorIndexes=[], publicChannel=true, official=false, created=null, }) {
         
         const name = `${this.#prefix}-${this.#env_id++}-test_channel-${TestEnv.getRandom(0, 4000000000)}`;
 
@@ -261,14 +257,22 @@ class TestEnv {
 
 
         if (created) c.created = (new dayjs(created)).toDate();
-        if (membersIndexes.length) c.members = membersIndexes.map(i => {
-            this.users[i].joinedChannels.push(c._id);
-            return this.users[i]._id;
-        })
+        
+        if (membersIndexes.length){ 
+            membersIndexes.map(i =>  {
+                this.users[i].joinedChannels.addToSet(c._id);
+            });
+        }
 
-        if (!c.members.find(id => this.users[creatorIndex]._id.equals(id))) c.members.push(this.users[creatorIndex]._id)
+        if (editorIndexes.length) {
+            editorIndexes.map(i => {
+                this.users[i].editorChannels.addToSet(c._id);
+                this.users[i].joinedChannels.addToSet(c._id)
+            });
+        }
 
-        this.users[creatorIndex].joinedChannels.push(c._id);
+        this.users[creatorIndex].joinedChannels.addToSet(c._id);        
+        this.users[creatorIndex].editorChannels.addToSet(c._id);     
 
         this.channels.push(c);
 
@@ -291,25 +295,22 @@ class TestEnv {
         
         creatorInd = (creatorInd >= 0) ? creatorInd: TestEnv.getRandom(0, this.users.length);
         const creator = this.users[creatorInd];
+        
         const publicChannel = Math.random() > 0.5;
 
         let membersIndexes = TestEnv.getRandomIndexes(this.users.length, min_members);
-        
-        if (!membersIndexes.find(ind => ind === creatorInd)) membersIndexes.push(creatorInd);
+        let editorsIndexes = TestEnv.getRandomIndexes(this.users.length, min_members)
 
         // randomic creation date
         const created = TestEnv.getRandomDate(new dayjs(creator.meta.created), new dayjs()).toDate();
 
-        const channel_ind = this.addTestChannel({ creatorIndex: creatorInd,
-            membersIndexes, publicChannel, official: false, created, 
+        return this.addTestChannel({ creatorIndex: creatorInd,
+            membersIndexes, editorsIndexes, publicChannel, official: false, created, 
         });
-
-        return channel_ind;
     }
 
     /**
-     * Randomly selects ad sets the channel's members. Note that the members field is set,
-     * so this should be called on a channel with members = [] or [creator._id]. The creator is
+     * Randomly selects ad sets the channel's members. The creator is
      * always added if it was not added by the randomic selection.
      * 
      * @param {number} channelIndex The channel's index.
@@ -321,14 +322,35 @@ class TestEnv {
         const creator_index = this.uidti(channel.creator);
         const creator = this.users[creator_index]
 
-        channel.members = indexes.map(i => {
-            this.users[i].joinedChannels.push(channel._id);
-            return this.users[i]._id;
+        indexes.map(i => {
+            this.users[i].joinedChannels.addToSet(channel._id);
         })
 
-        if (!channel.members.find(uid => channel.creator.equals(uid))) channel.members.push(channel.creator);
-        if (!creator.joinedChannels.find(cid => channel._id.equals(cid))) creator.joinedChannels.push(channel._id);
+        creator.joinedChannels.addToSet(channel._id);
         
+    }
+
+    /**
+     * Randomly selects ad sets the channel's editors. The creator is
+     * always added if it was not added by the randomic selection. Editors are also
+     * always added as members if not already present.
+     * 
+     * @param {number} channelIndex The channel's index.
+     * @param {number} min The minimum number of members to be added.
+     */
+    addRandomEditors(channelIndex, min) {
+        const indexes = TestEnv.getRandomIndexes(this.users.length, min);
+        const channel = this.channels[channelIndex];
+        const creator_index = this.uidti(channel.creator);
+        const creator = this.users[creator_index]
+
+        indexes.map(i => {
+            this.users[i].editorChannels.addToSet(channel._id);
+            this.users[i].joinedChannels.addToSet(channel._id);
+        })
+
+        creator.joinedChannels.addToSet(channel._id);
+        creator.editorChannels.addToSet(channel._id);
     }
 
     /**
@@ -354,7 +376,9 @@ class TestEnv {
         let author = (authorIndex >= 0) ? this.users[authorIndex] : this.users[TestEnv.getRandom(0, this.users.length)];
 
         const possible_channels = this.channels.filter(c => 
-            (c.publicChannel || c.members.find(id => author._id.equals(id))));
+            author.editorChannels.find(id => c._id.equals(id)));
+
+        const possible_channels_indexes = possible_channels.map(c => this.cidti(c._id));
 
         const addMiniBulk = (period, amount) => {
 
@@ -367,7 +391,8 @@ class TestEnv {
                 destUser = TestEnv.getRandomIndexes(this.users.length, 0);
                 destUser = destUser.filter(i => i !== authorIndex);
                 
-                destChannel = TestEnv.getRandomIndexes(possible_channels.length, 0);
+                destChannel = TestEnv.getRandomIndexes(possible_channels_indexes.length, 0)
+                    .map(i => possible_channels_indexes[i]);
 
                 answered = (answering) ? 
                     TestEnv.getRandom(0, this.messages.length): -1;
@@ -421,6 +446,14 @@ class TestEnv {
     getProUsersIndexes() {
         return array.from({ length: this.users.lenght }, (v, i) => i)
             .filter(i => this.users[i].accountType === 'pro');
+    }
+
+    getRandomPublicMessageIndex() {
+        const public_message_indexes = Array
+            .from({ length: this.messages.length }, (v, i) => i)
+            .filter(i => this.messages[i].publicMessage);
+        
+        return  public_message_indexes[TestEnv.getRandom(0, public_message_indexes.length)];
     }
 
     /**
@@ -584,8 +617,8 @@ class TestEnv {
     static getRandomIndexes(n, min_length=1) {
 
         let random_length = TestEnv.getRandom(min_length, n+1);
+        
         let indexes = Array.from({ length: n }, (v, i) => i);
-
         indexes = TestEnv.shuffle(indexes);
 
         return indexes.slice(0, random_length);

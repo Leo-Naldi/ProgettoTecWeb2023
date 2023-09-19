@@ -680,7 +680,6 @@ async function makeDefaultUsers() {
 
     const pw = '12345678';
 
-
     const monthly_plan = new Plan({
         name: 'Monthly subscription plan',
         price: 4.99,
@@ -705,7 +704,7 @@ async function makeDefaultUsers() {
         pro: true,
     })
 
-    const test_env = new TestEnv('main-db', 0, 0, [monthly_plan, yearly_plan]);
+    const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan]);
 
     // Utenti richiesti
     const user1 = new User({
@@ -839,6 +838,15 @@ async function makeDefaultUsers() {
         test_env.addTestUser(),
     ]
 
+    let channel_requests_user = new User({
+        handle: 'user12345678',
+        username: 'user12345678',
+        email: 'mailBuffaqjwrhfwuirhfwiuhrqlfhqoirhfmquwpewqohfmqhmrfq@mail.com',
+        password: pw,
+    });
+
+    let channel_requests_user_index = test_env.addUser(channel_requests_user);
+
 
     const channel_indexes = [
         test_env.addRandomChannel(u1_index, 2),
@@ -912,60 +920,89 @@ async function makeDefaultUsers() {
     });
 
     // Handle reference relations between data tables, all creators are members of the channels they created
-    user1.joinedChannels.push(channel1._id);
-    channel1.members.push(user1._id);   // creator
-    channel1.members.push(user2._id);
-    channel1.members.push(user3._id);
-    channel1.members.push(user4._id);
-    user1.joinedChannels.push(channel2._id);
-    user1.joinedChannels.push(channel3._id);
-    user1.joinedChannels.push(channel4._id);
-    user1.joinedChannels.push(channel6._id);
+    user1.joinedChannels.addToSet(channel1._id);
+    // channel1.members.addToSet(user2._id);
+    // channel1.members.addToSet(user1._id);   // creator
+    // channel1.members.addToSet(user3._id);
+    // channel1.members.addToSet(user4._id);
+    user1.joinedChannels.addToSet(channel2._id);
+    user1.joinedChannels.addToSet(channel3._id);
+    user1.joinedChannels.addToSet(channel4._id);
+    user1.joinedChannels.addToSet(channel6._id);
+
+    user1.editorChannels.addToSet(channel1._id);
+    user1.editorChannels.addToSet(channel2._id);
+    user1.editorChannels.addToSet(channel3._id);
+    user1.editorChannels.addToSet(channel4._id);
+    user1.editorChannels.addToSet(channel6._id);
+    
 
 
-    user2.joinedChannels.push(channel2._id);
-    channel2.members.push(user2._id);   // creator
-    channel2.members.push(user1._id);
-    channel2.members.push(user3._id);
-    channel2.members.push(user5._id);
-    user2.joinedChannels.push(channel1._id);
-    user2.joinedChannels.push(channel3._id);
+    user2.joinedChannels.addToSet(channel2._id);
+    //channel2.members.addToSet(user2._id);   // creator
+    //channel2.members.addToSet(user1._id);
+    //channel2.members.addToSet(user3._id);
+    //channel2.members.addToSet(user5._id);
+    user2.joinedChannels.addToSet(channel1._id);
+    user2.joinedChannels.addToSet(channel3._id);
+
+    user2.editorChannels.addToSet(channel2._id);
+    user2.editorChannels.addToSet(channel1._id);
+    user2.editorChannels.addToSet(channel3._id);
 
 
-    user3.joinedChannels.push(channel3._id);
-    channel3.members.push(user3._id);   // creator
-    channel3.members.push(user1._id);
-    channel3.members.push(user2._id);
-    channel3.members.push(user4._id);
-    user3.joinedChannels.push(channel1._id);
-    user3.joinedChannels.push(channel2._id);
-    user3.joinedChannels.push(channel6._id);
+    user3.joinedChannels.addToSet(channel3._id);
+    //channel3.members.addToSet(user3._id);   // creator
+    //channel3.members.addToSet(user1._id);
+    //channel3.members.addToSet(user2._id);
+    //channel3.members.addToSet(user4._id);
+    user3.joinedChannels.addToSet(channel1._id);
+    user3.joinedChannels.addToSet(channel2._id);
+    user3.joinedChannels.addToSet(channel6._id);
+
+    user3.editorChannels.addToSet(channel3._id);
+    user3.editorChannels.addToSet(channel1._id);
+    user3.editorChannels.addToSet(channel2._id);
+    user3.editorChannels.addToSet(channel6._id);
 
 
-    user4.joinedChannels.push(channel4._id);
-    channel4.members.push(user4._id);   // creator
-    channel4.members.push(user1._id);
-    channel4.members.push(user5._id);
-    channel4.members.push(user6._id);
-    user4.joinedChannels.push(channel1._id);
-    user4.joinedChannels.push(channel3._id);
-    user4.joinedChannels.push(channel5._id);
+    user4.joinedChannels.addToSet(channel4._id);
+    //channel4.members.addToSet(user4._id);   // creator
+    //channel4.members.addToSet(user1._id);
+    //channel4.members.addToSet(user5._id);
+    //channel4.members.addToSet(user6._id);
+    user4.joinedChannels.addToSet(channel1._id);
+    user4.joinedChannels.addToSet(channel3._id);
+    user4.joinedChannels.addToSet(channel5._id);
+
+    user4.editorChannels.addToSet(channel4._id);
+    user4.editorChannels.addToSet(channel1._id);
+    user4.editorChannels.addToSet(channel3._id);
+    user4.editorChannels.addToSet(channel5._id);
 
 
-    user5.joinedChannels.push(channel5._id);
-    channel5.members.push(user5._id);   // creator
-    channel5.members.push(user4._id);
-    channel5.members.push(user6._id);
-    user5.joinedChannels.push(channel2._id);
-    user5.joinedChannels.push(channel4._id);
+    user5.joinedChannels.addToSet(channel5._id);
+    //channel5.members.addToSet(user5._id);   // creator
+    //channel5.members.addToSet(user4._id);
+    //channel5.members.addToSet(user6._id);
+    user5.joinedChannels.addToSet(channel2._id);
+    user5.joinedChannels.addToSet(channel4._id);
+
+    user5.editorChannels.addToSet(channel5._id);
+    user5.editorChannels.addToSet(channel2._id);
+    user5.editorChannels.addToSet(channel4._id);
 
 
-    user6.joinedChannels.push(channel6._id);
-    channel6.members.push(user6._id);   // creator
-    channel6.members.push(user1._id);
-    channel6.members.push(user3._id);
-    user6.joinedChannels.push(channel4._id);
-    user6.joinedChannels.push(channel5._id);
+    user6.joinedChannels.addToSet(channel6._id);
+    //channel6.members.addToSet(user6._id);   // creator
+    //channel6.members.addToSet(user1._id);
+    //channel6.members.addToSet(user3._id);
+    user6.joinedChannels.addToSet(channel4._id);
+    user6.joinedChannels.addToSet(channel5._id);
+
+    user6.editorChannels.addToSet(channel6._id);
+    user6.editorChannels.addToSet(channel4._id);
+    user6.editorChannels.addToSet(channel5._id);
 
     let manually_created_channel_idexes = [
         test_env.addChannel(channel1),
@@ -1076,7 +1113,6 @@ async function makeDefaultUsers() {
     })
 
     // Replies
-
     answering_users_indexes.map(i => {
         test_env.addRandomMessages({
             allTime: TestEnv.getRandom(0, 31) + 100,
@@ -1116,6 +1152,7 @@ async function makeDefaultUsers() {
             },
             destChannelIndexes: [manually_created_channel_idexes[5]],
             reactions: popular_reaction(),
+            answeringIndex: test_env.getRandomPublicMessageIndex(),
         })
 
         test_env.addMessage({
@@ -1125,6 +1162,7 @@ async function makeDefaultUsers() {
             },
             destChannelIndexes: [manually_created_channel_idexes[5]],
             reactions: popular_reaction(),
+            answeringIndex: test_env.getRandomPublicMessageIndex(),
         })
 
         test_env.addMessage({
@@ -1134,8 +1172,13 @@ async function makeDefaultUsers() {
             },
             destChannelIndexes: [manually_created_channel_idexes[5]],
             reactions: popular_reaction(),
+            answeringIndex: test_env.getRandomPublicMessageIndex(),
         })
     }
+
+
+    channel_requests_user.joinChannelRequests = [channel1._id, channel5._id, channel6._id];
+    channel_requests_user.editorChannelRequests = [channel1._id, channel5._id, channel6._id];
 
     await test_env.saveAll();
 
@@ -1161,8 +1204,7 @@ async function makeDefaultUsers() {
         description: 'A new fact about felines every minute',
         publicChannel: true,
         official: true,
-    })
-
+    });
 
     const dogPics = new Channel({
         name: 'DOG_PICTURES',
@@ -1170,15 +1212,32 @@ async function makeDefaultUsers() {
         description: 'A new dog picture every 10 minutes',
         publicChannel: true,
         official: true,
-    })
+    });
 
+    cronUser.joinedChannels = [catFacts._id, dogPics._id];
+    cronUser.editorChannels = [catFacts._id, dogPics._id];
 
     await cronUser.save()
     await catFacts.save()
     await dogPics.save()
 
-    //let answer = await Message.findOne({ answering: { $ne: null }, author: test_env.users[u1_index]._id });
-    //logger.info(`Message with answers: ${answer._id}`)
+    let answer = await Message.findOne({ answering: { $ne: null }, publicMessage: true });
+    logger.info(`Message with answers: ${answer.answering}`)
+
+    /*
+    const u = await User.findOne({ handle: 'fv' });
+    u.joinChannelRequests = [test_env.channels[0]._id, test_env.channels[1]._id];
+
+    await u.save();
+
+    const uu = await User.findOne({ handle: 'fvPro' });
+    uu.joinChannelRequests = [test_env.channels[2]._id, test_env.channels[0]._id];
+
+    await uu.save();
+
+    const c = await Channel.findById(test_env.channels[0]._id).populate('memberRequests');
+
+    logger.debug(c.memberRequests.length);*/
 }
 
 

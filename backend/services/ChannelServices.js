@@ -15,18 +15,32 @@ class ChannelServices{
      * @returns An object giving the front end representation of the channel
      */
     static #makeChannelObject(channel) {
-        let res = channel.toObject();
-        res.id = res._id.toString();
+        let res = channel.toObject?.() || channel;
+        
         delete res.__v;
 
-        res.members = res.members.map(m => m.handle);
         res.creator = res.creator.handle;
+
+        res.members = channel.members.map(u => u.handle);
+        res.editors = channel.editors.map(u => u.handle);
+        res.memberRequests = channel.memberRequests.map(u => u.handle);
+        res.editorRequests = channel.editorRequests.map(u => u.handle);
+
+        res.id = channel.id || res._id;
 
         return res
     }
 
-    static getPopulatedChannelQuery() {
-        return Channel.find()
+    static getPopulatedChannelsQuery(filter) {
+        return ChannelServices.populateQuery(Channel.find(filter))
+    }
+
+    static getPopulatedChannelQuery(filter) {
+        return ChannelServices.populateQuery(Channel.findOne(filter))
+    }
+
+    static populateQuery(query) {
+        return query
             .populate('creator', 'handle _id')
             .populate('members', 'handle _id')
             .populate('editors', 'handle _id')
@@ -46,7 +60,7 @@ class ChannelServices{
 
 
     // Get all channels created by the user
-    static async getUserChannels({ page = 1, reqUser, handle, publicChannel }){
+    static async getUserChannels({ reqUser, handle, publicChannel }){
         let user = reqUser;
 
         if (user.handle !== handle) {
@@ -57,16 +71,7 @@ class ChannelServices{
                 return Service.rejectResponse({ message: `No user named ${handle}` })
         }
 
-
-        let channelsQuery = Channel.find();
-        channelsQuery.where('creator').equals(user._id)
-            .populate('members', 'handle')
-            .populate('creator', 'handle _id');
-
-        if (page > 0) {
-            channelsQuery.skip((page - 1) * config.results_per_page);
-            channelsQuery.limit(config.results_per_page);
-        }
+        let channelsQuery = ChannelServices.getPopulatedChannelsQuery({ creator: user._id });
 
         if ((publicChannel === true) || (publicChannel === false)) 
             channelsQuery.where('publicChannel').equals(publicChannel)
@@ -78,29 +83,33 @@ class ChannelServices{
     }
 
     // Get all channels that users have joined
-    static async getJoinedChannels({ page = 1, reqUser, handle }){
+    static async getJoinedChannels({ reqUser, handle }){
 
-        let user = reqUser;
+        if (!handle) Service.rejectResponse({ message: `Did not provide a handle` })
+        let user = await User.findOne({ handle: handle })
+            .populate({
+                path: 'joinedChannels',
+                populate: {
+                    path: 'creator',
+                    select: 'handle _id',
+                }
+            })
+            .populate({
+                path: 'editorChannels',
+                populate: {
+                    path: 'creator',
+                    select: 'handle _id',
+                }
+            });
 
-        if (user.handle !== handle) {
-            
-            user = await User.findOne({ handle: handle });
+        if (!user) Service.rejectResponse({ message: `No user with handle @${handle}` });
 
-            if (!user)
-                return Service.rejectResponse({ message: `No user named ${handle}` }) 
-        }
-
-        const channelsQuery = Channel.find({ members: { $in: user._id } })
-                .populate('members', 'handle')
-                .populate('creator', 'handle');
-
-        if (page >= 1) 
-            channelsQuery.skip((page - 1) * config.results_per_page)
-                .limit(config.results_per_page);
+        logger.debug(user.joinedChannels[0].creator.handle);
         
-        const channels = await channelsQuery;
-        
-        return Service.successResponse(ChannelServices.#makeChannelObjectArray(channels))
+        return Service.successResponse({
+            joinedChannels: ChannelServices.#makeChannelObjectArray(user.joinedChannels),
+            editorChannels: ChannelServices.#makeChannelObjectArray(user.editorChannels)
+        })
     }
 
     // Get the handle of the creator of the channel based on the channel name 
@@ -125,7 +134,7 @@ class ChannelServices{
             member: null, namesOnly: false,
         }) {
 
-        const query = Channel.find();
+        const query = ChannelServices.getPopulatedChannelsQuery();
 
         if (namesOnly) {
             const res = await Channel.find().select('name');
@@ -160,12 +169,12 @@ class ChannelServices{
         if ((publicChannel === true) || (publicChannel === false)) 
             query.find({ publicChannel: publicChannel })
 
-        query.populate('members', 'handle')
-            .populate('creator', 'handle _id');
-
         query.sort('created')
-            .skip((page - 1 )*config.results_per_page)
-            .limit(config.results_per_page);
+        
+        if (page >= 0) {
+            query.skip((page - 1) * config.results_per_page)
+                .limit(config.results_per_page);
+        }
 
         const res = await query;
 
@@ -181,6 +190,9 @@ class ChannelServices{
                     
                     // private channels can only be viewed by members
                     delete c.members;
+                    delete c.editors;
+                    delete c.memberRequests;
+                    delete c.editorRequests;
                 }
 
                 return c;
@@ -189,42 +201,46 @@ class ChannelServices{
 
     }
 
-
     // get informations of a channel
     static async getChannel({ name, reqUser = null }) {
         if (!name) return Service.rejectResponse({ message: "Must Provide a valid name" });
 
-        const channel = await Channel.findOne({ name: name })
-            .populate('members', 'handle')
-            .populate('creator', 'handle _id');
+        let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
 
         if (!channel) return Service.rejectResponse({ message: `Channnel ${name} not found` })
 
         let res = ChannelServices.#makeChannelObject(channel);
 
-        if (!((res.publicChannel) || (reqUser?.joinedChannels.some(id => id.equals(channel._id))))){
+        if (!(res.publicChannel || reqUser?.joinedChannels.some(id => channel._id.equals(id)))){
             //delete res.messages;
             delete res.members;
-            //console.log('cough')
+            delete c.members;
+            delete c.editors;
+            delete c.memberRequests;
+            delete c.editorRequests;
         }
 
         return Service.successResponse(res);
     }
 
-    static async createChannel({ name, reqUser, description='',publicChannel=true }){
+    static async createChannel({ name, reqUser, description='', publicChannel=true, official=false }){
         
         if (!(name)) return Service.rejectResponse({ message: "Must provide owner handle and unique name" })
 
+        if (!reqUser) return Service.rejectResponse({ message: "Must be logged in to create a channel" })
+
         let channel = new Channel({
-            name: name, creator: reqUser._id,
+            name: name, creator: reqUser._id, official: official,
         })
+
+        if (channel.official) channel.name = channel.name.toUpperCase();
 
         if (description) channel.description = description;
 
-        if(publicChannel) channel.publicChannel = publicChannel;
+        if (publicChannel) channel.publicChannel = publicChannel;
         
-        channel.members.push(reqUser._id);
         reqUser.joinedChannels.push(channel._id);
+        reqUser.editorChannels.push(channel._id);
 
         let err = null;
 
@@ -238,10 +254,16 @@ class ChannelServices{
 
         if (err) return Service.rejectResponse(err);
 
+        let res = channel.toObject();
+
         // Manual population since a newly created channel will only have one member
-        channel.members = [{ handle: reqUser.handle }];
-        channel.creator = { handle: reqUser.handle }
-        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
+        res.members = [{ handle: reqUser.handle }];
+        res.editors = [{ handle: reqUser.handle }];
+        res.memberRequests = [];
+        res.editorRequests = [];
+        res.creator = { handle: reqUser.handle }
+
+        return Service.successResponse(ChannelServices.#makeChannelObject(res));
     }
 
     static async deleteChannel({ name }) {
@@ -255,20 +277,18 @@ class ChannelServices{
             destChannel: channel._id,
          });
 
-        // delete channell from user's joined list
+        // delete channel from user's joined list
         const users = await User.find({ joinedChannels: channel._id });
 
         await Promise.all(messages.map(async m => {
             
             m.destChannel = m.destChannel.filter(id => !id.equals(channel._id))
-
-            if ((m.destChannel.length === 0) && (m.destUser.length === 0))
-                return m.deleteOne()
             
             return m.save();
 
         }) + users.map(async u => {
                 u.joinedChannels = u.joinedChannels.filter(id => !id.equals(channel._id))
+                u.editorChannels = u.joinedChannels.filter(id => !id.equals(channel._id))
                 return u.save()
         }));
         
@@ -277,14 +297,13 @@ class ChannelServices{
         return Service.successResponse();
     }
 
-    static async writeChannel({ name, channel=null, newName=null, 
+    static async writeChannel({ name, newName=null, 
         owner=null, description=null, publicChannel=null }) {
         
         if (!(newName || owner || description || (publicChannel === true) || (publicChannel === false))) 
             return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
         
-        // One some endpoints it is already fetched
-        if (!channel) channel = await Channel.findOne({ name: name });
+        let channel = await Channel.findOne({ name: name });
 
         if (!channel) return Service.rejectResponse({ message: `No channel called ${name}` });
         
@@ -320,17 +339,15 @@ class ChannelServices{
 
         if (err) return Service.rejectResponse(err.message ? { message: err.message }: err);
 
+        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
+
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
-    static async writeMembers({ name, channel=null, addMembers, removeMembers }) {
-        if (channel === null) {
-            channel = await Channel.findOne({ name: name })
-                .populate('creator', 'handle _id')
-                .populate('members', 'handle _id')
-                .populate('memberRequests', 'handle _id')
-        }
-
+    static async writeMembers({ name, addMembers, removeMembers }) {
+        
+        let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
+        
         if (!channel) {
             return Service.rejectResponse({ 
                 message: `No channel named: ${name}`
@@ -340,14 +357,15 @@ class ChannelServices{
         if (addMembers?.length) {
 
             let users = await User.find().where('handle').in(addMembers);
-            await Promise.all(users.map(async u => {
-                if (u.joinChannelRequests.find(cid => channel._id.equals(cid))) {
 
-                    u.joinedChannels.push(channel._id);
+            logger.debug(addMembers)
+
+            await Promise.all(users.map(async u => {
+                logger.debug(u.joinChannelRequests)
+                if (u.joinChannelRequests.some(cid => channel._id.equals(cid))) {
+
+                    u.joinedChannels.addToSet(channel._id);
                     u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
-                    
-                    channel.members.push(u._id);
-                    channel.memberRequests = channel.memberRequests.filter(uid => !u._id.equals(uid))
 
                     return u.save();
                 }
@@ -360,12 +378,10 @@ class ChannelServices{
             await Promise.all(users.map(async u => {
 
                 u.joinedChannels = u.joinedChannels.filter(cid => !channel._id.equals(cid));
+                u.editorChannels = u.editorChannels.filter(cid => !channel._id.equals(cid));
 
                 return u.save();
             }));
-
-            channel.members = channel.members.filter(uid => 
-                !users.some(u => u._id.equals(uid)));
         }
 
         let err = null;
@@ -376,6 +392,8 @@ class ChannelServices{
         }
 
         if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
+
+        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
 
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
@@ -401,16 +419,11 @@ class ChannelServices{
                 
                 if (u.editorChannelRequests.find(cid => channel._id.equals(cid))) {
 
-                    u.editorChannels.push(channel._id);
-                    u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid))
-
-                    channel.editors.push(u._id);
-                    channel.editorRequests = channel.editorRequests.filter(uid => !u._id.equals(uid))
-
-                    if (!channel.members.find(uid => u._id.equals(uid))) {
-                        u.joinedChannels.push(channel._id);
-                        channel.members.push(u._id);
-                    }
+                    u.editorChannels.addToSet(channel._id);
+                    u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid));
+                    
+                    u.joinedChannels.addToSet(channel._id);
+                    u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid));
 
                     return u.save();
                 }
@@ -426,9 +439,6 @@ class ChannelServices{
 
                 return u.save();
             }));
-
-            channel.editors = channel.editors.filter(uid =>
-                !users.some(u => u._id.equals(uid)));
         }
 
         let err = null;
@@ -439,6 +449,8 @@ class ChannelServices{
         }
 
         if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
+
+        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
 
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }

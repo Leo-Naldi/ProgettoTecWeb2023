@@ -4,7 +4,8 @@ const User = require("../models/User");
 const Controller = require('../controllers/Controller');
 const UserService = require('../services/UserServices');
 const MessageServices = require('../services/MessageServices');
-const { getAuthMiddleware } = require('../middleware/auth');
+const { getAuthMiddleware, checkOwnUserOrSMM, checkOwnUser } = require('../middleware/auth');
+const ChannelServices = require('../services/ChannelServices');
 
 
 const UserRouter = express.Router();
@@ -47,30 +48,22 @@ UserRouter.delete('/:handle', getAuthMiddleware('basicAuth'),
     }
 );
 
-UserRouter.post('/:handle/smm', getAuthMiddleware('proAuth'),
+UserRouter.post('/:handle/smm', getAuthMiddleware('proAuth'), checkOwnUser,
     async (req, res) => {
-
-        if (req.user.handle !== req.params.handle)
-            return res.status(401).json({ message: 'A user can only change its own smm' })
 
         await Controller.handleRequest(req, res, UserService.changeSmm);
     }
 );
 
-UserRouter.post('/:handle/managed', getAuthMiddleware('proAuth'),
+UserRouter.post('/:handle/managed', getAuthMiddleware('proAuth'), checkOwnUser,
     async (req, res) => {
-
-        if (req.user.handle !== req.params.handle)
-            return res.status(401).json({ message: 'A user can only remove its own managed users' })
 
         await Controller.handleRequest(req, res, UserService.removeManaged);
     }
 );
 
-UserRouter.get('/:handle/managed', getAuthMiddleware('proAuth'),
+UserRouter.get('/:handle/managed', getAuthMiddleware('proAuth'), checkOwnUser,
     async (req, res) => {
-
-        // TODO a user can only modify his own managed
 
         await Controller.handleRequest(req, res, UserService.getManaged);
     }
@@ -90,7 +83,7 @@ UserRouter.post('/:handle/revokeAdmin', getAuthMiddleware('adminAuth'),
     }
 );
 
-UserRouter.get('/:handle/messages/stats', getAuthMiddleware('basicAuth'), async (req, res) => {
+UserRouter.get('/:handle/messages/stats', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM, async (req, res) => {
 
     if (req.user.handle !== req.params.handle) {
         const requestedUser = await User.findOne({ handle: req.params.handle }) 
@@ -113,31 +106,22 @@ UserRouter.get('/:handle/messages', getAuthMiddleware('basicAuth'), async (req, 
     await Controller.handleRequest(req, res, MessageServices.getUserMessages);
 })
 
-UserRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'), async (req, res) => {
-    
-    // TODO posting to a channel can only be done if the user is a write member
-    // TODO add fetched destchannels to postUserMessage
-    
-    await Controller.handleRequest(req, res, MessageServices.postUserMessage);
+UserRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM, async (req, res) => {
+    const socket = req.app.get('socketio');
+    await Controller.handleRequest(req, res, MessageServices.postUserMessage, socket);
 })
 
-UserRouter.delete('/:handle/messages', getAuthMiddleware('basicAuth'), async (req, res) => {
-    
-    // TODO a user can only delete his own squeals
+UserRouter.delete('/:handle/messages', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.deleteUserMessages);
 })
 
-UserRouter.delete('/:handle/messages/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
-    
-    // TODO a user can only delete his own squeals
+UserRouter.delete('/:handle/messages/:id', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.deleteMessage);
 })
 
-UserRouter.post('/:handle/messages/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
-    
-    // TODO a user can only modify his own messages or the ones from the users he manages
+UserRouter.post('/:handle/messages/:id', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.postMessage);
 })
@@ -149,7 +133,7 @@ UserRouter.get('/registration/',
     }
 );
 
-UserRouter.post('/:handle/subscription', getAuthMiddleware('basicAuth'), async (req, res) => {
+UserRouter.post('/:handle/subscription', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
 
     if (req.user.handle !== req.params.handle) 
         return res.status(401).json({ message: 'User can only change its own subscription plan.' })
@@ -157,12 +141,16 @@ UserRouter.post('/:handle/subscription', getAuthMiddleware('basicAuth'), async (
     return Controller.handleRequest(req, res, UserService.changeSubscription);
 })
 
-UserRouter.delete('/:handle/subscription', getAuthMiddleware('basicAuth'), async (req, res) => {
+UserRouter.delete('/:handle/subscription', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
 
     if (req.user.handle !== req.params.handle)
         return res.status(401).json({ message: 'User can only change its own subscription plan.' })
 
     return Controller.handleRequest(req, res, UserService.changeSubscription);
+})
+
+UserRouter.get('/:handle/joined', getAuthMiddleware('basicAuth', { session: false }), async (req, res) => {
+    await Controller.handleRequest(req, res, ChannelServices.getJoinedChannels);
 })
 
 module.exports = UserRouter;

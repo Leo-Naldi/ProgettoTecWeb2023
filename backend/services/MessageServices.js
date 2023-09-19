@@ -121,7 +121,7 @@ class MessageService {
         } 
         
         if (author) {
-            query.where('author').equals(author._id);
+                query.where('author').equals(author._id);
         }
 
         if ((publicMessage === true) || (publicMessage === false)) {
@@ -129,7 +129,8 @@ class MessageService {
         }
 
         if (answering) {
-            query.find({ answering: answering });
+            //logger.debug(answering)
+            query.where('answering').equals(answering);
         }
 
         if (official) query.where('official').equals(true);
@@ -169,6 +170,24 @@ class MessageService {
         return query;
     }
 
+    static #makeMessageObject(message, deleteAuthor = false) {
+        let res = message.toObject?.() || message;
+
+        res.dest = res.destUser.map(u => '@' + u.handle)
+            .concat(res.destChannel.map(c => '§' + c.name));
+
+        res.id = message._id.toString();
+
+
+        delete res.destUser; delete res.destChannel;
+        delete res.__v;
+
+        if (deleteAuthor) delete res.author;  // useless in .getUserMessages
+        else res.author = res.author.handle;
+
+        return res;
+    }
+
     /**
      * Turns the given array of message records into an array of Objects. 
      * Destinations are replaced with the corresponding name/handle and an 
@@ -180,22 +199,13 @@ class MessageService {
      */
     static _makeMessageObjectArr(messageArr, deleteAuthor = false) {
 
-        return messageArr
-            .map(m => m.toObject())
-            .map(o => {
-                o.dest = o.destUser.map(u => '@' + u.handle)
-                    .concat(o.destChannel.map(c => '§' + c.name));
-                
-                o.id = o._id.toString();
+        return messageArr.map(m => MessageService.#makeMessageObject(m, deleteAuthor));
+    }
 
-                delete o.destUser; delete o.destChannel; delete o._id;
-                delete o.__v;
-
-                if (deleteAuthor) delete o.author;  // useless in .getUserMessages
-                else o.author = o.author.handle;
-
-                return o;
-            })
+    static #populateMessageQuery(query) {
+        return query.populate('author', 'handle _id')
+            .populate('destChannel', 'name _id')
+            .populate('destUser', 'handle _id')
     }
 
     /**
@@ -204,14 +214,14 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getMessages({ reqUser=null, author=null, page=1, popular, unpopular, controversial, risk,
+    static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage, answering }={ page: 1, reqUser: null }) {
 
-        logger.info(`Answering: ${answering}`)
+        //logger.info(`Answering: ${answering}`)
 
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
-            before, after, dest, page, reqUser, publicMessage, answering
+            before, after, dest, page, reqUser, publicMessage, answering,
         })
 
         const res = await query;
@@ -229,7 +239,7 @@ class MessageService {
         const ch = await Channel.findOne({ name: name });
         if (!ch) return Service.rejectResponse({ message: `No channel named ${name}` })
 
-        if (!ch.privateChannel) {
+        if (ch.privateChannel) {
             if (!ch.members.find(id => reqUser._id.equals(id))) {
                 return Service.rejectResponse({ 
                     message: `Cannot access private channel §${name} since you are not a member.`
@@ -237,7 +247,8 @@ class MessageService {
             }
         }
         
-        const query = Message.find().where('destChannel').in([ch._id]);
+        const query = MessageService.#populateMessageQuery(
+                Message.find().where('destChannel').in([ch._id]));
         
         const res = await query
         return Service.successResponse(MessageService._makeMessageObjectArr(res));
@@ -254,13 +265,9 @@ class MessageService {
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
         
-        let user = reqUser;
+        let user = await User.findOne({ handle: handle });
 
-        if (handle !== user.handle) {
-            user = await User.findOne({ handle: handle });
-
-            if (!user) return Service.rejectResponse({ message: `User @${handle} not found` });
-        }
+        if (!user) return Service.successResponse([]);
 
         let messagesQuery = await MessageService._addQueryChains({ 
             popular, unpopular, controversial, risk,
@@ -416,13 +423,13 @@ class MessageService {
         if (destUser?.length) message.destUser = destUser.map(u => u._id);
         if (answering) message.answering = answering;
 
-        // TODO test answering
         let err = null;
         let resbody;
 
         try {
             
-            let smmHandle = user.smm?.handle;  // populated during authentication
+            let smm = user.smm ? await User.findById(user.smm): null;
+            let smmHandle = smm?.handle;
             
             message = await message.save();
             user = await user.depopulate();
@@ -464,7 +471,7 @@ class MessageService {
             if (!user) return Service.rejectResponse({ message: "Invalid user handle" })
         }
 
-        const deleted = await Message.deleteMany({ author: user._id });
+        await Message.deleteMany({ author: user._id });
 
         //console.log(deleted.deletedCount);
 
@@ -481,26 +488,31 @@ class MessageService {
 
         const message = await Message.findById(id);
 
-        // delete local image associated to the user's message
-        if (message.content.image && message.content.image!=""){
+        if (message) {
 
-            const imgPath = message.content.image;
-            //http://localhost:8000/f_user3/be4caaa4722f46f0bcae54903_picture.png
-            // imgPath = "files/f_user3/be4caaa4722f46f0bcae54903_picture.png"
-            let paths = imgPath.split("/");
-            let paths1 = paths.slice(paths.length - 2, paths.length)
-            let final_path = 'files/'+paths1.join('/')
-            fs.unlink(final_path, (err) => {
-                if(err) throw err;
-            });
+            // delete local image associated to the user's message
+            if (message.content.image && message.content.image!=""){
+    
+                const imgPath = message.content.image;
+                //http://localhost:8000/f_user3/be4caaa4722f46f0bcae54903_picture.png
+                // imgPath = "files/f_user3/be4caaa4722f46f0bcae54903_picture.png"
+                let paths = imgPath.split("/");
+                let paths1 = paths.slice(paths.length - 2, paths.length)
+                let final_path = 'files/'+paths1.join('/')
+                fs.unlink(final_path, (err) => {
+                    if(err) throw err;
+                });
+            }
+    
+            if (!message) return Service.rejectResponse({ message: "Id not found" });
+    
+            await message.deleteOne();
+    
+            return Service.successResponse();
         }
 
-        if (!message) return Service.rejectResponse({ message: "Id not found" });
+        return Service.rejectResponse({ message: `No message with id ${id}` });
 
-        const mid = message._id;
-        await message.deleteOne();
-
-        return Service.successResponse();
     }
 
     /**
@@ -684,9 +696,6 @@ class MessageService {
         await Promise.all(messages.map(async m => {
 
             m.destChannel = m.destChannel.filter(id => !id.equals(channel._id))
-
-            if ((m.destChannel.length === 0) && (m.destUser.length === 0))
-                return m.deleteOne()
 
             return m.save();
 

@@ -4,6 +4,7 @@
  */
 
 
+const Channel = require('../models/Channel');
 const User = require('../models/User');
 const passport = require('passport');
 require('../auth/auth');
@@ -76,8 +77,29 @@ async function checkOwnUserOrSMM(req, res, next) {
     next();
 }
 
+
+/**
+ * Middleware that checks weather the requesting user is the creator of the 
+ * /:name/ channel.
+ * 
+ * @param {Express.Request} req The request object
+ * @param {Express.Response} res The response object
+ * @param {Express.NextFunction} next The next middleware
+ */
+async function checkNameCreator(req, res, next) {
+    const channel = await Channel.findOne({ name: req.params.name });
+
+    if (!channel) return res.status(409).json({ message: `No channel named ${req.params.name}` })
+
+    if (!req.user?._id.equals(channel.creator))
+        return res.status(401).json({ message: 'Only the creator can modify the channel' });
+    
+    next();
+}
+
 module.exports = {
     getAuthMiddleware, 
     checkOwnUser,
     checkOwnUserOrSMM,
+    checkNameCreator,
 };

@@ -11,31 +11,36 @@ class UserService {
 
 
 
-    static #getSecureUserRecords(filter) {
-        return UserService.#populateQuery(User.find(filter))
-            .select('-__v -password');
+    static getSecureUserRecords(filter) {
+        return UserService.populateQuery(User.find(filter))
+            .select('-__v');
     }
 
-    static #getSecureUserRecord(filter) {
-        return UserService.#populateQuery(User.findOne(filter))
-            .select('-__v -password');
+    static getSecureUserRecord(filter) {
+        return UserService.populateQuery(User.findOne(filter))
+            .select('-__v');
     }
 
-    static #populateQuery(query) {
-        return query.populate('joinedChannels', 'name')
+    static populateQuery(query) {
+        return query
             .populate('smm', 'handle')
-            // .populate('messages', '_id')
-            .populate('editorChannels', 'name')
+            .populate('editorChannels', 'name _id')
+            .populate('joinedChannels', 'name _id')
+            .populate('editorChannelRequests', 'name _id')
+            .populate('joinChannelRequests', 'name _id')
             .populate('managed', 'handle');
     }
 
-    static #makeUserObject(user) {
+    static makeUserObject(user) {
 
         let res = user.toObject();
 
         // if joinedChannels is populated it replaces every channel with its name
         res.joinedChannels = res.joinedChannels?.map(c => c?.name || c);
         res.editorChannels = res.editorChannels?.map(c => c?.name || c);
+
+        res.joinChannelRequests = res.joinChannelRequests?.map(c => c?.name || c);
+        res.editorChannelRequests = res.editorChannelRequests?.map(c => c?.name || c);
 
         res.smm = res.smm?.handle || res.smm;
 
@@ -47,11 +52,15 @@ class UserService {
             res.managed = user.managed.map(u => '@' + (u.handle || u))
         }
 
+        res.id = res._id.toString();
+
+        delete res.__v; delete res.password;
+
         return res;
     }
 
-    static #makeUserObjectArr(userArr) {
-        return userArr.map(UserService.#makeUserObject)
+    static makeUserObjectArr(userArr) {
+        return userArr.map(UserService.makeUserObject)
     }
 
     static async getUsers({ handle, admin, accountType, handleOnly, page = 1 } = { page: 1}){
@@ -63,18 +72,18 @@ class UserService {
 
         let users;
         if ((handleOnly === true) || (handleOnly === false)) {
-            users = await UserService.#getSecureUserRecords(filter)
+            users = await UserService.getSecureUserRecords(filter)
                 .sort('meta.created')
                 .select('handle');
             
-            return Service.successResponse(UserService.#makeUserObjectArr(users));
+            return Service.successResponse(UserService.makeUserObjectArr(users));
         } else {
-            users = await UserService.#getSecureUserRecords(filter)
+            users = await UserService.getSecureUserRecords(filter)
                 .sort('meta.created')
                 .skip((page - 1) * config.results_per_page)
                 .limit(config.results_per_page);
 
-                return Service.successResponse(UserService.#makeUserObjectArr(users));
+                return Service.successResponse(UserService.makeUserObjectArr(users));
         }
 
     }
@@ -83,11 +92,11 @@ class UserService {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let user = await UserService.#getSecureUserRecord({ handle: handle });
+        let user = await UserService.getSecureUserRecord({ handle: handle });
 
         if (!user) return Service.rejectResponse({ message: "User not found" });
 
-        return Service.successResponse(UserService.#makeUserObject(user));        
+        return Service.successResponse(UserService.makeUserObject(user));        
     }
 
     static async createUser({ handle, email, password,
@@ -199,72 +208,31 @@ class UserService {
 
             let channels = await Channel.find().where('name').in(addMemberRequest);
 
-            await Promise.all(channels.map(c => {
-                if (!user.joinedChannels.find(cid => c._id.equals(cid))) {
-                    c.memberRequests.push(user._id);
-                
-
-                    return c.save();
-                }
-            }));
-
             // Push the channels that are not already there
-            user.joinChannelRequests.push(...channels
-                .filter(c => 
-                    !user.joinChannelRequests.find(cid => c._id.equals(cid)))
-                .map(c => c._id));
+            user.joinChannelRequests.addToSet(...channels.map(c => c._id));
         }
 
         if (addEditorRequest?.length) {
 
             let channels = await Channel.find().where('name').in(addEditorRequest);
 
-            await Promise.all(channels.map(c => {
-                if (!user.editorChannels.find(cid => c._id.equals(cid))) {
-                    c.editorRequests.push(user._id);
-
-                    return c.save();
-                }
-            }));
-
-            user.editorChannelRequests.push(...channels
-                .filter(c =>
-                    !user.joinChannelRequests.find(cid => c._id.equals(cid)))
-                .map(c => c._id));
+            // Push the channels that are not already there
+            user.editorChannelRequests.addToSet(...channels.map(c => c._id));
         }
 
         if (removeMember?.length) {
 
-            let channels = await Channel.find().where('name').in(addEditorRequest);
-
-            await Promise.all(channels.map(c => {
-                
-                if (user.joinedChannels.find(cid => c._id.equals(cid))) {
-                    
-                    c.members = c.members.filter(uid => !user._id.equals(uid));
-                    c.editors = c.editors.filter(uid => !user._id.equals(uid));
-
-                    return crec.save();
-                }
-            }));
+            let channels = await Channel.find().where('name').in(removeMember);
 
             user.joinedChannels = user.joinedChannels.filter(cid =>
                 !channels.find(c =>  c._id.equals(cid)));
+            user.editorChannels = user.editorChannels.filter(cid =>
+                !channels.find(c => c._id.equals(cid)));
         }
 
         if (removeEditor?.length) {
 
-            let channels = await Channel.find().where('name').in(addEditorRequest);
-
-            await Promise.all(channels.map(c => {
-
-                if (user.joinedChannels.find(cid => c._id.equals(cid))) {
-
-                    c.editors = c.editors.filter(uid => !user._id.equals(uid));
-
-                    return crec.save();
-                }
-            }));
+            let channels = await Channel.find().where('name').in(removeEditor);
 
             user.editorChannels = user.editorChannels.filter(cid =>
                 !channels.find(c => c._id.equals(cid)));
@@ -280,9 +248,9 @@ class UserService {
 
         if (err) return Service.rejectResponse(err);
         
-        user = await UserService.#getSecureUserRecord({ handle: user.handle })
+        user = await UserService.getSecureUserRecord({ handle: user.handle })
 
-        return Service.successResponse(UserService.#makeUserObject(user));
+        return Service.successResponse(UserService.makeUserObject(user));
     }
 
     static async grantAdmin({ handle }) {
@@ -401,7 +369,7 @@ class UserService {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let urec = await UserService.#getSecureUserRecord({ handle: handle });
+        let urec = await UserService.getSecureUserRecord({ handle: handle });
         
         let user_records = await User.find().where('handle').in(users);
 

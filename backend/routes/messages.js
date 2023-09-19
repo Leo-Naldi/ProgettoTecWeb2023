@@ -32,17 +32,8 @@ MessageRouter.get('/channel/:name', getAuthMiddleware('basicAuth'), async (req, 
 // formerly '/:handle/messages'
 MessageRouter.post('/user/:handle', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM,
     async (req, res) => {
-        
-        // if (req.smm) {
-        //     logger.debug(`SMM with handle: ${req.smm.handle}`);
-        //     logger.debug(`Posting for user: ${req.user?.handle}`);
-        // }
 
-        const socket = req.app.get('socketio');
-
-        //logger.debug(JSON.stringify(req.body))
-
-        await Controller.handleRequest(req,res, MessageServices.postUserMessage, socket);
+        await Controller.handleRequest(req,res, MessageServices.postUserMessage);
     }
 );
 
@@ -57,7 +48,7 @@ MessageRouter.get('/user/:handle', getAuthMiddleware('basicAuth'),
     });
 
 //delete post of a user
-MessageRouter.delete('/:id', getAuthMiddleware('basicAuth'),
+MessageRouter.delete('/:id', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM,
     async (req, res) => {
         await Controller.handleRequest(req, res, MessageServices.deleteMessage);
     }
@@ -66,16 +57,14 @@ MessageRouter.delete('/:id', getAuthMiddleware('basicAuth'),
 // user add positive reactions
 MessageRouter.post('/up/:id', getAuthMiddleware('basicAuth'),
     async (req, res) => {
-        const socket = req.app.get('socketio');
-        await Controller.handleRequest(req, res, MessageServices.addPositiveReaction, socket);
+        await Controller.handleRequest(req, res, MessageServices.addPositiveReaction);
     }
 );
 
 // user add negative reactions
 MessageRouter.post('/down/:id', getAuthMiddleware('basicAuth'),
     async (req, res) => {
-        const socket = req.app.get('socketio');
-        await Controller.handleRequest(req, res, MessageServices.addNegativeReaction, socket);
+        await Controller.handleRequest(req, res, MessageServices.addNegativeReaction);
     }
 );
 
