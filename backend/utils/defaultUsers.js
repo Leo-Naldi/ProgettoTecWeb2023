@@ -847,7 +847,6 @@ async function makeDefaultUsers() {
 
     let channel_requests_user_index = test_env.addUser(channel_requests_user);
 
-
     const channel_indexes = [
         test_env.addRandomChannel(u1_index, 2),
         test_env.addRandomChannel(u2_index, 2),
@@ -1153,6 +1152,7 @@ async function makeDefaultUsers() {
             destChannelIndexes: [manually_created_channel_idexes[5]],
             reactions: popular_reaction(),
             answeringIndex: test_env.getRandomPublicMessageIndex(),
+            text: TestEnv.lorem.generateSentences(TestEnv.getRandom(1,4)),
         })
 
         test_env.addMessage({
@@ -1163,6 +1163,7 @@ async function makeDefaultUsers() {
             destChannelIndexes: [manually_created_channel_idexes[5]],
             reactions: popular_reaction(),
             answeringIndex: test_env.getRandomPublicMessageIndex(),
+            text: TestEnv.lorem.generateSentences(TestEnv.getRandom(1, 4))
         })
 
         test_env.addMessage({
@@ -1173,6 +1174,7 @@ async function makeDefaultUsers() {
             destChannelIndexes: [manually_created_channel_idexes[5]],
             reactions: popular_reaction(),
             answeringIndex: test_env.getRandomPublicMessageIndex(),
+            text: TestEnv.lorem.generateSentences(TestEnv.getRandom(1, 4))
         })
     }
 
@@ -1217,12 +1219,13 @@ async function makeDefaultUsers() {
     cronUser.joinedChannels = [catFacts._id, dogPics._id];
     cronUser.editorChannels = [catFacts._id, dogPics._id];
 
-    await cronUser.save()
     await catFacts.save()
     await dogPics.save()
+    await cronUser.save()
 
     let answer = await Message.findOne({ answering: { $ne: null }, publicMessage: true });
     logger.info(`Message with answers: ${answer.answering}`)
+
 
     /*
     const u = await User.findOne({ handle: 'fv' });

@@ -124,10 +124,7 @@ const UserSchema = mongoose.Schema(
             required: true,
             default: () => ({}),
         },
-        proPlan: {
-            type: mongoose.ObjectId,
-            ref: 'Plan',
-        },
+        subscription: SubscriptionSchema,
         smm: { 
             // Id del social media manager
             type: mongoose.ObjectId, 
@@ -154,6 +151,20 @@ UserSchema.virtual('managed', {
     ref: 'User',
     localField: '_id',
     foreignField: 'smm'
+})
+
+UserSchema.virtual('liked', {
+    ref: 'Reaction',
+    localField: '_id',
+    foreignField: 'user',
+    match: { type: 'positive' }
+})
+
+UserSchema.virtual('disliked', {
+    ref: 'Reaction',
+    localField: '_id',
+    foreignField: 'user',
+    match: { type: 'negative' }
 })
 
 UserSchema.pre('deleteOne', { document: true }, async function(){

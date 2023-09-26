@@ -6,44 +6,26 @@ const User = require('../models/User');
  * cancels them where autoRenew is false.
  */
 async function renewSubscriptions() {
-    // users with a montly pro plan
-    const monthly_u = User.find().populate('subscription.proPlan')
-        .where('subscription.proPlan.period').equals('month')
-        .where('subscription.expires').gte(new Date()).exec();
-
-    // users with a yearly pro plan
-    const yearly_u = User.find().populate('subscription.proPlan')
-        .where('subscription.proPlan.period').equals('year')
-        .where('subscription.expires').gte(new Date()).exec();
-
-    const queries = await Promise.all([monthly_u, yearly_u]);
-
-    // update promises
-    const monthly_updates = queries[0].map(async u => {
-        
-        if (u.subscription.autoRenew) {
-            u.subscription.expires = (new dayjs(u.subscription.expires)).add(1, 'month').toDate();
-            u.depopulate('subscription.proPlan');
-        } else {
-            u.subscription = null;
-        }
-
-        return await u.save();
-    });
-
-    const yearly_updates = queries[1].map(async u => {
-        
-        if (u.subscription.autoRenew) {
-            u.subscription.expires = (new dayjs(u.subscription.expires)).add(1, 'year').toDate();
-            u.depopulate('subscription.proPlan');
-        } else {
-            u.subscription = null;
-        }
-
-        return await u.save();
-    });
     
-    await Promise.all([...monthly_updates, ...yearly_updates]);
+    const uquery = User.find()
+        .where('subscription').ne(null)
+        .where('subscription.expires').lte(new Date())
+        .populate('subscription.proPlan');
+
+    const users = await uquery;
+
+    await Promise.all(users.map(u => {
+       
+        if (u.autoRenew) {
+            u.subscription.expires = (new dayjs()).add(1, u.subscription.proPlan.period).toDate();
+            u.subscription.proPlan = u.subscription.proPlan._id;
+        } else {
+            u.subscription = null;
+            u.accountType = 'user';
+        }
+
+        return u.save();
+    }))
 }
 
 module.exports = renewSubscriptions;

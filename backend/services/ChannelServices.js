@@ -4,6 +4,7 @@ const Channel = require('../models/Channel');
 const Service = require('./Service');
 const config = require('../config');
 const { logger } = require('../config/logging');
+const SquealSocket = require('../socket/Socket');
 
 class ChannelServices{
 
@@ -86,30 +87,20 @@ class ChannelServices{
     static async getJoinedChannels({ reqUser, handle }){
 
         if (!handle) Service.rejectResponse({ message: `Did not provide a handle` })
-        let user = await User.findOne({ handle: handle })
-            .populate({
-                path: 'joinedChannels',
-                populate: {
-                    path: 'creator',
-                    select: 'handle _id',
-                }
-            })
-            .populate({
-                path: 'editorChannels',
-                populate: {
-                    path: 'creator',
-                    select: 'handle _id',
-                }
-            });
-
-        if (!user) Service.rejectResponse({ message: `No user with handle @${handle}` });
-
-        logger.debug(user.joinedChannels[0].creator.handle);
         
-        return Service.successResponse({
-            joinedChannels: ChannelServices.#makeChannelObjectArray(user.joinedChannels),
-            editorChannels: ChannelServices.#makeChannelObjectArray(user.editorChannels)
-        })
+        let user = reqUser;
+        if (user.handle !== handle) user = await User.findOne({ handle: handle });
+
+        if (!user) return Service.rejectResponse({ message: `No user named @${handle}` });
+
+        let channels = await ChannelServices
+            .populateQuery(Channel.find({ _id: { $in: user.joinedChannels } }));
+
+        //logger.info(channels[0].editors)
+        
+        return Service.successResponse(
+            ChannelServices.#makeChannelObjectArray(channels)
+        )
     }
 
     // Get the handle of the creator of the channel based on the channel name 
@@ -223,7 +214,8 @@ class ChannelServices{
         return Service.successResponse(res);
     }
 
-    static async createChannel({ name, reqUser, description='', publicChannel=true, official=false }){
+    static async createChannel({ name, reqUser, description='', 
+        publicChannel=true, official=false }){
         
         if (!(name)) return Service.rejectResponse({ message: "Must provide owner handle and unique name" })
 
@@ -298,7 +290,7 @@ class ChannelServices{
     }
 
     static async writeChannel({ name, newName=null, 
-        owner=null, description=null, publicChannel=null }) {
+        owner=null, description=null, publicChannel=null, socket }) {
         
         if (!(newName || owner || description || (publicChannel === true) || (publicChannel === false))) 
             return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
@@ -341,10 +333,16 @@ class ChannelServices{
 
         channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
 
+        SquealSocket.channelChanged({
+            populatedChannelObject: channel,
+            ebody: ChannelServices.#makeChannelObject(channel),
+            socket: socket
+        });
+
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
-    static async writeMembers({ name, addMembers, removeMembers }) {
+    static async writeMembers({ name, addMembers, removeMembers, socket }) {
         
         let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
         
@@ -358,7 +356,7 @@ class ChannelServices{
 
             let users = await User.find().where('handle').in(addMembers);
 
-            logger.debug(addMembers)
+            //logger.debug(addMembers)
 
             await Promise.all(users.map(async u => {
                 logger.debug(u.joinChannelRequests)
@@ -394,11 +392,21 @@ class ChannelServices{
         if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
 
         channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
+        let channel_object = ChannelServices.#makeChannelObject(channel);
+
+        SquealSocket.channelChanged({ 
+            populatedChannelObject: channel,
+            ebody: {
+                members: channel_object.members,
+                memberRequests: channel_object.memberRequests,
+            },
+            socket: socket
+        });
 
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
-    static async writeEditors({ name, channel = null, addEditors, removeEditors }) {
+    static async writeEditors({ name, channel = null, addEditors, removeEditors, socket }) {
         if (channel === null) {
             channel = await Channel.findOne({ name: name })
                 .populate('creator', 'handle _id')
@@ -451,6 +459,16 @@ class ChannelServices{
         if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
 
         channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
+        let channel_object = ChannelServices.#makeChannelObject(channel);
+
+        SquealSocket.channelChanged({
+            populatedChannelObject: channel,
+            ebody: {
+                members: channel_object.editors,
+                memberRequests: channel_object.editorRequests,
+            },
+            socket: socket
+        });
 
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }

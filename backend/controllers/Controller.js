@@ -3,12 +3,9 @@
  * @module controllers/Controller
  */
 
-const fs = require('fs');
-const path = require('path');
-const config = require('../config/index');
 const { logger } = require('../config/logging');
 const express = require('express');
-const { Server } = require("socket.io")
+const { Server } = require("socket.io");
 
 
 /**
@@ -87,8 +84,8 @@ class Controller {
         if (request.user) requestParams.reqUser = request.user;
         if (request.smm) requestParams.reqSmm = request.smm;
 
-        if (requestParams.before) requestParams.before = new Date(requestParams.before)
-        if (requestParams.after) requestParams.after = new Date(requestParams.after)
+        if (requestParams.after) requestParams.after = new Date(Date.parse(requestParams.after));
+        if (requestParams.before) requestParams.before = new Date(Date.parse(requestParams.before));
 
         // convert booleans
         if (requestParams.handleOnly) {

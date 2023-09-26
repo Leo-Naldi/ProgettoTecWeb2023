@@ -68,6 +68,7 @@ class ExpressServer {
 
         logger.info('Crons Started');
         logger.info(`Server Secret is: ${config.secrect}`)
+        logger.info(`Fame Threshold is: ${config.fame_threshold}`)
     }
 }
 

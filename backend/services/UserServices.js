@@ -6,6 +6,7 @@ const makeToken = require("../utils/makeToken");
 const Service = require("./Service");
 const Channel = require("../models/Channel");
 const Plan = require("../models/Plan");
+const SquealSocket = require("../socket/Socket");
 
 class UserService {
 
@@ -28,7 +29,7 @@ class UserService {
             .populate('joinedChannels', 'name _id')
             .populate('editorChannelRequests', 'name _id')
             .populate('joinChannelRequests', 'name _id')
-            .populate('managed', 'handle');
+            .populate('managed', 'handle')
     }
 
     static makeUserObject(user) {
@@ -44,12 +45,16 @@ class UserService {
 
         res.smm = res.smm?.handle || res.smm;
 
-        if (user.messages) {
-            res.messages = user.messages.map(m => m._id?.toString() || m);
+        if (user.managed) {
+            res.managed = user.managed.map(u => u.handle)
         }
 
-        if (user.managed) {
-            res.managed = user.managed.map(u => '@' + (u.handle || u))
+        if (user.liked) {
+            res.liked = user.liked.map(r => r.message);
+        }
+
+        if (user.disliked) {
+            res.disliked = user.disliked.map(r => r.message);
         }
 
         res.id = res._id.toString();
@@ -88,11 +93,18 @@ class UserService {
 
     }
 
-    static async getUser({ handle }) {
+    static async getUser({ handle, includeReactions=true }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let user = await UserService.getSecureUserRecord({ handle: handle });
+        let query = UserService.getSecureUserRecord({ handle: handle });
+
+        if (includeReactions) {
+            query.populate('liked', 'message');
+            query.populate('disliked', 'message');
+        }
+
+        let user = await query;
 
         if (!user) return Service.rejectResponse({ message: "User not found" });
 
@@ -167,7 +179,7 @@ class UserService {
         email, password, name, lastName, 
         phone, gender, blocked,
         accountType, charLeft, addMemberRequest, 
-        addEditorRequest, removeMember, removeEditor,
+        addEditorRequest, removeMember, removeEditor, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -249,6 +261,12 @@ class UserService {
         if (err) return Service.rejectResponse(err);
         
         user = await UserService.getSecureUserRecord({ handle: user.handle })
+
+        SquealSocket.userChaged({
+            populatedUser: user,
+            ebody: UserService.makeUserObject(user),
+            socket: socket,
+        })
 
         return Service.successResponse(UserService.makeUserObject(user));
     }

@@ -1,4 +1,3 @@
-const cors = require('cors');
 const { Server } = require("socket.io")
 
 const { logger } = require('../config/logging')
@@ -15,6 +14,7 @@ class SocketServer {
     static user_namespace = /^\/user-io\/(\w+)$/;
     static pro_namespace = /^\/pro-io\/(\w+)$/;
     static admin_namespace = /^\/admin-io\/(\w+)$/;
+    static public_namespace = '/public-io/'
 
     constructor(expressServer) {
         this.io = new Server(expressServer, {

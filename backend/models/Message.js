@@ -91,6 +91,9 @@ const MessageSchema = new mongoose.Schema({
             required: true,
             default: false
         },
+        keywords: [{
+            type: String,
+        }]
     }, {
         virtuals: {
             // Le info ridondanti possono essere messe come virtual

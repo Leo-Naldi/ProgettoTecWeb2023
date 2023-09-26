@@ -26,6 +26,8 @@
             trow.appendTo($('#events-body'))
         }
         
+        let soc = null;
+
         $('#data').on('submit', (event) => {
             event.preventDefault();
             
@@ -50,6 +52,15 @@
                             },
                         });
                         socket.onAny(add_li_node);
+
+                        if (soc) {
+
+                            soc.offAny();
+                            soc.disconnect();
+                            soc = null;
+                        }
+
+                        soc = socket
                     })
                     break;
                 case 'pro':
@@ -72,8 +83,17 @@
                                     Authorization: `Bearer ${res.token}`
                                 },
                             });
-                            socket.onAny(add_li_node);
+                            //socket.onAny(add_li_node);
                             socketPro.onAny(add_li_node);
+
+                            if (soc) {
+
+                                soc.offAny();
+                                soc.disconnect();
+                                soc = null;
+                            }
+
+                            soc = socketPro;
                         })
 
                     break;
@@ -96,8 +116,17 @@
                                         Authorization: `Bearer ${res.token}`
                                     },
                                 });
-                                socket.onAny(add_li_node);
+                                //socket.onAny(add_li_node);
                                 socketAdmin.onAny(add_li_node);
+
+                                if (soc) {
+
+                                    soc.offAny();
+                                    soc.disconnect();
+                                    soc = null;
+                                }
+
+                                soc = socketAdmin;
                             })
                     break;
                 default:

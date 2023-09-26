@@ -411,7 +411,7 @@ class TestEnv {
                 }
                 
                 this.addMessage({
-                    authorIndex, text,
+                    authorIndex: authorIndex, text: text,
                     destUserIndexes: destUser, destChannelIndexes: destChannel,
                     answeringIndex: answered,
                     reactions: reaction_function?.() || 
