@@ -7,10 +7,10 @@ const Service = require("./Service");
 const Channel = require("../models/Channel");
 const Plan = require("../models/Plan");
 const SquealSocket = require("../socket/Socket");
+const { logger } = require("../config/logging");
+const dayjs = require("dayjs");
 
 class UserService {
-
-
 
     static getSecureUserRecords(filter) {
         return UserService.populateQuery(User.find(filter))
@@ -30,6 +30,7 @@ class UserService {
             .populate('editorChannelRequests', 'name _id')
             .populate('joinChannelRequests', 'name _id')
             .populate('managed', 'handle')
+            .populate('subscription.proPlan', '-__v');
     }
 
     static makeUserObject(user) {
@@ -55,6 +56,10 @@ class UserService {
 
         if (user.disliked) {
             res.disliked = user.disliked.map(r => r.message);
+        }
+
+        if (user.subscription) {
+            res.subscription.proPlan.id = res.subscription.proPlan._id.toString();
         }
 
         res.id = res._id.toString();
@@ -162,12 +167,23 @@ class UserService {
     
     }
 
-    static async deleteUser({ handle }) {
+    static async deleteUser({ handle, socket }) {
 
         // smm and co fields are kept coherent with the pre('deleteOne') setting, see models/User
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
-        const user = await User.findOne({ handle: handle });
+        const user = await User.findOne({ handle: handle })
+            .populate('smm', 'handle')
+            .populate('managed', 'handle');
+
+        if ((user.smm) || (user.managed?.length)) {
+            SquealSocket.userDeleted({ 
+                handle: user.handle,
+                smm_handle: user.smm?.handle,
+                managed: user.managed,
+                socket: socket,
+            })
+        }
 
         if (!user) return Service.rejectResponse({ message: `No user named @${handle}` });
         await user.deleteOne();
@@ -177,9 +193,9 @@ class UserService {
 
     static async writeUser({ handle, username,
         email, password, name, lastName, 
-        phone, gender, blocked,
-        accountType, charLeft, addMemberRequest, 
-        addEditorRequest, removeMember, removeEditor, socket
+        phone, gender, blocked, charLeft, addMemberRequest, 
+        addEditorRequest, removeMember, removeEditor, 
+        proPlanName, autoRenew=true, deleteSubscription=false, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -187,7 +203,6 @@ class UserService {
         const newVals = {
             email, password, name, lastName, 
             phone, gender, username,
-            accountType,
         }
         let user = await User.findOne({ handle: handle });
 
@@ -250,6 +265,49 @@ class UserService {
                 !channels.find(c => c._id.equals(cid)));
         }
 
+        if (proPlanName) {
+
+            let pro_plan = await Plan.findOne({ name: proPlanName });
+            
+            if (pro_plan){
+
+                let expiration_date;
+
+                switch (pro_plan.period) {
+                    case 'month':
+                        expiration_date = (new dayjs()).add(1, 'month').toDate();
+                        break;
+                    case 'year':
+                        expiration_date = (new dayjs()).add(1, 'year').toDate();
+                        break;
+                }
+
+                user.subscription = {
+                    proPlan: pro_plan._id,
+                    expires: expiration_date,
+                    autoRenew: autoRenew,
+                }
+
+                if (pro_plan.pro) user.accountType = 'pro';
+                else user.accountType = 'user';
+            } else {
+                return Service.rejectResponse({ message: `No subscription plan named: ${proplanName}` });
+            }
+        }
+
+        if (deleteSubscription) {
+            user.subscription = null;
+            user.accountType = 'user';
+        }
+
+        //logger.debug(user.subscription)
+
+        let smm = null;
+        if ((user.accountType === 'user') && (user.smm)) {
+            smm = await User.findOne({ _id: user.smm });
+            user.smm = null;
+        }
+
         let err = null;
 
         try {
@@ -266,12 +324,13 @@ class UserService {
             populatedUser: user,
             ebody: UserService.makeUserObject(user),
             socket: socket,
+            old_smm_handle: smm?.handle,
         })
 
         return Service.successResponse(UserService.makeUserObject(user));
     }
 
-    static async grantAdmin({ handle }) {
+    static async grantAdmin({ handle, socket }) {
         
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
@@ -282,7 +341,13 @@ class UserService {
             // If this throws it should be caught by the controller since 
             // is a 5xx error
             user.admin = true;
-            await user.save();  
+            await user.save();
+
+            SquealSocket.userChanged({
+                populatedUser: user,
+                ebody: { admin: true },
+                socket: socket,
+            });
 
             return Service.successResponse()
 
@@ -292,7 +357,7 @@ class UserService {
 
     }
 
-    static async revokeAdmin({ handle }) {
+    static async revokeAdmin({ handle, socket }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
@@ -304,6 +369,12 @@ class UserService {
             // is a 5xx error
             user.admin = false;
             await user.save();
+
+            SquealSocket.userChanged({
+                populatedUser: user,
+                ebody: { admin: false },
+                socket: socket,
+            });
 
             return Service.successResponse();
 
@@ -331,7 +402,7 @@ class UserService {
         return Service.successResponse(results);
     }
 
-    static async changeSmm({ handle, operation, smm }){
+    static async changeSmm({ handle, operation, smm, socket }){
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
@@ -346,10 +417,11 @@ class UserService {
         } 
 
         // User Fetching
-
-        const user = await User.findOne({ handle: handle });
+        let user = await User.findOne({ handle: handle }).populate('smm', 'handle');
 
         if (!user) return Service.rejectResponse({ message: `User '${handle}' not found` });
+        
+        let smm_handle = user.smm?.handle;
 
         // if op was remove we are done
         if (operation === 'remove') {
@@ -358,14 +430,25 @@ class UserService {
 
             await user.save();
 
+            SquealSocket.userChanged({
+                populatedUser: user,
+                old_smm_handle: smm_handle,
+                socket: socket,
+                ebody: { smm: null }
+            })
+
             return Service.successResponse();
         }
 
         // else it was change, fetch new user and set smm
         const new_smm_acc = await User.findOne({ handle: smm });
 
-        if (!new_smm_acc) return Service.rejectResponse({ message: `User '${smm}' not found` });
+        if (!new_smm_acc) {
+            logger.error(`User '${smm}' not found`)
+            return Service.rejectResponse({ message: `User '${smm}' not found` });
+        }
 
+        //logger.debug('AAAAAAAAAAAAAAA')
 
         // operation was 'change'
         user.smm = new_smm_acc._id;
@@ -373,30 +456,71 @@ class UserService {
         let err = null;
 
         try {
-            await user.save();
+            user = await user.save();
         } catch (e) {
             err = e;
         }
 
-        if (err) return Service.rejectResponse(err);
+        //logger.error(err)
+        if (err) {
+            
+            return Service.rejectResponse(err);
+        }
+
+        user = await User.findOne({ handle: user.handle })
+            .populate('smm', 'handle');
+
+        SquealSocket.userChanged({
+            populatedUser: user,
+            old_smm_handle: smm_handle,
+            ebody: { handle: new_smm_acc.handle },
+            socket: socket,
+        })
 
         return Service.successResponse()
     }
 
-    static async removeManaged({ handle, users }) {
+    static async removeManaged({ handle, users, socket }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
         let urec = await UserService.getSecureUserRecord({ handle: handle });
         
-        let user_records = await User.find().where('handle').in(users);
+        let user_records = null;
+        if (!users?.length) {
+            
+            user_records = await User.find()
+                .where('smm').equals(urec._id);
+        
+        } else {
+            
+            user_records = await User.find()
+                .where('handle').in(users)
+                .where('smm').equals(urec._id);
+        }
 
-        await Promise.all(user_records.map(u => {
+        user_records = await Promise.all(user_records.map(u => {
             if (urec._id.equals(u.smm)) {
                 u.smm = null;
                 return u.save()
             }
         }));
+
+        user_records.map(u => {
+            SquealSocket.userChanged({
+                populatedUser: u,
+                socket: socket,
+                ebody: { smm: null }
+            })
+        });
+
+        urec.managed = []
+        SquealSocket.userChanged({
+            populatedUser: urec,
+            socket: socket,
+            ebody: { managed: null }
+        })
+
 
         return Service.successResponse()
     }
@@ -419,82 +543,6 @@ class UserService {
             handle: o.handle,
             charLeft: o.charLeft,
         })));
-    }
-
-    /**
-     * Service to update a user subscription. Can be used to subscribe to a new plan or modify 
-     * the auto-renew feature.
-     * 
-     * Trying to set the autoRenew field in a user that has no subscription or trying to
-     * subscribe a user to a non-existent plan will result in a rejectResponse.
-     * 
-     * @param {Object} param0 The service parameters
-     * @param {User} param0.reqUser The user record fetched for authentication
-     * @param {string} param0.handle The user's handle
-     * @param {(mongoose.ObjectIdExpression|null)} param0.proPlanId The new plan's id
-     * @param {(boolean|null)} param0.autoRenew The new auto-renew value.
-     * @returns Service.successResponse or Service.rejectResponse
-     */
-    static async changeSubscription({ reqUser, handle, proPlanId=null, autoRenew=null }) {
-        
-        let pro_plan = null;
-        if (proPlanId) {
-
-            pro_plan = await Plan.findById(proPlanId);
-            
-            if (!pro_plan) return Service.rejectResponse({
-                message: `No pro plan with id ${proPlanId}`
-            })
-        }
-
-        let user = reqUser;
-
-        if (pro_plan) {
-            
-            let expiration_date;
-            
-            switch (pro_plan.period) {
-                case 'month':
-                    expiration_date = (new dayjs).add(1, 'month').toDate();
-                    break;
-                case 'year':
-                    expiration_date = (new dayjs).add(1, 'year').toDate();
-                    break;
-            }
-
-            user.subscription = {
-                proPlan: pro_plan._id,
-                expires: expiration_date,
-            }
-
-            if (pro_plan.pro) user.accountType = 'pro';
-            else user.accountType = 'user';
-        }
-
-        if (autoRenew !== null) {
-            if (!user.subscription) 
-                return Service.rejectResponse({ message: `User @${handle} has no subscription plan active` })
-            
-            user.subscription.autoRenew = autoRenew;
-        }
-
-        await user.save();
-
-        return Service.successResponse()
-    }
-
-    /**
-     * Sets the subscription field to null. If the execution gets to this function then the
-     * user exists, so it will always return sucessResponse.
-     * 
-     * @param {Object} param0 The sercice parameters
-     * @param {User} param0.reqUser The user record fetched for authentication
-     * @returns Service.successResponse
-     */
-    static async deleteSubscription({ reqUser }) {
-        reqUser.subscription = null;
-        await reqUser.save();
-        return Service.successResponse();   
     }
 }
 

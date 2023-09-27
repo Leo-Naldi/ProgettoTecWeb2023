@@ -97,9 +97,26 @@ async function checkNameCreator(req, res, next) {
     next();
 }
 
+/**
+ * Checks weather requesting user is /:handle or an admin.
+ * 
+ * @param {Express.Request} req The request object
+ * @param {Express.Response} res The response object
+ * @param {Express.NextFunction} next The next middleware
+ */
+async function checkOwnUserOrAdmin(req, res, next) {
+    
+    if (!((req.params.handle === req.user.handle) || (req.user.admin))) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    next();
+}
+
 module.exports = {
     getAuthMiddleware, 
     checkOwnUser,
     checkOwnUserOrSMM,
     checkNameCreator,
+    checkOwnUserOrAdmin,
 };

@@ -125,7 +125,7 @@ const monthlyCharsJob = new CronJob(
  * Runs everyday at midnight, executes {@link renewSubscriptions}.
  */
 const renewSubscriptionsCronJob = new CronJob(
-    '00 00 00 * * *',  
+    '00 00 00 * * *',  // midnight
     renewSubscriptions,
 );
 

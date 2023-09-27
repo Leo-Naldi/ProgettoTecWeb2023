@@ -4,7 +4,7 @@ const User = require("../models/User");
 const Controller = require('../controllers/Controller');
 const UserService = require('../services/UserServices');
 const MessageServices = require('../services/MessageServices');
-const { getAuthMiddleware, checkOwnUserOrSMM, checkOwnUser } = require('../middleware/auth');
+const { getAuthMiddleware, checkOwnUserOrSMM, checkOwnUser, checkOwnUserOrAdmin } = require('../middleware/auth');
 const ChannelServices = require('../services/ChannelServices');
 
 
@@ -27,22 +27,29 @@ UserRouter.put('/:handle', async (req, res) => {
 
 })
 
-UserRouter.post('/:handle', getAuthMiddleware('basicAuth'),
+UserRouter.post('/:handle', getAuthMiddleware('basicAuth'), checkOwnUserOrAdmin,
     async (req, res) => {
         
-        // Some fields can only be modified by an admin
-        if (((req.body?.charLeft) || req.body?.blocked) && (!req.user.admin)) 
-            return res.status(401).json({ message: 'Characters can only be modified by admins' });
+        let requestParams = {
+            ...req.params,
+            ...req.body,
+            ...req.query,
+        };
+
+        if ((requestParams.hasOwnProperty('charLeft')) || 
+            (requestParams.hasOwnProperty('blocked'))) {
+            if (!req.user.admin) {
+                return res.status(401).json({ message: 'Can only be changed by an admin' });
+            }
+        }
+
 
         await Controller.handleRequest(req, res, UserService.writeUser);
     }
 );
 
-UserRouter.delete('/:handle', getAuthMiddleware('basicAuth'),
+UserRouter.delete('/:handle', getAuthMiddleware('basicAuth'), checkOwnUser,
     async (req, res) => {
-        if (req.params.handle !== req.user.handle) {
-            res.sendStatus(401)
-        }
         
         await Controller.handleRequest(req, res, UserService.deleteUser);
     }
@@ -69,7 +76,7 @@ UserRouter.get('/:handle/managed', getAuthMiddleware('proAuth'), checkOwnUser,
     }
 );
 
-UserRouter.post('/:handle/grantAdmin', getAuthMiddleware('adminAuth'),
+UserRouter.post('/:handle/grantAdmin', getAuthMiddleware('adminAuth'), 
     async (req, res) => {
 
         await Controller.handleRequest(req, res, UserService.grantAdmin);
@@ -106,9 +113,14 @@ UserRouter.get('/:handle/messages', getAuthMiddleware('basicAuth'), async (req, 
     await Controller.handleRequest(req, res, MessageServices.getUserMessages);
 })
 
+
 UserRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM, async (req, res) => {
-    const socket = req.app.get('socketio');
-    await Controller.handleRequest(req, res, MessageServices.postUserMessage, socket);
+    
+    if (req.user.blocked) {
+        return res.status(401)
+            .json({ message: 'Blocked users cant post messages, contact an admin to be unblocked' })
+    } 
+    await Controller.handleRequest(req, res, MessageServices.postUserMessage);
 })
 
 UserRouter.delete('/:handle/messages', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
@@ -132,22 +144,6 @@ UserRouter.get('/registration/',
         await Controller.handleRequest(req, res, UserService.checkAvailability);
     }
 );
-
-UserRouter.post('/:handle/subscription', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
-
-    if (req.user.handle !== req.params.handle) 
-        return res.status(401).json({ message: 'User can only change its own subscription plan.' })
-
-    return Controller.handleRequest(req, res, UserService.changeSubscription);
-})
-
-UserRouter.delete('/:handle/subscription', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
-
-    if (req.user.handle !== req.params.handle)
-        return res.status(401).json({ message: 'User can only change its own subscription plan.' })
-
-    return Controller.handleRequest(req, res, UserService.changeSubscription);
-})
 
 UserRouter.get('/:handle/joined', getAuthMiddleware('basicAuth', { session: false }), async (req, res) => {
     await Controller.handleRequest(req, res, ChannelServices.getJoinedChannels);

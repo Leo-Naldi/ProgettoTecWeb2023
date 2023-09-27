@@ -822,6 +822,12 @@ async function makeDefaultUsers() {
     const u5_index = test_env.addUser(user5);
     const u6_index = test_env.addUser(user6);
 
+    const pro1_index = test_env.addTestUser({
+        pro: true,
+    })
+
+    test_env.users[pro1_index].handle = 'pro1';
+
     let main_user_indexes = [
         u1_index,
         u2_index,

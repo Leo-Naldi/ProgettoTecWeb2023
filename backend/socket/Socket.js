@@ -49,12 +49,16 @@ class SquealSocket {
         return namespaces;
     }
 
-    static userChaged({ populatedUser, ebody, old_smm_handle, socket }) {
+    static userChanged({ populatedUser, ebody, old_smm_handle, socket }) {
         let nms = new Set([`/user-io/${populatedUser.handle}`]);
 
-        if (populatedUser.smm) nms.add(`/pro-io/${populatedUser.smm.handle}`);
+        if (populatedUser.smm?.handle) nms.add(`/pro-io/${populatedUser.smm.handle}`);
 
         if (old_smm_handle) nms.add(`/pro-io/${old_smm_handle}`);
+
+        if (populatedUser.managed?.length) {
+            populatedUser.managed.map(u => nms.add(`/user-io/${u.handle}`))
+        }
 
         SquealSocket.emit({
             socket: socket,
@@ -64,15 +68,22 @@ class SquealSocket {
         })
     }
 
-    static userDeleted({ smm_handle=null, socket }) {
+    static userDeleted({ handle, smm_handle=null, managed=[], socket }) {
+        
+        let namespaces = new Set();
+        
         if (smm_handle) {
             namespaces.add(`/pro-io/${smm_handle}`);
+        }
+
+        if (managed?.length) {
+            managed.map(u => namespaces.add(`/user-io/${u.handle}`))
         }
 
         SquealSocket.emit({
             namespaces: namespaces,
             eventName: 'user:deleted',
-            eventBody: { handle: populatedUser.handle },
+            eventBody: { handle: handle },
             socket: socket,
         })
     }

@@ -108,6 +108,10 @@ class Controller {
             requestParams.official = Controller.handleBoolean(requestParams.official);
         }
 
+        if (requestParams.blocked) {
+            requestParams.blocked = Controller.handleBoolean(requestParams.blocked);
+        }
+
         if (requestParams.publicMessage) {
             requestParams.publicMessage = Controller.handleBoolean(requestParams.publicMessage);
         }
