@@ -1,5 +1,6 @@
 const { mongoose } = require('mongoose');
 
+const _ = require('underscore');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const Channel = require('../models/Channel');
@@ -24,12 +25,9 @@ const allowedSortFields = [
     'positive',
     'reactions.negative',
     'negative',
-    // TODO number of reactions
 ]
 
 class MessageService {
-
-    // TODO only admins can write to official channels and write official messages
 
     /**
      * Transforms the given field into a mongodb find filter and either adds it
@@ -41,6 +39,7 @@ class MessageService {
     static async _addQueryChains({ 
         query=Message.find(), popular, unpopular, controversial, risk,
         before, after, dest, page = 1, official=null, mentions=[], 
+        keywords=[], text='',
         reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
         answering=null } = 
         { query: Message.find(), page: 1, 
@@ -62,7 +61,7 @@ class MessageService {
                     publicMessage: true,
                 },
                 {
-                    destChannel: { $in: (await Channel.find({ official: true })).map(c => c._id) }
+                    official: true,
                 }
             ])
         }
@@ -133,6 +132,70 @@ class MessageService {
         }
 
         if (official) query.where('official').equals(true);
+
+        if ((mentions?.length) || (keywords?.length) || (text?.length)) {
+            
+            //logger.debug(keywords)
+
+            let pattern = '^';
+
+            if (_.isString(mentions)) {
+                mentions = [mentions]
+            } else if (!Array.isArray(mentions)) {
+                mentions = []
+            }
+
+            if (_.isString(keywords)) {
+                keywords = [keywords]
+            } else if (!Array.isArray(keywords)) {
+                keywords = []
+            }
+
+            if (!_.isString(text)) text = '';
+
+            if (keywords?.length) {
+
+                // Turn the mentions array into '(?=.*#kw1)(?=.*#kw2)(?=.*#kw3)...'
+                pattern += keywords.reduce((pattern, keyword) => {
+                    if (keyword.charAt(0) !== '#') {
+                        keyword = '#' + keyword.trim();
+                    }
+
+                    keyword = keyword.trim();
+                    pattern += `(?=.*${keyword})`;
+
+                    return pattern;
+                }, '');
+            }
+
+            if (mentions?.length) {
+
+                // Turn the mentions array into '(?=.*@u1)(?=.*@u2)(?=.*@u3)...'
+                pattern += mentions.reduce((pattern, mention) => {
+                    if (mention.charAt(0) !== '@') {
+                        mention = '@' + mention.trim();
+                    }
+
+                    mention = mention.trim();
+                    pattern += `(?=.*${mention})`;
+
+                    return pattern;
+                }, '');
+            }
+
+            if (text?.length) {
+                pattern += `(?=.*${text})`;
+            }
+
+            if (pattern !== '^') {
+                query.find({
+                    'content.text': {
+                        $regex: pattern,
+                        $options: 'i',
+                    }
+                })
+            }
+        }   
 
         if (filterOnly) return query.getFilter()
 
@@ -229,13 +292,16 @@ class MessageService {
      * @returns A message object array
      */
     static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage, answering }={ page: 1, reqUser: null }) {
+        before, after, dest, publicMessage, answering, text='',
+        mentions=[], keywords=[],
+    }={ page: 1, reqUser: null }) {
 
         //logger.info(`Answering: ${answering}`)
 
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
             before, after, dest, page, reqUser, publicMessage, answering,
+            text, mentions, keywords,
         })
 
         const res = await query;
@@ -281,12 +347,10 @@ class MessageService {
         
         let user = await User.findOne({ handle: handle });
 
-        if (!user) return Service.successResponse([]);
-
         let messagesQuery = await MessageService._addQueryChains({ 
             popular, unpopular, controversial, risk,
             before, after, dest, page, reqUser, author: user,
-            publicMessage, answering
+            publicMessage, answering, reqUser,
          })
 
         const res = await messagesQuery;
@@ -302,16 +366,17 @@ class MessageService {
      * @param {string} param0.id The message's id
      * @returns The message object if possible
      */
-    static async getMessage({ reqUser, id}) {
-        const message = await Message.findById(id);
+    static async getMessage({ reqUser, id }) {
+        const message = await MessageService.#populateMessageQuery(Message.findById(id));
 
         if (!message) return Service.rejectResponse({ message: `No message with id ${id}` });
-
-        if (message.privateMessage) {
-            // TODO
+        
+        if ((message.privateMessage) && (reqUser.handle !== message.author.handle)
+            && (!message.destUser.some(uid => reqUser._id.equals(uid)))) {
+            return Service.rejectResponse({ message: `Cant read message ${id}` });
         }
 
-        return Service.successResponse(MessageService._makeMessageObjectArr([message])[0])
+        return Service.successResponse(MessageService.#makeMessageObject(message));
     }
 
     /**
@@ -364,9 +429,14 @@ class MessageService {
             total: 0,
         }]
 
-        return Service.successResponse(res[0]);
+        return Service.successResponse({
+            positive: res[0].positive,
+            negative: res[0].negative,
+            total: res[0].total,
+        });
     }
 
+    // TODO test official
     /**
      * Create a message
      * 
@@ -402,6 +472,17 @@ class MessageService {
              
         if (destChannel?.some(c => c.publicChannel)) publicMessage = true;
 
+        let official = false;
+        if (destChannel?.some(c => c.official) && (reqUser.admin)) {
+            
+            official = true;
+        
+        } else if (!reqUser.admin) {
+            
+            destChannel = destChannel.filter(c => !c.official)
+        
+        }
+
         // Messaggi privati indirizzati a soli utenti non diminuiscono la quota
         let used_chars = false;
         if ((publicMessage) || (destChannel?.length)) {
@@ -436,6 +517,7 @@ class MessageService {
             publicMessage: publicMessage,
             destChannel: [], 
             destUser: [],
+            official: official,
         });
 
         if (destChannel?.length) message.destChannel = destChannel.map(c => c._id);

@@ -11,8 +11,6 @@ const Reaction = require('../models/Reactions');
 
 const MessageRouter = express.Router();
 
-// TODO an extra route to get messages available to non authenticated users
-
 // a logged in user can get all public posts in database 
 MessageRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
     

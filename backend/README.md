@@ -29,6 +29,12 @@ sudo systemctl status mongod
 To start/stop it you can use the same command with start/stop instead of status.
 If you need to change the url string for the db you will find it in ./config/index.js
 
+## Libraries
+
+We used [mongoose](https://mongoosejs.com/) to implement the Models (see ./models) and Schema validation. Dates are 
+largely handled through the [dayjs]() library. The server is implemented using [Express](),
+authentication is done through express middlewares, the [passport]() and [jsonwebtoken]() libraries.
+
 ## Server Structure
 
 TODO
@@ -78,13 +84,8 @@ adminSocket.on('some event', (...args) => {
 
 More on namespaces [here](https://socket.io/docs/v4/namespaces/). The file ./SocketExample.html contains a page that allows to see the events in real time.
 
-| Namespace | Event | Args |
+| Event Name | Args | Description |
 |-------|-------|-------|
-| /user-io/{handle} | message:received | message object |
-| /user-io/{handle} | message:reactions | {  } |
-| /user-io/{handle} | characters | { charLeft} |
-| /pro-io/{handle} | message:reactions | same as the /user-io one but gets emitted to the smm |
-| /pro-io/{handle} | characters | same as the /user-io one but gets emitted to the smm, sends also the user's handle |
 
 ## Logger
 

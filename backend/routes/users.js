@@ -92,17 +92,6 @@ UserRouter.post('/:handle/revokeAdmin', getAuthMiddleware('adminAuth'),
 
 UserRouter.get('/:handle/messages/stats', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM, async (req, res) => {
 
-    if (req.user.handle !== req.params.handle) {
-        const requestedUser = await User.findOne({ handle: req.params.handle }) 
-        if (!requestedUser) {
-            return req.sendStatus(409)
-        }
-
-        if (!req.user._id.equals(requestedUser.smm)) {
-            return req.sendStatus(409)
-        }
-    }
-
     await Controller.handleRequest(req, res, MessageServices.getMessagesStats);
 })
 

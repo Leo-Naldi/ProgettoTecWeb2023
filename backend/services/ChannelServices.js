@@ -119,20 +119,28 @@ class ChannelServices{
 
     // get all channels
     static async getChannels({ 
-        reqUser = null, page = 1, owner = null, postCount = -1, publicChannel=null,
-        member=null, name=null, namesOnly=false } = {
+        reqUser = null, page = 1, owner = null, publicChannel=null,
+        member=null, name=null, namesOnly=false, official } = {
             reqUser: null, page: 1, owner: null, postCount: -1, publicChannel: null,
             member: null, namesOnly: false,
         }) {
 
         const query = ChannelServices.getPopulatedChannelsQuery();
 
-        if (namesOnly) {
-            const res = await Channel.find().select('name');
-            return Service.successResponse(res.map(c => c.name));
+        if (name){ 
+            query.find({
+                name: {
+                    $regex: name,
+                    $options: 'i',
+                }
+            })
         }
 
-        // TODO use name as pattern
+        if (!reqUser) {
+            official = true;
+        }
+
+        if (official) query.where('official').equals(true);
 
         if (member) {
             if (!reqUser) return Service.rejectResponse({ message: "Must be logged in to filter by membership" })
@@ -167,6 +175,11 @@ class ChannelServices{
                 .limit(config.results_per_page);
         }
 
+        if (namesOnly) {
+            const res = await query.select('name');
+            return Service.successResponse(res.map(c => c.name));
+        }
+
         const res = await query;
 
         if (owner || member) {
@@ -175,8 +188,8 @@ class ChannelServices{
 
             return Service.successResponse(res.map(channel => {
                 let c = ChannelServices.#makeChannelObject(channel);
-    
-                if ((!c.publicChannel) && 
+                
+                if ((!((c.publicChannel) || (c.official))) && 
                     !(reqUser && reqUser?.joinedChannels.some(id => id.equals(channel._id)))) {
                     
                     // private channels can only be viewed by members
@@ -200,9 +213,13 @@ class ChannelServices{
 
         if (!channel) return Service.rejectResponse({ message: `Channnel ${name} not found` })
 
+        if (!((reqUser) || (channel.official))) 
+            return Service.rejectResponse({ message: `Can only get official cannels without logging in.` }) 
+
         let res = ChannelServices.#makeChannelObject(channel);
 
-        if (!(res.publicChannel || reqUser?.joinedChannels.some(id => channel._id.equals(id)))){
+        if (!((res.publicChannel) || (res.official) || 
+            (reqUser?.joinedChannels.some(id => channel._id.equals(id))))){
             //delete res.messages;
             delete res.members;
             delete c.members;

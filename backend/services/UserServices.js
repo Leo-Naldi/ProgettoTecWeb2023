@@ -76,7 +76,7 @@ class UserService {
     static async getUsers({ handle, admin, accountType, handleOnly, page = 1 } = { page: 1}){
         let filter = new Object();
 
-        if (handle) filter.handle = handle;
+        if (handle) filter.handle = { $regex: handle, $options: 'i' };
         if ((admin === true) || (admin === false)) filter.admin = admin;
         if (accountType) filter.accountType = accountType;
 
@@ -195,7 +195,7 @@ class UserService {
         email, password, name, lastName, 
         phone, gender, blocked, charLeft, addMemberRequest, 
         addEditorRequest, removeMember, removeEditor, 
-        proPlanName, autoRenew=true, deleteSubscription=false, socket
+        proPlanName, autoRenew, deleteSubscription=false, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -293,6 +293,10 @@ class UserService {
             } else {
                 return Service.rejectResponse({ message: `No subscription plan named: ${proplanName}` });
             }
+        }
+
+        if (((autoRenew === true) || (autoRenew === false)) && (user.subscription)) {
+            user.subscription.autoRenew = autoRenew;
         }
 
         if (deleteSubscription) {
