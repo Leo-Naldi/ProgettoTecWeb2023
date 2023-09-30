@@ -19,13 +19,13 @@ ChannelRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
 })
 
 // Get all channels created by a user
-ChannelRouter.get('/:handle/created', getAuthMiddleware('basicAuth', {session: false}), async(req, res) =>{
+ChannelRouter.get('/:handle/created', getAuthMiddleware('basicAuth'), async(req, res) =>{
     await Controller.handleRequest(req, res, ChannelServices.getUserChannels);
 })
 
 // Get the name of the creator based on ObjectId
 // Deprecated
-ChannelRouter.get('/:name/creator', getAuthMiddleware('basicAuth', {session: false}), async(req, res) =>{
+ChannelRouter.get('/:name/creator', getAuthMiddleware('basicAuth'), async(req, res) =>{
     await Controller.handleRequest(req, res, ChannelServices.getChannelCreator);
 })
 
@@ -40,18 +40,23 @@ ChannelRouter.get('/:name', getAuthMiddleware('basicAuth'), async (req, res) => 
 // create a channel
 ChannelRouter.post('/:name', getAuthMiddleware('basicAuth'), async (req, res) => {
 
-    if (req.body?.official || req.query?.official) {
+    let requestParams = {
+        ...request.params,
+        ...request.body,
+        ...request.query,
+    };
+
+    if (requestParams.hasOwnProperty('official')) {
         if (!req.user.admin) {
             return res.status(401).json({ message: `Only admins can create official channels` });
         }
     }
-
     
     await Controller.handleRequest(req, res, ChannelServices.createChannel);
 })
 
 
-// modify a channle
+// modify a channel
 ChannelRouter.put('/:name', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.writeChannel);
@@ -61,11 +66,6 @@ ChannelRouter.put('/:name', getAuthMiddleware('basicAuth'), checkNameCreator, as
 ChannelRouter.delete('/:name', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.deleteChannel);
-})
-
-ChannelRouter.delete('/:name/messages', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
-    
-    await Controller.handleRequest(req, res, MessageServices.deleteChannelMessages);
 })
 
 ChannelRouter.post('/:name/members', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
@@ -78,5 +78,9 @@ ChannelRouter.post('/:name/editors', getAuthMiddleware('basicAuth'), checkNameCr
     await Controller.handleRequest(req, res, ChannelServices.writeEditors);
 })
 
+ChannelRouter.get('/:name/available', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+
+    await Controller.handleRequest(req, res, ChannelServices.availableChannel);
+})
 
 module.exports = ChannelRouter;

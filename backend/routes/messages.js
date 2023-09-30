@@ -3,7 +3,7 @@ const express = require('express');
 const Controller = require('../controllers/Controller');
 const MessageServices = require('../services/MessageServices');
 const User = require('../models/User');
-const { getAuthMiddleware, checkOwnUserOrSMM } = require('../middleware/auth');
+const { getAuthMiddleware, checkOwnUserOrSMM, checkNameCreator } = require('../middleware/auth');
 const { logger } = require('../config/logging');
 const Message = require('../models/Message');
 const Reaction = require('../models/Reactions');
@@ -26,6 +26,11 @@ MessageRouter.get('/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
 MessageRouter.get('/channel/:name', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.getChannelMessages);
+})
+
+MessageRouter.delete('/channel/:name', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+
+    await Controller.handleRequest(req, res, MessageServices.deleteChannelMessages);
 })
 
 // Users send messages

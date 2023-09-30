@@ -270,6 +270,7 @@ components:
                 format: date-time
                 description: Date of user joining
                 example: "2021-01-30T08:30:00Z"
+        
   securitySchemes:
     userAuth:
       type: http

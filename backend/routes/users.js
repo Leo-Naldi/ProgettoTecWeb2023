@@ -10,6 +10,8 @@ const ChannelServices = require('../services/ChannelServices');
 
 const UserRouter = express.Router();
 
+// TODO add some form of liked messages filter
+
 UserRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
     await Controller.handleRequest(req, res, UserService.getUsers);
 })

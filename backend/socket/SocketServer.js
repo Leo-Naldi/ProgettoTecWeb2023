@@ -23,7 +23,7 @@ class SocketServer {
             }
         });
 
-        this.userNms = this.io.of(SocketServer.user_namespace);  // /user-io/id
+        this.userNms = this.io.of(SocketServer.user_namespace);  // /user-io/handle
 
         // Token Validation
         this.userNms.use(SocketServer.#middleWareWrapper(SocketServer.#getAuthStrat('basicAuth')));
@@ -34,7 +34,7 @@ class SocketServer {
             socket.emit("Hello There", { message: "General Kenobi" })
         })
 
-        this.proNms = this.io.of(SocketServer.pro_namespace);  // /pro-io/id
+        this.proNms = this.io.of(SocketServer.pro_namespace);  // /pro-io/handle
 
         this.proNms.use(SocketServer.#middleWareWrapper(SocketServer.#getAuthStrat('proAuth')));
         this.proNms.use(matchReqHandleToToken);
@@ -43,8 +43,7 @@ class SocketServer {
             socket.emit("Hello There (pro)", { message: "General Kenobi (But Pro)" })
         })
 
-        // TODO maybe admins dont need to be differentiated
-        this.adminNms = this.io.of(SocketServer.admin_namespace);  // /admin-io/id
+        this.adminNms = this.io.of(SocketServer.admin_namespace);  // /admin-io/handle
 
         this.adminNms.use(SocketServer.#middleWareWrapper(SocketServer.#getAuthStrat('adminAuth')));
         this.adminNms.use(matchReqHandleToToken);
@@ -53,9 +52,11 @@ class SocketServer {
             socket.emit("Hello There (admin)", { message: "General Kenobi (But admin)" })
         })
 
-        this.channelNms = this.io.of(/^\/channel-io\/(\w+)$/);  // /channel-io/NAME not implemented
+        this.publicNms = this.io.of(SocketServer.public_namespace);  // /public-io/
 
-        logger.info("Socket Server Initialized");
+        this.publicNms.on('connection', (socket) => {
+            socket.emit("Hello There (public)", { message: "General Kenobi (But public)" })
+        })
     }
 
     // socket io middleware is in the form (socket, next)

@@ -327,10 +327,12 @@ async function makeDefaultUsers() {
     //channel5.members.addToSet(user6._id);
     user5.joinedChannels.addToSet(channel2._id);
     user5.joinedChannels.addToSet(channel4._id);
+    user5.joinedChannels.addToSet(channel6._id);
 
     user5.editorChannels.addToSet(channel5._id);
     user5.editorChannels.addToSet(channel2._id);
     user5.editorChannels.addToSet(channel4._id);
+    user5.editorChannels.addToSet(channel6._id);
 
 
     user6.joinedChannels.addToSet(channel6._id);
@@ -603,6 +605,20 @@ async function makeDefaultUsers() {
             m.publicMessage = true;
             m.destChannel = [];
         })
+
+        test_env.addRandomMessages({
+            authorIndex: u5_index,
+            allTime: 1,
+            today: 1,
+            year: 1,
+            week: 1,
+            month: 1,
+        })
+
+        _.last(test_env.messages, 5).map(m => {
+            m.destUser = [user6._id];
+            m.destChannel = [channel6._id];
+        })
     }
 
     await test_env.saveAll();
@@ -648,7 +664,7 @@ async function makeDefaultUsers() {
 
 
     let answer = await Message.findOne({ answering: { $ne: null }, publicMessage: true });
-    logger.info(`Message with answers: ${answer.answering}`)
+    logger.info(`Message with answers: ${answer.answering}`);
 }
 
 

@@ -92,6 +92,10 @@ class MessageService {
 
         if (dest) {
 
+            if (!_.isArray(dest)) {
+                dest = [dest];
+            }
+            
             let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)));
             let names = dest?.filter(val => ((val.charAt(0) === '§') && (val.length > 1)));
             
@@ -110,10 +114,13 @@ class MessageService {
             }
 
             if (channels?.length) {
-                 query.where('destChannel').in(channels.map(c => c._id));
-            }
 
+                 query.where('destChannel').in(channels.map(c => c._id));
+
+            }
+            
             if (users?.length) {
+
                 query.where('destUser').in(users.map(u => u._id));
             } 
         } 
@@ -122,7 +129,7 @@ class MessageService {
                 query.where('author').equals(author._id);
         }
 
-        if ((publicMessage === true) || (publicMessage === false)) {
+        if (_.isBoolean(publicMessage)) {
             query.find({ publicMessage: publicMessage })
         }
 
@@ -131,7 +138,7 @@ class MessageService {
             query.where('answering').equals(answering);
         }
 
-        if (official) query.where('official').equals(true);
+        if (_.isBoolean(official)) query.where('official').equals(true);
 
         if ((mentions?.length) || (keywords?.length) || (text?.length)) {
             
@@ -201,9 +208,9 @@ class MessageService {
 
         query
             .select('-__v')
-            .populate('author', 'handle -_id')
-            .populate('destUser', 'handle -_id')
-            .populate('destChannel', 'name -_id');
+            //.populate('author', 'handle -_id')
+            //.populate('destUser', 'handle -_id')
+            //.populate('destChannel', 'name -_id');
         
         if (allowedSortFields.find(elem => elem === sortField)) {
 
@@ -229,7 +236,7 @@ class MessageService {
             query.skip((page - 1) * config.results_per_page)
             .limit(config.results_per_page);
 
-        return query;
+        return MessageService.#populateMessageQuery(query);
     }
 
     static #makeMessageObject(message, deleteAuthor = false) {
@@ -285,6 +292,15 @@ class MessageService {
             .populate('destUser', 'handle _id')
     }
 
+    static async #updateImpressions(messages, reqUser) {
+        const update_ids = messages
+            .filter(m => !m.author._id.equals(reqUser?._id))
+            .map(m => m._id);
+
+        await Message.updateMany({ _id: { $in: update_ids } },
+            { $inc: { 'meta.impressions': 1 } });
+    }
+
     /**
      * Generic Read operation for messages
      * 
@@ -304,7 +320,15 @@ class MessageService {
             text, mentions, keywords,
         })
 
-        const res = await query;
+        let res = await query;
+
+        await MessageService.#updateImpressions(res, reqUser);
+
+        res = res.map(m => {
+            m.meta.impressions += 1;
+            return m;
+        })
+
 
         return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
@@ -319,18 +343,24 @@ class MessageService {
         const ch = await Channel.findOne({ name: name });
         if (!ch) return Service.rejectResponse({ message: `No channel named ${name}` })
 
-        if (ch.privateChannel) {
-            if (!ch.members.find(id => reqUser._id.equals(id))) {
-                return Service.rejectResponse({ 
-                    message: `Cannot access private channel §${name} since you are not a member.`
-                })
-            }
+        if (!ch.members.find(id => reqUser._id.equals(id))) {
+            return Service.rejectResponse({ 
+                message: `Cannot messages to §${name} since you are not a member.`
+            })
         }
         
         const query = MessageService.#populateMessageQuery(
-                Message.find().where('destChannel').in([ch._id]));
+                Message.find().where('destChannel').in(ch._id));
         
-        const res = await query
+        let res = await query;
+
+        await MessageService.#updateImpressions(res, reqUser);
+
+        res = res.map(m => {
+            m.meta.impressions += 1;
+            return m;
+        }) 
+
         return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
 
@@ -353,7 +383,14 @@ class MessageService {
             publicMessage, answering, reqUser,
          })
 
-        const res = await messagesQuery;
+        let res = await messagesQuery;
+
+        await MessageService.#updateImpressions(res, reqUser);
+
+        res = res.map(m => {
+            m.meta.impressions += 1;
+            return m;
+        })
 
         return Service.successResponse(MessageService._makeMessageObjectArr(res));
     }
@@ -375,6 +412,10 @@ class MessageService {
             && (!message.destUser.some(uid => reqUser._id.equals(uid)))) {
             return Service.rejectResponse({ message: `Cant read message ${id}` });
         }
+
+        await Message.updateOne({ _id: message._id }, { $inc: { 'meta.impressions': 1 } });
+
+        message.meta.impressions += 1;
 
         return Service.successResponse(MessageService.#makeMessageObject(message));
     }
@@ -436,7 +477,6 @@ class MessageService {
         });
     }
 
-    // TODO test official
     /**
      * Create a message
      * 

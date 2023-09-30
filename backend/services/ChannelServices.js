@@ -5,6 +5,7 @@ const Service = require('./Service');
 const config = require('../config');
 const { logger } = require('../config/logging');
 const SquealSocket = require('../socket/Socket');
+const _ = require('underscore');
 
 class ChannelServices{
 
@@ -60,6 +61,25 @@ class ChannelServices{
     }
 
 
+    static #trimChannelObject(c, reqUser) {
+        if (!((c.publicChannel) ||
+            (reqUser && reqUser?.joinedChannels.some(id => id.equals(c._id))))) {
+
+            // private channels can only be viewed by members
+            delete c.members;
+            delete c.editors;
+            delete c.memberRequests;
+            delete c.editorRequests;
+        }
+
+        return c;
+    }
+
+    static #trimChannelArray(arr, reqUser) {
+        return arr.map(c => ChannelServices.#trimChannelObject(c, reqUser));
+    }
+
+    // TODO test all the gets
     // Get all channels created by the user
     static async getUserChannels({ reqUser, handle, publicChannel }){
         let user = reqUser;
@@ -74,12 +94,13 @@ class ChannelServices{
 
         let channelsQuery = ChannelServices.getPopulatedChannelsQuery({ creator: user._id });
 
-        if ((publicChannel === true) || (publicChannel === false)) 
+        if (_.isBoolean(publicChannel)) 
             channelsQuery.where('publicChannel').equals(publicChannel)
 
         const res = await channelsQuery;
+        let r_arr = ChannelServices.#makeChannelObjectArray(res)
 
-        return Service.successResponse(ChannelServices.#makeChannelObjectArray(res));
+        return Service.successResponse(ChannelServices.#trimChannelArray(r_arr, reqUser));
 
     }
 
@@ -99,7 +120,9 @@ class ChannelServices{
         //logger.info(channels[0].editors)
         
         return Service.successResponse(
-            ChannelServices.#makeChannelObjectArray(channels)
+            ChannelServices.#trimChannelArray(
+                ChannelServices.#makeChannelObjectArray(channels), reqUser
+            )
         )
     }
 
@@ -140,7 +163,7 @@ class ChannelServices{
             official = true;
         }
 
-        if (official) query.where('official').equals(true);
+        if (_.isBoolean(official)) query.where('official').equals(official);
 
         if (member) {
             if (!reqUser) return Service.rejectResponse({ message: "Must be logged in to filter by membership" })
@@ -165,12 +188,12 @@ class ChannelServices{
 
         }
 
-        if ((publicChannel === true) || (publicChannel === false)) 
+        if (_.isBoolean(publicChannel)) 
             query.find({ publicChannel: publicChannel })
 
         query.sort('created')
         
-        if (page >= 0) {
+        if (page > 0) {
             query.skip((page - 1) * config.results_per_page)
                 .limit(config.results_per_page);
         }
@@ -182,26 +205,11 @@ class ChannelServices{
 
         const res = await query;
 
-        if (owner || member) {
-            return Service.successResponse(ChannelServices.#makeChannelObjectArray(res));
-        } else {
-
-            return Service.successResponse(res.map(channel => {
-                let c = ChannelServices.#makeChannelObject(channel);
-                
-                if ((!((c.publicChannel) || (c.official))) && 
-                    !(reqUser && reqUser?.joinedChannels.some(id => id.equals(channel._id)))) {
-                    
-                    // private channels can only be viewed by members
-                    delete c.members;
-                    delete c.editors;
-                    delete c.memberRequests;
-                    delete c.editorRequests;
-                }
-
-                return c;
-            }));
-        }
+        return Service.successResponse(
+            ChannelServices.#trimChannelArray(
+                ChannelServices.#makeChannelObjectArray(res), reqUser
+            )
+        );
 
     }
 
@@ -218,17 +226,7 @@ class ChannelServices{
 
         let res = ChannelServices.#makeChannelObject(channel);
 
-        if (!((res.publicChannel) || (res.official) || 
-            (reqUser?.joinedChannels.some(id => channel._id.equals(id))))){
-            //delete res.messages;
-            delete res.members;
-            delete c.members;
-            delete c.editors;
-            delete c.memberRequests;
-            delete c.editorRequests;
-        }
-
-        return Service.successResponse(res);
+        return Service.successResponse(ChannelServices.#trimChannelObject(res, reqUser));
     }
 
     static async createChannel({ name, reqUser, description='', 
@@ -237,6 +235,10 @@ class ChannelServices{
         if (!(name)) return Service.rejectResponse({ message: "Must provide owner handle and unique name" })
 
         if (!reqUser) return Service.rejectResponse({ message: "Must be logged in to create a channel" })
+
+        let check = await Channel.findOne({ name: name });
+
+        if (check) return Service.rejectResponse({ message: `Name ${name} already taken` });
 
         let channel = new Channel({
             name: name, creator: reqUser._id, official: official,
@@ -320,7 +322,7 @@ class ChannelServices{
         
         if (description) channel.description = description;
         
-        if ((publicChannel === true) || (publicChannel === false)) 
+        if (_.isBoolean(publicChannel)) 
             channel.publicChannel = publicChannel;
         
         if (owner) {

@@ -32,8 +32,8 @@ If you need to change the url string for the db you will find it in ./config/ind
 ## Libraries
 
 We used [mongoose](https://mongoosejs.com/) to implement the Models (see ./models) and Schema validation. Dates are 
-largely handled through the [dayjs]() library. The server is implemented using [Express](),
-authentication is done through express middlewares, the [passport]() and [jsonwebtoken]() libraries.
+largely handled through the [dayjs](https://day.js.org/) library. The server is implemented using [Express](https://expressjs.com/),
+authentication is done through express middlewares, the [passport](http://www.passportjs.org/) and [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) libraries. 
 
 ## Server Structure
 
@@ -41,17 +41,17 @@ TODO
 
 ## Socket IO
 
-[Socket.io](https://socket.io) is used for real time comms, (i.e. sending messages, notifying of likes etc.). Events are emitted from the route handlers, so clients only need to worry about listening.
+[Socket.io](https://socket.io) is used for real time comms, (i.e. sending messages, notifying of likes etc.). Events are emitted from the server whenever needed, so clients only need to worry about listening.
 
 Communication will be divided into four namespaces:
-* /public-io for non-logged in users
-* /user-io for logged-in users
-* /pro-io for logged-in pro users
-* /adin-io for logged-in admins
+* /public-io for non-logged in users.
+* /user-io/{handle} for logged-in users.
+* /pro-io/{handle} for logged-in pro users.
+* /admin-io/{handle} for logged-in admins.
 
-When a user (normal, admin or pro) logs in through the API, a new namespace will be created using the user's id and a dedicated prefix, see below. Any events relative to the user, for example a message destined to them, a like on one of their posts etc., will be emitted there.
+Any events relative to the user, for example a message destined to them, a like on one of their posts etc., will be emitted there to their namespace. A user can only access namespaces with its own handle, using the same jwt used for authentication.
 
-All namespaces except /public-io (TODO) require the same JSON Web Token as the API's non-public routes to authenticate the user. For example:
+All namespaces except /public-io require the same JSON Web Token as the API's non-public routes to authenticate the user. For example:
 
 ```js
 const socket = io("https://localhost:8000/public-io"); // Public namespace
@@ -86,6 +86,13 @@ More on namespaces [here](https://socket.io/docs/v4/namespaces/). The file ./Soc
 
 | Event Name | Args | Description |
 |-------|-------|-------|
+|user:changed| Either the whole new user object or the specific fields that changed. | A user record changed. |
+|user:deleted| { handle: handle } | The user @handle was deleted. |
+|message:deleted| { id: id } | The given message was deleted. |
+| message:created | The message object. | A message was created. |
+| message:changed | Either the whole new message object or the specific fields that were altered. | Message record was changed. |
+|channel:changed| The channel object | A channel record was changed. |
+|channel:deleted| { name: name } | The channel named name was deleted. |
 
 ## Logger
 
