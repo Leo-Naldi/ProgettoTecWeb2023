@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAccount } from "./CurrentAccountContext";
 import { io } from 'socket.io-client';
+import { useManagedAccounts, useManagedAccountsDispatch } from "./ManagedAccountsContext";
 
 
 const SocketContext = createContext(null);
@@ -9,6 +10,8 @@ const SocketContext = createContext(null);
 export default function SocketContextProvider({ children }) {
 
     const smm = useAccount();
+    const managedAccounts = useManagedAccounts();
+    const managedAccountsDispatch = useManagedAccountsDispatch()
     const [socket, setSocket] = useState(null);
     
 
@@ -37,6 +40,46 @@ export default function SocketContextProvider({ children }) {
         }
     }, [smm.loggedIn]);
 
+    useEffect(() => {
+        if (socket) {
+            
+            socket.on('user:changed', (changes) => {
+                if (managedAccounts.some(u => u.handle === changes.handle)) {
+
+                    if (smm.handle !== changes.smm) {
+                        // smm is no longer user's manager
+                        managedAccountsDispatch({
+                            type: 'USER_REMOVED',
+                            handle: changes.handle,
+                        });
+                    } else {
+                        managedAccountsDispatch({
+                            type: 'USER_CHANGED',
+                            handle: changes.handle,
+                            changes: changes
+                        });
+                    }
+
+                }
+            })
+
+            socket.on('user:deleted', (delete_info) => {
+                if (managedAccounts.some(u => u.handle === delete_info.handle)) {
+
+                    managedAccountsDispatch({
+                        type: 'USER_REMOVED',
+                        handle: delete_info.handle,
+                    });
+
+                }
+            })
+        }
+
+        return () => {
+            socket?.off('user:changed');
+            socket?.off('user:deleted');
+        }
+    }, [socket]);
     
 
     return (

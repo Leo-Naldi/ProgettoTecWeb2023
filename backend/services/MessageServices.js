@@ -38,7 +38,8 @@ class MessageService {
      */
     static async _addQueryChains({ 
         query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest, page = 1, official=null, mentions=[], 
+        before, after, dest, page = 1, results_per_page=config.results_per_page,
+        official=null, mentions=[], 
         keywords=[], text='',
         reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
         answering=null } = 
@@ -232,9 +233,11 @@ class MessageService {
             query.sort('-meta.created')
         }
 
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
         if (page > 0)
-            query.skip((page - 1) * config.results_per_page)
-            .limit(config.results_per_page);
+            query.skip((page - 1) * results_per_page)
+            .limit(results_per_page);
 
         return MessageService.#populateMessageQuery(query);
     }
@@ -309,7 +312,7 @@ class MessageService {
      */
     static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage, answering, text='',
-        mentions=[], keywords=[],
+        mentions = [], keywords = [], results_per_page=config.results_per_page,
     }={ page: 1, reqUser: null }) {
 
         //logger.info(`Answering: ${answering}`)
@@ -317,7 +320,7 @@ class MessageService {
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
             before, after, dest, page, reqUser, publicMessage, answering,
-            text, mentions, keywords,
+            text, mentions, keywords, results_per_page,
         })
 
         let res = await query;
@@ -371,7 +374,7 @@ class MessageService {
      * @returns A message object array
      */
     static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage, answering }){
+        before, after, dest, publicMessage, answering, results_per_page = config.results_per_page, }){
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
         
@@ -380,7 +383,7 @@ class MessageService {
         let messagesQuery = await MessageService._addQueryChains({ 
             popular, unpopular, controversial, risk,
             before, after, dest, page, reqUser, author: user,
-            publicMessage, answering, reqUser,
+            publicMessage, answering, reqUser, results_per_page,
          })
 
         let res = await messagesQuery;
@@ -459,6 +462,7 @@ class MessageService {
                 _id: null,
                 positive: { $sum: "$reactions.positive" },
                 negative: { $sum: "$reactions.negative" },
+                impressions: { $sum: '$meta.impressions' },
                 total: { $count: { } },  // numero dei messaggi
             })
         let res = await aggregation;
@@ -467,14 +471,13 @@ class MessageService {
         if (res.length !== 1) res = [{
             positive: 0,
             negative: 0, 
+            impressions: 0,
             total: 0,
         }]
 
-        return Service.successResponse({
-            positive: res[0].positive,
-            negative: res[0].negative,
-            total: res[0].total,
-        });
+        delete res[0]._id;
+
+        return Service.successResponse(res[0]);
     }
 
     /**
@@ -832,6 +835,14 @@ class MessageService {
             socket: socket
         })
 
+        if (smm_handle)
+            SquealSocket.reactionRecived({
+                id: message_object.id,
+                smm_handle: smm_handle,
+                type: 'negative',
+                socket: socket,
+            });
+
         if (user) {
             if (user.smm) {
                 user.smm = { handle: smm_handle }
@@ -931,6 +942,14 @@ class MessageService {
             socket: socket
         })
 
+        if (smm_handle)
+            SquealSocket.reactionRecived({
+                id: message_object.id,
+                smm_handle: smm_handle,
+                type: 'positive',
+                socket: socket,
+            });
+
         if (user) {
             if (user.smm) {
                 user.smm = { handle: smm_handle }
@@ -938,6 +957,7 @@ class MessageService {
             SquealSocket.userChaged({
                 populatedUser: user,
                 ebody: {
+                    handle: user.handle,
                     charLeft: user.charLeft,
                 },
                 socket: socket,
@@ -998,7 +1018,15 @@ class MessageService {
                 _id: message_object._id,
             },
             socket: socket
-        })
+        });
+
+        if (message.author.smm)
+            SquealSocket.reactionDeleted({
+                id: message_object.id,
+                smm_handle: message.author.smm.handle,
+                type: 'negative',
+                socket: socket,
+            });
 
         return Service.successResponse();
     };
@@ -1053,7 +1081,15 @@ class MessageService {
                 _id: message_object._id,
             },
             socket: socket
-        })
+        });
+
+        if (message.author.smm)
+            SquealSocket.reactionDeleted({
+                id: message_object.id,
+                smm_handle: message.author.smm.handle,
+                type: 'positive',
+                socket: socket,
+            });
 
         return Service.successResponse();
     };

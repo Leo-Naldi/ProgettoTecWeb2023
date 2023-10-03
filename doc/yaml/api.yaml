@@ -20,7 +20,7 @@ paths:
     get:
       tags:
         - User
-      description: Get all users. Filtering is strongly advised lmao.
+      description: Get all users.
       operationId: getUsers
       parameters:
         - name: page
@@ -29,6 +29,14 @@ paths:
           schema:
             type: integer
             example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
         - name: handle
           in: query
           description: Handle filter. Will return users whose handle contains the given string.
@@ -911,6 +919,13 @@ paths:
           schema:
             type: integer
             default: 1
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each page.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
         - name: popular
           in: query
           description: Get only pupular messages within the given timeframe. If used together with unpopular 
@@ -1246,6 +1261,14 @@ paths:
           schema:
             type: integer
             example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
         - name: owner
           in: query
           description: Filter by owner's Handle. If no channel owned by a user with handle is found it will return an empty array
@@ -1551,6 +1574,229 @@ paths:
         '500':
           description: Internal server error.
     
+  /public/messages:
+    get:
+      tags:
+        - Message 
+        - Public
+      description: Return messages available to non-logged in users.
+      operationId: publicGetMessages
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results. A negative number disables pagination.
+          schema:
+            type: integer
+            default: 1
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each page.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+        - name: popular
+          in: query
+          description: Get only pupular messages within the given timeframe. If used together with unpopular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: unpopular
+          in: query
+          description: Get only unpupular messages within the given timeframe. If used together with popular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: controversial
+          in: query
+          description: Get only controversial messages within the given timeframe. 
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: risk
+          in: query
+          description: Get only messages at risk of being controversial, popular or unpopular. 
+          schema:
+            type: string 
+            enum:
+              - controversial
+              - popular 
+              - unpopular
+        - name: before
+          in: query
+          description: Get only messages dated before given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: after
+          in: query
+          description: Get only messages dated after given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: dest
+          in: query
+          description: Get only messages addressed to values. If value starts with @ it will be interpreted
+            as a handle, if it starts with a § it will be interpreted as a channel name. Otherwise this field will be ignored.
+            Will only returned messages addressed to ALL valid destinations provided. If one of the given values 
+            has no matching user/channel, it will be ignored.
+          schema:
+            type: string 
+            example: ['@feltri', '§canalebello67']
+        - name: keywords
+          in: query 
+          description: Array of the keywords to look for. For each keyword, leading and trailing withe spaces
+            will be removed and a \# will be added at the start if not already present. This will filter 
+            for messages containing all the keywords. Matching is case-insensitive.
+          schema:
+            type: array 
+            items:
+              type: string 
+            example: ['#keyword1', 'keyword2']
+        - name: mentions
+          in: query 
+          description: Array of the mentions to look for. For each mention, leading and trailing withe spaces
+            will be removed and a @ will be added at the start if not already present. This will filter 
+            for messages containing all the mentions. Matching is case-insensitive.
+          schema:
+            type: array 
+            items:
+              type: string 
+            example: ['@fvPro', 'user12345']
+        - name: text 
+          in: query
+          description: Will only return messages containing the text. Matching is case-insensitive.
+          schema: 
+            type: string 
+            example: lorem ipsum
+      responses:
+        200: 
+          description: Ok 
+          content:
+            application/json:
+              schema: 
+                type: array 
+                items:
+                  $ref: '#/components/schemas/Message'
+
+  /public/channels/:
+    get:
+      tags:
+        - Channel
+        - Public
+      operationId: publicGetChannels
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results. A 0 or negative number disables pagination.
+          schema:
+            type: integer
+            example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
+        - name: owner
+          in: query
+          description: Filter by owner's Handle. If no channel owned by a user with handle is found it will return an empty array
+          schema:
+            type: string
+            example: owner333
+        - name: name  
+          in: query
+          description: Only get channel whose names contain the given string. Matching is case-insensitive.
+          schema:
+            type: string
+            example: test-channel
+        - name: member 
+          in: query
+          description: Only get channel that the given user is a member of.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: owner 
+          in: query
+          description: Only get channels created by the given user.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: member 
+          in: query
+          description: Only get channels the user is a member of.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: official 
+          in: query
+          description: Only get official/non official channels.
+          schema:
+            type: boolean
+            example: True
+        - name: namesOnly 
+          in: query
+          description: If true the endpoint will only return the channel's names.
+          schema:
+            type: boolean
+            example: True
+      description: Get all official channels.
+      responses:
+        '200':
+          description: Valid request
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: '#/components/schemas/Channel'
+                    - type: array
+                      items: 
+                        type: string 
+                        description: The channel names.
+                      example: ['channel1', 'channel2']
+        '401':
+          description: Unauthorized operation
+        
+  /plans/: 
+    get:
+      tags:
+        - ProPlan 
+        - Public
+      description: Get subscription plans.
+      operationId: getPlans
+      responses:
+        '200':
+          description: Operation Successful.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: '#/components/schemas/ProPlan'
 
 components:
   schemas:

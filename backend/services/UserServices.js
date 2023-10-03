@@ -73,7 +73,9 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
-    static async getUsers({ handle, admin, accountType, handleOnly, page = 1 } = { page: 1}){
+    static async getUsers({ handle, admin, accountType, handleOnly, page = 1, 
+        results_per_page=config.results_per_page
+     } = { page: 1, results_per_page: config.results_per_page }){
         let filter = new Object();
 
         if (handle) filter.handle = { $regex: handle, $options: 'i' };
@@ -88,10 +90,17 @@ class UserService {
             
             return Service.successResponse(UserService.makeUserObjectArr(users));
         } else {
-            users = await UserService.getSecureUserRecords(filter)
-                .sort('meta.created')
-                .skip((page - 1) * config.results_per_page)
-                .limit(config.results_per_page);
+
+            let query = UserService.getSecureUserRecords(filter)
+                            .sort('meta.created');
+
+            if (results_per_page <= 0) results_per_page = config.results_per_page;
+
+            if (page > 0)
+                query.skip((page - 1) * results_per_page)
+                    .limit(results_per_page);
+
+            users = await query
 
                 return Service.successResponse(UserService.makeUserObjectArr(users));
         }
@@ -541,12 +550,9 @@ class UserService {
             if (!user) return Service.rejectResponse({ message: "Must provide a valid handle" })
         }
 
-        const res = await user.populate('managed', 'handle charLeft');
+        const res = await UserService.populateQuery(User.find({ smm: user._id }));
 
-        return Service.successResponse(res.managed.map(o => ({
-            handle: o.handle,
-            charLeft: o.charLeft,
-        })));
+        return Service.successResponse(UserService.makeUserObjectArr(res));
     }
 }
 

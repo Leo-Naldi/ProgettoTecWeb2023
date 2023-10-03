@@ -23,7 +23,8 @@ import authorizedRequest from '../utils/authorizedRequest';
 export default function Squeals({ managed }) {
 
 
-    const messagesPerPage = 100;
+    console.log(managed)
+    const messagesPerPage = 25;
 
     const [page, setPage] = useState(1);
     const [messages, setMessages] = useState([]);
@@ -34,6 +35,7 @@ export default function Squeals({ managed }) {
     const smm = useAccount();
     const managedUsers = useManagedAccounts();
     const userAccount = managedUsers?.find(u => u.handle === managed);
+    console.log(userAccount)
     const socket = useSocket();
 
     const fetchMessages = () => {
@@ -42,7 +44,7 @@ export default function Squeals({ managed }) {
         authorizedRequest({
             endpoint: `messages/user/${managed}`,
             token: smm.token,
-            query: { page: page }
+            query: { page: page, results_per_page: messagesPerPage }
         })
             .then(res => res.json())
             .then(res => res.map(m => ({

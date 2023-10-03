@@ -60,6 +60,8 @@ class SquealSocket {
             populatedUser.managed.map(u => nms.add(`/user-io/${u.handle}`))
         }
 
+        if (!ebody.handle) ebody = { ...ebody, handle: populatedUser.handle }
+
         SquealSocket.emit({
             socket: socket,
             namespaces: nms,
@@ -137,12 +139,34 @@ class SquealSocket {
         });
     }
 
+    static reactionRecived({ id, smm_handle, type, socket }) {
+        namespaces = new Set([`/pro-io/${smm_handle}`]);
+        SquealSocket.emit({
+            socket: socket,
+            namespaces: namespaces,
+            eventName: 'reaction:recived',
+            eventBody: { id: id, type: type },
+        });
+    }
+
+    static reactionDeleted({ id, smm_handle, type, socket }) {
+        namespaces = new Set([`/pro-io/${smm_handle}`]);
+        SquealSocket.emit({
+            socket: socket,
+            namespaces: namespaces,
+            eventName: 'reaction:deleted',
+            eventBody: { id: id, type: type },
+        });
+    }
+
     static channelChanged({ populatedChannelObject, ebody, socket }) {
         const namespaces = SquealSocket.#makeNamespacesFromPopulatedChannel(populatedChannelObject);
 
         if (!ebody) {
             ebody = populatedChannelObject;
         }
+
+        if (!ebody.name) ebody = { ...ebody, name: populatedChannelObject.name };
 
         SquealSocket.emit({
             socket: socket,

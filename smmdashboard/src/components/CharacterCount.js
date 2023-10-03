@@ -23,24 +23,6 @@ export default function CharacterCount({ managed }) {
         }
     };
 
-    useEffect(() => {
-        socket?.on('characters', ({ charLeft, handle }) => {
-            if (handle === user.handle) {
-                managedAccountsDispatch({
-                    action: 'CHANGE_CHARLEFT',
-                    payload: {
-                        handle: handle,
-                        charLeft: charLeft,
-                    }
-                })
-            }
-        })
-
-        return () => {
-            socket?.off('characters');
-        }
-    }, [])
-
     return (
         <React.Fragment>
             <Typography sx={{ mb: 1 }} variant="h5" component="h2">Characters Left</Typography>

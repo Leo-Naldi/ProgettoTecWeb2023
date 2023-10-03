@@ -14,6 +14,18 @@ export default function managedAccountsReducer(state, action) {
 
             return res;
         }
+        case 'USER_REMOVED': {
+
+            return state.filter(u => u.handle !== action.handle);
+        } case 'USER_CHANGED': {
+
+            let res = [...state];
+            const i = state.findIndex(u => u.handle === action.handle)
+
+            res[i] = { ...res[i], ...action.changes };
+
+            return res;
+        }
         default: {
             throw Error(`Managed Accounts Reducer: Unknown action type "${action.type}"`);
         }
