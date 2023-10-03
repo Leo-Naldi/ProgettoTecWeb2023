@@ -1,15 +1,47 @@
-const Message = require('../models/Message');
 const User = require('../models/User');
-const Channel = require('../models/Channel')
-const { lorem, shuffle } = require('./randomUtils');
-const { getDateWithin, getRandom } = require('./getDateWithin');
+const Channel = require('../models/Channel');
+const Plan = require('../models/Plan');
 const config = require('../config/index');
 const dayjs = require('dayjs');
 
+const { logger } = require('../config/logging');
+const TestEnv = require('./DataCreation');
+const Message = require('../models/Message');
+
+const _ = require('underscore')
+
+
 async function makeDefaultUsers() {
+
     const pw = '12345678';
 
-    // user1: fv
+    const monthly_plan = new Plan({
+        name: 'Monthly subscription plan',
+        price: 4.99,
+        period: 'month',
+        extraCharacters: {
+            day: 300,
+            week: 320*7,
+            month: 330*31,
+        },
+        pro: true,
+    })
+
+    const yearly_plan = new Plan({
+        name: 'Yearly subscription plan',
+        price: 49.99,
+        period: 'year',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: true,
+    })
+
+    const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan]);
+
+    // Utenti richiesti
     const user1 = new User({
         handle: 'fv',
         username: 'fv',
@@ -24,6 +56,14 @@ async function makeDefaultUsers() {
         email: 'mailPro@mail.com',
         accountType: 'pro',
         password: pw,
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: monthly_plan._id,
+            expires: (new dayjs()).add(1, 'month').toDate(),
+            autoRenew: true,
+        }
     });
 
     // user3: fvSMM
@@ -31,8 +71,16 @@ async function makeDefaultUsers() {
         handle: 'fvSMM',
         username: 'fvSMM',
         email: 'mailSMM@mail.com',
-        password: 'abc123456',
-        admin: true,
+        password: pw,
+        accountType: 'pro',
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: yearly_plan._id,
+            expires: (new dayjs()).add(1, 'year').toDate(),
+            autoRenew: true,
+        }
     });
 
     // user4: fvMod
@@ -41,6 +89,10 @@ async function makeDefaultUsers() {
         username: 'fvMod',
         email: 'mailMod@mail.com',
         password: pw,
+        admin: true,
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
     });
 
     // user5: Nome Buffo1
@@ -50,6 +102,14 @@ async function makeDefaultUsers() {
         accountType: 'pro',
         email: 'mailBuffa@mail.com',
         password: pw,
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: monthly_plan._id,
+            expires: (new dayjs()).add(1, 'month').toDate(),
+            autoRenew: true,
+        }
     });
 
     // user6: Nome Buffo2
@@ -59,7 +119,96 @@ async function makeDefaultUsers() {
         email: 'mailBuffa2@mail.com',
         password: pw,
         accountType: 'pro',
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: monthly_plan._id,
+            expires: (new dayjs()).add(1, 'month').toDate(),
+            autoRenew: true,
+        }
     })
+
+    // Modify the character balance of user2, user5, user6
+    user2.charLeft = {
+        day: 50,
+        week: TestEnv.getRandom(0, config.weekly_quote - 49) + 50,
+        month: TestEnv.getRandom(0, config.monthly_quote - 49) + 50,
+    }
+    user5.charLeft = {
+        day: 50,
+        week: TestEnv.getRandom(0, config.weekly_quote - 49) + 50,
+        month: TestEnv.getRandom(0, config.monthly_quote - 49) + 50,
+    }
+    user6.charLeft = {
+        day: 50,
+        week: TestEnv.getRandom(0, config.weekly_quote - 49) + 50,
+        month: TestEnv.getRandom(0, config.monthly_quote - 49) + 50,
+    }
+
+    user2.smm = user3._id;
+    user5.smm = user3._id;
+    user6.smm = user3._id;
+
+    const u1_index = test_env.addUser(user1);
+    const u2_index = test_env.addUser(user2);
+    const u3_index = test_env.addUser(user3);
+    const u4_index = test_env.addUser(user4);
+    const u5_index = test_env.addUser(user5);
+    const u6_index = test_env.addUser(user6);
+
+    const pro1_index = test_env.addTestUser({
+        pro: true,
+    })
+
+    test_env.users[pro1_index].handle = 'pro1';
+
+    let main_user_indexes = [
+        u1_index,
+        u2_index,
+        u3_index,
+        u4_index,
+        u5_index,
+        u6_index,
+    ]
+    
+
+    let answering_users_indexes = [
+        test_env.addTestUser(),
+        test_env.addTestUser(),
+        test_env.addTestUser(),
+    ]
+
+    let channel_requests_user = new User({
+        handle: 'user12345678',
+        username: 'user12345678',
+        email: 'mailBuffaqjwrhfwuirhfwiuhrqlfhqoirhfmquwpewqohfmqhmrfq@mail.com',
+        password: pw,
+    });
+
+    let channel_requests_user_index = test_env.addUser(channel_requests_user);
+
+    const channel_indexes = [
+        test_env.addRandomChannel(u1_index, 2),
+        test_env.addRandomChannel(u2_index, 2),
+        test_env.addRandomChannel(u3_index, 2), 
+        test_env.addRandomChannel(u4_index, 2),
+        test_env.addRandomChannel(u5_index, 2),
+        test_env.addRandomChannel(u6_index, 2),
+    ]
+
+    channel_indexes.map(cind => {
+        test_env.channels[cind].publicChannel = true;
+    })
+
+    main_user_indexes.map(uind => {
+        test_env.addRandomChannel(uind);
+        test_env.addRandomChannel(uind);
+        test_env.addRandomChannel(uind);
+    })
+
+
+    // MANUALLY CREATED CHANNELS
 
     //  channel1: daily_news
     const channel1 = new Channel({
@@ -111,362 +260,412 @@ async function makeDefaultUsers() {
     });
 
     // Handle reference relations between data tables, all creators are members of the channels they created
-    user1.joinedChannels.push(channel1._id);
-    channel1.members.push(user1._id);   // creator
-    channel1.members.push(user2._id);
-    channel1.members.push(user3._id);
-    channel1.members.push(user4._id);
-    user1.joinedChannels.push(channel2._id);
-    user1.joinedChannels.push(channel3._id);
-    user1.joinedChannels.push(channel4._id);
-    user1.joinedChannels.push(channel6._id);
+    user1.joinedChannels.addToSet(channel1._id);
+    // channel1.members.addToSet(user2._id);
+    // channel1.members.addToSet(user1._id);   // creator
+    // channel1.members.addToSet(user3._id);
+    // channel1.members.addToSet(user4._id);
+    user1.joinedChannels.addToSet(channel2._id);
+    user1.joinedChannels.addToSet(channel3._id);
+    user1.joinedChannels.addToSet(channel4._id);
+    user1.joinedChannels.addToSet(channel6._id);
+
+    user1.editorChannels.addToSet(channel1._id);
+    user1.editorChannels.addToSet(channel2._id);
+    user1.editorChannels.addToSet(channel3._id);
+    user1.editorChannels.addToSet(channel4._id);
+    user1.editorChannels.addToSet(channel6._id);
+    
 
 
-    user2.joinedChannels.push(channel2._id);
-    channel2.members.push(user2._id);   // creator
-    channel2.members.push(user1._id);
-    channel2.members.push(user3._id);
-    channel2.members.push(user5._id);
-    user2.joinedChannels.push(channel1._id);
-    user2.joinedChannels.push(channel3._id);
+    user2.joinedChannels.addToSet(channel2._id);
+    //channel2.members.addToSet(user2._id);   // creator
+    //channel2.members.addToSet(user1._id);
+    //channel2.members.addToSet(user3._id);
+    //channel2.members.addToSet(user5._id);
+    user2.joinedChannels.addToSet(channel1._id);
+    user2.joinedChannels.addToSet(channel3._id);
+
+    user2.editorChannels.addToSet(channel2._id);
+    user2.editorChannels.addToSet(channel1._id);
+    user2.editorChannels.addToSet(channel3._id);
 
 
-    user3.joinedChannels.push(channel3._id);
-    channel3.members.push(user3._id);   // creator
-    channel3.members.push(user1._id);
-    channel3.members.push(user2._id);
-    channel3.members.push(user4._id);
-    user3.joinedChannels.push(channel1._id);
-    user3.joinedChannels.push(channel2._id);
-    user3.joinedChannels.push(channel6._id);
+    user3.joinedChannels.addToSet(channel3._id);
+    //channel3.members.addToSet(user3._id);   // creator
+    //channel3.members.addToSet(user1._id);
+    //channel3.members.addToSet(user2._id);
+    //channel3.members.addToSet(user4._id);
+    user3.joinedChannels.addToSet(channel1._id);
+    user3.joinedChannels.addToSet(channel2._id);
+    user3.joinedChannels.addToSet(channel6._id);
+
+    user3.editorChannels.addToSet(channel3._id);
+    user3.editorChannels.addToSet(channel1._id);
+    user3.editorChannels.addToSet(channel2._id);
+    user3.editorChannels.addToSet(channel6._id);
 
 
-    user4.joinedChannels.push(channel4._id);
-    channel4.members.push(user4._id);   // creator
-    channel4.members.push(user1._id);
-    channel4.members.push(user5._id);
-    channel4.members.push(user6._id);
-    user4.joinedChannels.push(channel1._id);
-    user4.joinedChannels.push(channel3._id);
-    user4.joinedChannels.push(channel5._id);
+    user4.joinedChannels.addToSet(channel4._id);
+    //channel4.members.addToSet(user4._id);   // creator
+    //channel4.members.addToSet(user1._id);
+    //channel4.members.addToSet(user5._id);
+    //channel4.members.addToSet(user6._id);
+    user4.joinedChannels.addToSet(channel1._id);
+    user4.joinedChannels.addToSet(channel3._id);
+    user4.joinedChannels.addToSet(channel5._id);
+
+    user4.editorChannels.addToSet(channel4._id);
+    user4.editorChannels.addToSet(channel1._id);
+    user4.editorChannels.addToSet(channel3._id);
+    user4.editorChannels.addToSet(channel5._id);
 
 
-    user5.joinedChannels.push(channel5._id);
-    channel5.members.push(user5._id);   // creator
-    channel5.members.push(user4._id); 
-    channel5.members.push(user6._id); 
-    user5.joinedChannels.push(channel2._id);
-    user5.joinedChannels.push(channel4._id);
+    user5.joinedChannels.addToSet(channel5._id);
+    //channel5.members.addToSet(user5._id);   // creator
+    //channel5.members.addToSet(user4._id);
+    //channel5.members.addToSet(user6._id);
+    user5.joinedChannels.addToSet(channel2._id);
+    user5.joinedChannels.addToSet(channel4._id);
+    user5.joinedChannels.addToSet(channel6._id);
+
+    user5.editorChannels.addToSet(channel5._id);
+    user5.editorChannels.addToSet(channel2._id);
+    user5.editorChannels.addToSet(channel4._id);
+    user5.editorChannels.addToSet(channel6._id);
 
 
-    user6.joinedChannels.push(channel6._id);
-    channel6.members.push(user6._id);   // creator
-    channel6.members.push(user1._id); 
-    channel6.members.push(user3._id); 
-    user6.joinedChannels.push(channel4._id);
-    user6.joinedChannels.push(channel5._id);
+    user6.joinedChannels.addToSet(channel6._id);
+    //channel6.members.addToSet(user6._id);   // creator
+    //channel6.members.addToSet(user1._id);
+    //channel6.members.addToSet(user3._id);
+    user6.joinedChannels.addToSet(channel4._id);
+    user6.joinedChannels.addToSet(channel5._id);
+
+    user6.editorChannels.addToSet(channel6._id);
+    user6.editorChannels.addToSet(channel4._id);
+    user6.editorChannels.addToSet(channel5._id);
+
+    let manually_created_channel_idexes = [
+        test_env.addChannel(channel1),
+        test_env.addChannel(channel2),
+        test_env.addChannel(channel3),
+        test_env.addChannel(channel4),
+        test_env.addChannel(channel5),
+        test_env.addChannel(channel6),
+    ]
+
+    let u5startMessages = TestEnv.getRandom(0, 51) + 1;
+    let u6startMessages = TestEnv.getRandom(0, 51) + 1;
+
+    const popular_reaction = () => {
+        return {
+            positive: config.fame_threshold + TestEnv.getRandom(0, 201),
+            negative: TestEnv.getRandom(0, 11),
+        }
+    }
+
+    const unpopular_reaction = () => {
+        return {
+            negative: config.fame_threshold + TestEnv.getRandom(0, 201),
+            positive: TestEnv.getRandom(0, 11),
+        }
+    }
+
+    const controversial_reaction = () => {
+        return {
+            positive: config.fame_threshold + TestEnv.getRandom(0, 201),
+            negative: config.fame_threshold + TestEnv.getRandom(0, 201),
+        }
+    }
+
+    test_env.addRandomMessages({
+        authorIndex: u5_index, 
+        allTime: u5startMessages,
+        year: u5startMessages + 20,
+        month: u5startMessages,
+        reaction_function: popular_reaction
+    })
+
+    test_env.addRandomMessages({
+        authorIndex: u6_index,
+        allTime: u6startMessages,
+        year: u6startMessages + 20,
+        month: u6startMessages,
+        reaction_function: unpopular_reaction,
+    })
+
+    const u2_r_max = 2 * config.fame_threshold;
+    const u2_rfunc = () => ({ positive: TestEnv.getRandom(0, u2_r_max), negative: TestEnv.getRandom(0, u2_r_max), })
 
 
+    test_env.addRandomMessages({
+        authorIndex: u2_index,
+        allTime: 100,
+        year: 120,
+        month: 50,
+        today: 10,
+        reaction_function: u2_rfunc,
+    })
 
-    user2.smm = user3._id;
-    user5.smm = user3._id;
-    user6.smm = user3._id;
- 
-    // Generate 10 random messages for user5 and user6, with randomly generated content and fixed fields
-    let messages = []
-    for (let i = 0; i < config.num_messages_reward - 1; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user5._id,
-            reactions: {
-                positive: config.fame_threshold + getRandom(20) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        }));
+    u5startMessages *= 3;
+    u6startMessages *= 3;
 
-        user5.messages.push(messages.at(-1)._id);
+    // new messages to make user 5 and 6 two messages away from increasing/decreasing characters
+    while (u5startMessages % (config.num_messages_reward - 2) !== 0) {
 
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user6._id,
-            reactions: {
-                negative: config.fame_threshold + getRandom(20) + 1,
-                positive: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        }))
-        user6.messages.push(messages.at(-1)._id);
+
+        test_env.addRandomMessages({
+            week: 1,
+            authorIndex: u5_index,
+            reaction_function: popular_reaction,
+        })
+
+        u5startMessages++;
+    }
+
+    while (u6startMessages % (config.num_messages_reward - 2) !== 0) {
+
+        test_env.addRandomMessages({
+            week: 1,
+            authorIndex: u6_index,
+            reaction_function: unpopular_reaction,
+        })
+
+        u6startMessages++;
     }
 
     // Generate a separate message for user5 and user6
-    messages.push(new Message({
-        content: {
-            text: lorem.generateSentences(getRandom(3) + 1),
-        },
-        author: user5._id,
-        reactions: {
+    test_env.addRandomMessages({
+        today: 1,
+        authorIndex: u5_index,
+        reaction_function: () => ({
             positive: config.fame_threshold - 1,
-            negative: getRandom(13),
-        },
-        meta: {
-            created: getDateWithin('today').toDate(),
-        }
-    }));
+            negative: TestEnv.getRandom(0, 13),
+        }),
+    })
 
-    user5.messages.push(messages.at(-1)._id);
-
-    messages.push(new Message({
-        content: {
-            text: lorem.generateSentences(getRandom(3) + 1),
-        },
-        author: user6._id,
-        reactions: {
+    test_env.addRandomMessages({
+        today: 1,
+        authorIndex: u6_index,
+        reaction_function: () => ({
             negative: config.fame_threshold - 1,
-            positive: getRandom(13),
-        },
-        meta: {
-            created: getDateWithin('today').toDate(),
+            positive: TestEnv.getRandom(0, 13),
+        }),
+    })
+
+    // Replies
+    answering_users_indexes.map(i => {
+        test_env.addRandomMessages({
+            allTime: TestEnv.getRandom(0, 31) + 100,
+            year: TestEnv.getRandom(0, 31) + 50,
+            month: TestEnv.getRandom(0, 31) + 10,
+            authorIndex: answering_users_indexes[2],
+            reaction_function: popular_reaction,
+            answering: true,
+        })
+    })
+
+    main_user_indexes.map(i => {
+        
+        let messages = test_env.getUserMessages(i);
+        messages = messages.filter(m => m.publicMessage);
+        if (messages?.length){
+            let m = test_env.addRandomMessages({
+                allTime: 1,
+                answering: false,
+                authorIndex: TestEnv.getRandom(0, test_env.users.length),
+            });
+
+            test_env.messages[test_env.messages.length - 1].answering = messages[0]._id
         }
-    }))
-    user6.messages.push(messages.at(-1)._id);
+    })
+
+    /* 
+        Generate 15 random messages for channel6: test6, with randomly generated content and fixed fields
+        Only channel6 has content 
+    */
+    for (let i = 0; i < 5; i++) {
+
+        test_env.addMessage({
+            authorIndex: u1_index,
+            meta: {
+                created: TestEnv.getDateWithinPeriod('week'),
+            },
+            destChannelIndexes: [manually_created_channel_idexes[5]],
+            reactions: popular_reaction(),
+            answeringIndex: test_env.getRandomPublicMessageIndex(),
+            text: TestEnv.lorem.generateSentences(TestEnv.getRandom(1,4)),
+        })
+
+        test_env.addMessage({
+            authorIndex: answering_users_indexes[1],
+            meta: {
+                created: TestEnv.getDateWithinPeriod('week'),
+            },
+            destChannelIndexes: [manually_created_channel_idexes[5]],
+            reactions: popular_reaction(),
+            answeringIndex: test_env.getRandomPublicMessageIndex(),
+            text: TestEnv.lorem.generateSentences(TestEnv.getRandom(1, 4))
+        })
+
+        test_env.addMessage({
+            authorIndex: answering_users_indexes[2],
+            meta: {
+                created: TestEnv.getDateWithinPeriod('week'),
+            },
+            destChannelIndexes: [manually_created_channel_idexes[5]],
+            reactions: popular_reaction(),
+            answeringIndex: test_env.getRandomPublicMessageIndex(),
+            text: TestEnv.lorem.generateSentences(TestEnv.getRandom(1, 4))
+        })
+    }
 
 
-    // Generate 20 messages for user5, user6 and user2 respectively
+    channel_requests_user.joinChannelRequests = [channel1._id, channel5._id, channel6._id];
+    channel_requests_user.editorChannelRequests = [channel1._id, channel5._id, channel6._id];
+
+    let official_channel = new Channel({
+        name: 'REDAZIONE',
+        creator: user4._id,
+        description: "Official channel for tests",
+        publicChannel: true,
+        official: true,
+    });
+
+    user4.joinedChannels.push(official_channel);
+    user4.editorChannels.push(official_channel);
+
+    test_env.addChannel(official_channel);
+
     for (let i = 0; i < 20; i++) {
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user5._id,
-            reactions: {
-                positive: config.fame_threshold + 1 + getRandom(170),
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }));
-        user5.messages.push(messages.at(-1)._id);
+        test_env.addRandomMessages({
+            authorIndex: u4_index,
+            allTime: 1,
+        })
 
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user6._id,
-            reactions: {
-                negative: config.fame_threshold + 1 + getRandom(170),
-                positive: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }))
-        user6.messages.push(messages.at(-1)._id);
-
-        messages.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user2._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: getDateWithin('year').toDate(),
-            }
-        }))
-        user2.messages.push(messages.at(-1)._id);
+        test_env.messages[test_env.messages.length - 1].official = true;
+        test_env.messages[test_env.messages.length - 1].destChannel = [official_channel._id];
+        test_env.destUser = [];
     }
 
-    // Modify the character balance of user2, user5, user6
-    user2.charLeft = {
-        day: 50,
-        week: getRandom(config.weekly_quote - 50) + 50,
-        month: getRandom(config.monthly_quote - 50) + 50,
-    }
-    user5.charLeft = {
-        day: 50,
-        week: getRandom(config.weekly_quote - 50) + 50,
-        month: getRandom(config.monthly_quote - 50) + 50,
-    }
-    user6.charLeft = {
-        day: 50,
-        week: getRandom(config.weekly_quote - 50) + 50,
-        month: getRandom(config.monthly_quote - 50) + 50,
-    }
+    // Messages with keywords, mentions and both
+    let keywords = ' #kw1 #kw2 #kw3 ';
 
-    // Randomly select a user from the list to send a random message
-    // [0]: handlebella1234
-    // [1]: handlebrutta12345
-    // [2]: pieraldo1234
-    let answering_users = [
-        new User({
-            handle: 'handlebella1234',
-            username: 'franco tiratori',
-            email: 'mailfrancajdcwbkjcd@mail.com',
-            password: pw,
-        }),
-        new User({
-            handle: 'handlebrutta12345',
-            username: 'marco tiratori',
-            email: 'mailfrancajvfvervrtdcwbkjcd@mail.com',
-            password: pw,
-        }),
-        new User({
-            handle: 'pieraldo1234',
-            username: 'piero albertini',
-            email: 'dcerfccccverytruemail@mail.com',
-            password: pw,
-        }),
-    ]
+    for (let i = 0; i < 20; i++) {
+        test_env.addRandomMessages({
+            authorIndex: u4_index,
+            allTime: 1,
+            today: 1,
+            year: 1,
+            week: 1,
+            month: 1,
+        })
 
-    let answers = [];
-
-    let channel_lists = [channel1, channel2, channel3, channel4, channel5, channel6];
-
-    for (let i = 0; i < getRandom(20) + 20; i++) {
-        const user_ind = getRandom(answering_users.length);
-        const mess_ind = getRandom(messages.length);
-
-        answers.push(new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: answering_users[user_ind]._id,
-            reactions: {
-                negative: getRandom(config.fame_threshold + 50),
-                positive: getRandom(config.fame_threshold + 50),
-            },
-            meta: {
-                created: dayjs(messages[mess_ind].meta.created).add(getRandom(120), 'minute').toDate(),
-            },
-            answering: messages[mess_ind]._id,
-        }))
-        answering_users[user_ind].messages.push(answers.at(-1)._id);
-    }
-    // hanlde 3 users in the list
-    answering_users[0].joinedChannels.push(channel_lists[0])
-    answering_users[0].joinedChannels.push(channel_lists[1])
-    answering_users[0].joinedChannels.push(channel_lists[2])
-    answering_users[1].joinedChannels.push(channel_lists[3])
-    answering_users[1].joinedChannels.push(channel_lists[4])
-    answering_users[1].joinedChannels.push(channel_lists[5])
-    answering_users[2].joinedChannels.push(channel_lists[0])
-    answering_users[2].joinedChannels.push(channel_lists[4])
-    answering_users[2].joinedChannels.push(channel_lists[5])
-    channel_lists[0].members.push(answering_users[0]._id)
-    channel_lists[0].members.push(answering_users[2]._id)
-    channel_lists[1].members.push(answering_users[0]._id)
-    channel_lists[2].members.push(answering_users[0]._id)
-    channel_lists[3].members.push(answering_users[0]._id)
-    channel_lists[4].members.push(answering_users[1]._id)
-    channel_lists[4].members.push(answering_users[2]._id)
-    channel_lists[5].members.push(answering_users[1]._id)
-    channel_lists[5].members.push(answering_users[2]._id)
-
-
-/* 
-    Generate 25 random messages for channel6: test6, with randomly generated content and fixed fields
-    Only channel6 has content 
-*/
-    // fv sent 5 posts in channel6
-    for (let i = 0; i < 5; i++) {
-        var msg_tmp = new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: user1._id,
-            destChannel: [channel6._id],
-            reactions: {
-                positive: config.fame_threshold + getRandom(20) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        });
-        // msg_tmp.destChannel.push(channel6._id);
-        msg_tmp.save();
-        user1.messages.push(msg_tmp._id);
-        channel6.messages.push(msg_tmp._id);
+        _.last(test_env.messages, 5).map(m => {
+            m.content.text += keywords;
+            m.publicMessage = true;
+            m.destChannel = [];
+        })
     }
 
-    // handlebrutta12345 sent 5 posts in channel6
-    for (let i = 0; i < 5; i++) {
-        var msg_tmp = new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: answering_users[1]._id,
-            destChannel: [channel6._id],
-            reactions: {
-                positive: config.fame_threshold + getRandom(20) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        });
-        // msg_tmp.destChannel.push(channel6._id);
-        msg_tmp.save();
-        answering_users[1].messages.push(msg_tmp._id);
-        channel6.messages.push(msg_tmp._id);
+    let mentions = ' @fv @fvPro '
+
+    for (let i = 0; i < 20; i++) {
+        test_env.addRandomMessages({
+            authorIndex: u4_index,
+            allTime: 1,
+            today: 1,
+            year: 1,
+            week: 1,
+            month: 1,
+        })
+
+        _.last(test_env.messages, 5).map(m => {
+            m.content.text += mentions;
+            m.publicMessage = true;
+            m.destChannel = [];
+        })
     }
 
-    // pieraldo1234 sent 5 posts in channel6
-    for (let i = 0; i < 5; i++) {
-        var msg_tmp = new Message({
-            content: {
-                text: lorem.generateSentences(getRandom(3) + 1),
-            },
-            author: answering_users[2]._id,
-            destChannel: [channel6._id],
-            reactions: {
-                positive: config.fame_threshold + getRandom(20) + 1,
-                negative: getRandom(13),
-            },
-            meta: {
-                created: getDateWithin('week').toDate(),
-            }
-        });
-        // msg_tmp.destChannel.push(channel6._id);
-        msg_tmp.save();
-        answering_users[2].messages.push(msg_tmp._id);
-        channel6.messages.push(msg_tmp._id);
+    let mentions_and_keywords = ' @fv @fvPro  #kw1 #kw2 ';
+
+    for (let i = 0; i < 20; i++) {
+        test_env.addRandomMessages({
+            authorIndex: u4_index,
+            allTime: 1,
+            today: 1,
+            year: 1,
+            week: 1,
+            month: 1,
+        })
+
+        _.last(test_env.messages, 5).map(m => {
+            m.content.text += mentions_and_keywords;
+            m.publicMessage = true;
+            m.destChannel = [];
+        })
+
+        test_env.addRandomMessages({
+            authorIndex: u5_index,
+            allTime: 1,
+            today: 1,
+            year: 1,
+            week: 1,
+            month: 1,
+        })
+
+        _.last(test_env.messages, 5).map(m => {
+            m.destUser = [user6._id];
+            m.destChannel = [channel6._id];
+        })
     }
 
+    await test_env.saveAll();
+
+    // Canali automatici
+
+    // Account Per creare i canali automatici
+    const cronUser = new User({
+        handle: '__cron',
+        username: 'redazione',
+        password: pw,
+        email: 'mailCRonnnnnnn@mail.com',
+        admin: true,
+        charLeft: {
+            day: 999999999,
+            week: 999999999,
+            month: 9999999999,
+        }
+    })
+
+    const catFacts = new Channel({
+        name: 'CAT_FACTS',
+        creator: cronUser._id,
+        description: 'A new fact about felines every minute',
+        publicChannel: true,
+        official: true,
+    });
+
+    const dogPics = new Channel({
+        name: 'DOG_PICTURES',
+        creator: cronUser._id,
+        description: 'A new dog picture every 10 minutes',
+        publicChannel: true,
+        official: true,
+    });
+
+    cronUser.joinedChannels = [catFacts._id, dogPics._id];
+    cronUser.editorChannels = [catFacts._id, dogPics._id];
+
+    await catFacts.save()
+    await dogPics.save()
+    await cronUser.save()
 
 
-
-
-
-
-    await Promise.all([
-        user1.save(),
-        user2.save(),
-        user3.save(),
-        user4.save(),
-        user5.save(),
-        user6.save(),
-        channel1.save(),
-        channel2.save(),
-        channel3.save(),
-        channel4.save(),
-        channel5.save(),
-        channel6.save(),
-    ].concat(answering_users.map(u => u.save())));
-
-    await Promise.all(messages.concat(answers).map(m => m.save()));
+    let answer = await Message.findOne({ answering: { $ne: null }, publicMessage: true });
+    logger.info(`Message with answers: ${answer.answering}`);
 }
+
 
 module.exports = { makeDefaultUsers }

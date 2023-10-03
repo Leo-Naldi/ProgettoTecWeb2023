@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 
 const config = require('../config/index');
 const Plan = require('./Plan')
-const Message = require('./Message')
 
 
 // Schema per i metadata utente, va fatto cosi per far funzionare i default
@@ -34,6 +33,24 @@ const CharQuotaSchema = new mongoose.Schema({
     },
 }, { _id: false });
 
+const SubscriptionSchema = new mongoose.Schema({
+
+    proPlan: {
+        type: mongoose.ObjectId,
+        ref: 'Plan',
+    },
+    expires: {
+        type: Date,
+        required: true,
+        default: Date.now,
+    }, 
+    autoRenew: {
+        type: Boolean,
+        required: true,
+        default: false,
+    }
+
+}, { _id: false })
 
 const UserSchema = mongoose.Schema(
     {
@@ -94,21 +111,20 @@ const UserSchema = mongoose.Schema(
             required: true,
         },
         joinedChannels: [{ type: mongoose.ObjectId, ref: 'Channel' }],
-        messages: [{ type: mongoose.ObjectId, ref: 'Message' }],
+        joinChannelRequests: [{ type: mongoose.ObjectId, ref: 'Channel' }],
+        editorChannelRequests: [{ type: mongoose.ObjectId, ref: 'Channel' }],
+        editorChannels: [{ type: mongoose.ObjectId, ref: 'Channel' }],
         meta: {
             type: metaSchema,
             default: () => ({}),  // To actually trigger the created default 
             required: true,
         },
-        charLeft: {  // TODO definire i pay plan 
+        charLeft: {  
             type: CharQuotaSchema,
             required: true,
             default: () => ({}),
         },
-        proPlan: {
-            type: mongoose.ObjectId,
-            ref: 'Plan',
-        },
+        subscription: SubscriptionSchema,
         smm: { 
             // Id del social media manager
             type: mongoose.ObjectId, 
@@ -124,6 +140,32 @@ const UserSchema = mongoose.Schema(
         } 
     }
 );
+
+UserSchema.virtual('messages', {
+    ref: 'Message',
+    localField: '_id',
+    foreignField: 'author'
+})
+
+UserSchema.virtual('managed', {
+    ref: 'User',
+    localField: '_id',
+    foreignField: 'smm'
+})
+
+UserSchema.virtual('liked', {
+    ref: 'Reaction',
+    localField: '_id',
+    foreignField: 'user',
+    match: { type: 'positive' }
+})
+
+UserSchema.virtual('disliked', {
+    ref: 'Reaction',
+    localField: '_id',
+    foreignField: 'user',
+    match: { type: 'negative' }
+})
 
 UserSchema.pre('deleteOne', { document: true }, async function(){
     

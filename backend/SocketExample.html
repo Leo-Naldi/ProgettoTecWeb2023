@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Socket IO test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    
+    <script type="module">
+        import { io } from "https://cdn.socket.io/4.4.1/socket.io.esm.min.js";
+        
+        const log_to_console = (eventName, ...args) => {
+                console.log(eventName, args);
+        }
+
+        const add_li_node = (eventName, ...args) => {
+            const trow = $('<tr>')
+            const td1 = $('<td>').text(eventName);
+            const td2 = $('<td>').text(JSON.stringify(args));
+            
+            td1.appendTo(trow);
+            td2.appendTo(trow);
+            trow.appendTo($('#events-body'))
+        }
+        
+        let soc = null;
+
+        $('#data').on('submit', (event) => {
+            event.preventDefault();
+            
+            switch($('#acc-type').val()) {
+                case 'user':
+                    fetch(`http://localhost:8000/auth/login/`, {
+                        method: "post",
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            handle: $('#handle').val(),
+                            password: $('#password').val(),
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        // 64ac2760e9fbb645a50c3623
+                        var socket = io(`http://localhost:8000/user-io/${res.user.handle}`, {
+                            extraHeaders: {
+                                Authorization: `Bearer ${res.token}`
+                            },
+                        });
+                        socket.onAny(add_li_node);
+
+                        if (soc) {
+
+                            soc.offAny();
+                            soc.disconnect();
+                            soc = null;
+                        }
+
+                        soc = socket
+                    })
+                    break;
+                case 'pro':
+
+                    fetch(`http://localhost:8000/auth/login/smm`, {
+                        method: "post",
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            handle: $('#handle').val(),
+                            password: $('#password').val(),
+                        })
+                    })
+                        .then(res => res.json())
+                        .then(res => {
+
+                            var socketPro = io(`http://localhost:8000/pro-io/${res.user.handle}`, {
+                                extraHeaders: {
+                                    Authorization: `Bearer ${res.token}`
+                                },
+                            });
+                            //socket.onAny(add_li_node);
+                            socketPro.onAny(add_li_node);
+
+                            if (soc) {
+
+                                soc.offAny();
+                                soc.disconnect();
+                                soc = null;
+                            }
+
+                            soc = socketPro;
+                        })
+
+                    break;
+                case 'admin': 
+                    fetch(`http://localhost:8000/auth/login/admin`, {
+                            method: "post",
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                handle: $('#handle').val(),
+                                password: $('#password').val(),
+                            })
+                        })
+                            .then(res => res.json())
+                            .then(res => {
+
+                                var socketAdmin = io(`http://localhost:8000/admin-io/${res.user.handle}`, {
+                                    extraHeaders: {
+                                        Authorization: `Bearer ${res.token}`
+                                    },
+                                });
+                                //socket.onAny(add_li_node);
+                                socketAdmin.onAny(add_li_node);
+
+                                if (soc) {
+
+                                    soc.offAny();
+                                    soc.disconnect();
+                                    soc = null;
+                                }
+
+                                soc = socketAdmin;
+                            })
+                    break;
+                default:
+                    throw Error("Unknown User Type")
+            }
+        })
+    </script>
+</head>
+
+<body>
+    <div class="container-lg">
+        <div class="mx-3 border-end-start mt-2">
+            <h1>Enter User Info</h1>
+            <form id="data" class="mx-4 mt-2">
+                <div class="mb-3">
+                    <label for="handle" class="form-label">Handle</label>
+                    <input type="text" class="form-control" id="handle">
+                </div>
+    
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password">
+                </div>
+
+                <div class="mb-4">
+                    <label for="acc-type" class="form-label">Account Type</label>
+                    <select id="acc-type" class="form-select" aria-label="Select Account Type">
+                        <option selected value="user">User</option>
+                        <option value="pro">Pro</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+    
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+    
+            <table id="events" class="table mt-2">
+                <caption class="caption-top">Captured events</caption>
+                <thead>
+                    <th>Event Name</th>
+                    <th>Contents</th>
+                </thead>
+                <tbody id="events-body">
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>

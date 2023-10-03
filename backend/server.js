@@ -1,45 +1,76 @@
 const express = require('express');
 const bodyParser = require('body-parser')
 const cors = require('cors');
-require('./auth/auth');
 const throttle = require('express-throttle-bandwidth')
 
-
 const config = require('./config/index');
+
 const UserRouter = require('./routes/users');
 const AuthRouter = require('./routes/auth');
 const MessageRouter = require('./routes/messages');
 const ChannelRouter = require('./routes/channel');
 const ImageRouter = require('./routes/image');
 
+const { logger, morganLogMiddleware } = require('./config/logging');
+const SocketServer = require('./socket/SocketServer');
+const PlansRouter = require('./routes/plans');
+const PublicRouter = require('./routes/public');
+
 class ExpressServer {
-    constructor() {
+    constructor(crons=[]) {
+
         const app = express()
 
         // middleware setup
-        app.use(bodyParser.json())
+        app.use(bodyParser.json({ limit: '50mb' }))
         app.use(bodyParser.urlencoded({
             extended: false,
+            limit: '50mb'
         }))
-
         app.use('*', cors());
         app.use((req, res, next) => {
             res.header('X-Requested-With')
             next()
         })
-
         app.use(throttle(1024 * 128)); //maybe useless, decide letter
         app.use(express.static(config.folder));
+        app.use(morganLogMiddleware);  // requests logger
 
+        // Rutes
         app.use('/users', UserRouter);
         app.use('/auth', AuthRouter);
         app.use('/messages', MessageRouter);
         app.use('/channels', ChannelRouter);
         app.use('/image', ImageRouter);
-        app.get('/hello', (req, res) => res.json({message: 'hello world'}))
+        app.use('/plans', PlansRouter);
+        app.use('/public', PublicRouter);
 
-        this.server = app.listen(config.port, () => 
-            console.log(`Listening on port ${config.port}`));
+
+        this.app = app;
+
+        this.server = null;
+        this.io = null;
+        this.crons = crons;
+    }
+
+    launchServer(port=config.port) {
+        this.server = this.app.listen(port, () =>
+            logger.info(`Listening on port ${port}`));
+
+        this.socketServer = new SocketServer(this.server)
+        
+        this.app.set('socketio', this.socketServer.io);  
+
+        this.app.set('userNms', this.socketServer.userNms);
+        this.app.set('proNms', this.socketServer.proNms);
+        this.app.set('adminNms', this.socketServer.adminNms);
+        this.app.set('channelNms', this.socketServer.channelNms);
+
+        this.crons.map(cron_job => cron_job.start());
+
+        logger.info('Crons Started');
+        logger.info(`Server Secret is: ${config.secrect}`)
+        logger.info(`Fame Threshold is: ${config.fame_threshold}`)
     }
 }
 

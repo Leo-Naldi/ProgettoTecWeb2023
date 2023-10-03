@@ -3,30 +3,27 @@ const config = require('../config/index.js');
 
 
 async function resetDaily () {
-    await User.updateMany(
-        {},
-        {
-            'charLeft.day': config.daily_quote,
-        }
-    )
+    let users = await User.find().populate('subscription.proPlan');
+
+    await Promise.all(users.map(u => {
+        u.charLeft.day = config.daily_quote + (u.subscription?.proPlan.extraCharacters.day ?? 0)
+    }))
 }
 
 async function resetWeekly() {
-    await User.updateMany(
-        {},
-        {
-            'charLeft.week': config.weekly_quote,
-        }
-    )
+    let users = await User.find().populate('subscription.proPlan');
+
+    await Promise.all(users.map(u => {
+        u.charLeft.week = config.weekly_quote + (u.subscription?.proPlan.extraCharacters.week ?? 0)
+    }))
 }
 
 async function resetMonthly() {
-    await User.updateMany(
-        {},
-        {
-            'charLeft.month': config.monthly_quote,
-        }
-    )
+    let users = await User.find().populate('subscription.proPlan');
+
+    await Promise.all(users.map(u => {
+        u.charLeft.month = config.monthly_quote + (u.subscription?.proPlan.extraCharacters.month ?? 0)
+    }))
 }
 
 module.exports = {

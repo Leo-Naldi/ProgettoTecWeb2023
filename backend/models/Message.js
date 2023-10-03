@@ -4,7 +4,6 @@ const dayjs = require('dayjs');
 const config = require('../config/index');
 
 
-
 const ReactionSchema = new mongoose.Schema({
     positive: { type: Number, default: 0, min: 0 },
     negative: { type: Number, default: 0, min: 0 },
@@ -14,23 +13,40 @@ const pointSchema = new mongoose.Schema({
     type: {
       type: String,
       enum: ['Point'],
-      required: true
+      required: true,
+      default: 'Point',
     },
     coordinates: {
       type: [Number],
       required: true
     }
-  });
+}, { _id: false });
 
 const MessageMetaSchema = new mongoose.Schema({
-    created: { type: Date, default: Date.now },
-    lastModified: { type: Date, default: Date.now },
-    geo: { type: pointSchema},  // defined as GeoJSON Objects
+
+    created: { 
+        type: Date, 
+        default: Date.now 
+    },
+    lastModified: { 
+        type: Date, 
+        default: Date.now 
+    },
+    geo: { 
+        type: pointSchema
+    },  // defined as GeoJSON Objects
+    impressions: {
+        type: Number,
+        required: true,
+        default: 0,
+        min: 0,
+    }
+
 }, { _id: false });
 
 const ContentSchema = new mongoose.Schema({
     text: String,
-    image: String,
+    image: String,  // image url
 }, { _id: false })
 
 
@@ -69,7 +85,12 @@ const MessageSchema = new mongoose.Schema({
             type: Boolean, 
             required: true, 
             default: true 
-        }
+        },
+        official: {
+            type: Boolean,
+            required: true,
+            default: false
+        },
     }, {
         virtuals: {
             // Le info ridondanti possono essere messe come virtual

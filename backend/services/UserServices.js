@@ -5,42 +5,115 @@ const User = require("../models/User");
 const makeToken = require("../utils/makeToken");
 const Service = require("./Service");
 const Channel = require("../models/Channel");
+const Plan = require("../models/Plan");
+const SquealSocket = require("../socket/Socket");
+const { logger } = require("../config/logging");
+const dayjs = require("dayjs");
 
 class UserService {
 
-    static async getUsers({ handle, admin, accountType, page = 1 } = { page: 1}){
+    static getSecureUserRecords(filter) {
+        return UserService.populateQuery(User.find(filter))
+            .select('-__v');
+    }
+
+    static getSecureUserRecord(filter) {
+        return UserService.populateQuery(User.findOne(filter))
+            .select('-__v');
+    }
+
+    static populateQuery(query) {
+        return query
+            .populate('smm', 'handle')
+            .populate('editorChannels', 'name _id')
+            .populate('joinedChannels', 'name _id')
+            .populate('editorChannelRequests', 'name _id')
+            .populate('joinChannelRequests', 'name _id')
+            .populate('managed', 'handle')
+            .populate('subscription.proPlan', '-__v');
+    }
+
+    static makeUserObject(user) {
+
+        let res = user.toObject();
+
+        // if joinedChannels is populated it replaces every channel with its name
+        res.joinedChannels = res.joinedChannels?.map(c => c?.name || c);
+        res.editorChannels = res.editorChannels?.map(c => c?.name || c);
+
+        res.joinChannelRequests = res.joinChannelRequests?.map(c => c?.name || c);
+        res.editorChannelRequests = res.editorChannelRequests?.map(c => c?.name || c);
+
+        res.smm = res.smm?.handle || res.smm;
+
+        if (user.managed) {
+            res.managed = user.managed.map(u => u.handle)
+        }
+
+        if (user.liked) {
+            res.liked = user.liked.map(r => r.message);
+        }
+
+        if (user.disliked) {
+            res.disliked = user.disliked.map(r => r.message);
+        }
+
+        if (user.subscription) {
+            res.subscription.proPlan.id = res.subscription.proPlan._id.toString();
+        }
+
+        res.id = res._id.toString();
+
+        delete res.__v; delete res.password;
+
+        return res;
+    }
+
+    static makeUserObjectArr(userArr) {
+        return userArr.map(UserService.makeUserObject)
+    }
+
+    static async getUsers({ handle, admin, accountType, handleOnly, page = 1 } = { page: 1}){
         let filter = new Object();
 
-        if (handle) filter.handle = handle;
+        if (handle) filter.handle = { $regex: handle, $options: 'i' };
         if ((admin === true) || (admin === false)) filter.admin = admin;
         if (accountType) filter.accountType = accountType;
 
-        const users = await User.find(filter)
-            .select('-__v -password')
-            .sort('meta.created')
-            .skip((page - 1) * config.results_per_page)
-            .limit(config.results_per_page);
+        let users;
+        if ((handleOnly === true) || (handleOnly === false)) {
+            users = await UserService.getSecureUserRecords(filter)
+                .sort('meta.created')
+                .select('handle');
+            
+            return Service.successResponse(UserService.makeUserObjectArr(users));
+        } else {
+            users = await UserService.getSecureUserRecords(filter)
+                .sort('meta.created')
+                .skip((page - 1) * config.results_per_page)
+                .limit(config.results_per_page);
 
-        return Service.successResponse(users.map(u => u.toObject()));
+                return Service.successResponse(UserService.makeUserObjectArr(users));
+        }
+
     }
 
-    static async getUser({ handle }) {
+    static async getUser({ handle, includeReactions=true }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        let user = await User.findOne({ handle: handle }).select('-__v -password');
+        let query = UserService.getSecureUserRecord({ handle: handle });
+
+        if (includeReactions) {
+            query.populate('liked', 'message');
+            query.populate('disliked', 'message');
+        }
+
+        let user = await query;
 
         if (!user) return Service.rejectResponse({ message: "User not found" });
 
-        if (user.messages instanceof Array) {
-            user = await user.populate('messages');
-        }
-
-        let managed = await User.find({ smm: user._id }).select('-password -messages');
-
-        let result = { ...(user.toObject()), managed: managed.map(u => u.handle) };
-
-        return Service.successResponse(result);        
+        return Service.successResponse(UserService.makeUserObject(user));        
     }
 
     static async createUser({ handle, email, password,
@@ -94,24 +167,35 @@ class UserService {
     
     }
 
-    static async deleteUser({ handle }) {
+    static async deleteUser({ handle, socket }) {
 
         // smm and co fields are kept coherent with the pre('deleteOne') setting, see models/User
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
-        const user = await User.findOne({ handle: handle });
+        const user = await User.findOne({ handle: handle })
+            .populate('smm', 'handle')
+            .populate('managed', 'handle');
 
-        if (!user) return Service.rejectResponse({ message: 'User not found' })
-        const res = await user.deleteOne();
+        if ((user.smm) || (user.managed?.length)) {
+            SquealSocket.userDeleted({ 
+                handle: user.handle,
+                smm_handle: user.smm?.handle,
+                managed: user.managed,
+                socket: socket,
+            })
+        }
+
+        if (!user) return Service.rejectResponse({ message: `No user named @${handle}` });
+        await user.deleteOne();
         
-        return Service.successResponse()
+        return Service.successResponse();
     }
 
     static async writeUser({ handle, username,
         email, password, name, lastName, 
-        phone, gender, blocked,
-        accountType, charLeft, addJoinedChannels, 
-        removeJoinedChannels,
+        phone, gender, blocked, charLeft, addMemberRequest, 
+        addEditorRequest, removeMember, removeEditor, 
+        proPlanName, autoRenew, deleteSubscription=false, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -119,7 +203,6 @@ class UserService {
         const newVals = {
             email, password, name, lastName, 
             phone, gender, username,
-            accountType,
         }
         let user = await User.findOne({ handle: handle });
 
@@ -148,33 +231,85 @@ class UserService {
             }
         }
 
-        if (addJoinedChannels instanceof Array) {
-            for(let i = 0; i < addJoinedChannels.length; i++) {
-                let crec = await Channel.findOne({ name: addJoinedChannels[i] });
+        if (addMemberRequest?.length) {
 
-                if(!user.joinedChannels.some(cid => cid.equals(crec._id))) {
-                    user.joinedChannels.push(crec._id);
-                    crec.members.push(user._id);
+            let channels = await Channel.find().where('name').in(addMemberRequest);
 
-                    await crec.save();
+            // Push the channels that are not already there
+            user.joinChannelRequests.addToSet(...channels.map(c => c._id));
+        }
+
+        if (addEditorRequest?.length) {
+
+            let channels = await Channel.find().where('name').in(addEditorRequest);
+
+            // Push the channels that are not already there
+            user.editorChannelRequests.addToSet(...channels.map(c => c._id));
+        }
+
+        if (removeMember?.length) {
+
+            let channels = await Channel.find().where('name').in(removeMember);
+
+            user.joinedChannels = user.joinedChannels.filter(cid =>
+                !channels.find(c =>  c._id.equals(cid)));
+            user.editorChannels = user.editorChannels.filter(cid =>
+                !channels.find(c => c._id.equals(cid)));
+        }
+
+        if (removeEditor?.length) {
+
+            let channels = await Channel.find().where('name').in(removeEditor);
+
+            user.editorChannels = user.editorChannels.filter(cid =>
+                !channels.find(c => c._id.equals(cid)));
+        }
+
+        if (proPlanName) {
+
+            let pro_plan = await Plan.findOne({ name: proPlanName });
+            
+            if (pro_plan){
+
+                let expiration_date;
+
+                switch (pro_plan.period) {
+                    case 'month':
+                        expiration_date = (new dayjs()).add(1, 'month').toDate();
+                        break;
+                    case 'year':
+                        expiration_date = (new dayjs()).add(1, 'year').toDate();
+                        break;
                 }
+
+                user.subscription = {
+                    proPlan: pro_plan._id,
+                    expires: expiration_date,
+                    autoRenew: autoRenew,
+                }
+
+                if (pro_plan.pro) user.accountType = 'pro';
+                else user.accountType = 'user';
+            } else {
+                return Service.rejectResponse({ message: `No subscription plan named: ${proplanName}` });
             }
         }
 
-        if (removeJoinedChannels instanceof Array) {
+        if (((autoRenew === true) || (autoRenew === false)) && (user.subscription)) {
+            user.subscription.autoRenew = autoRenew;
+        }
 
-            let cids = []
+        if (deleteSubscription) {
+            user.subscription = null;
+            user.accountType = 'user';
+        }
 
-            for (let i = 0; i < removeJoinedChannels.length; i++) {
-                let crec = await Channel.findOne({ name: removeJoinedChannels[i] });
+        //logger.debug(user.subscription)
 
-                cids.push(crec._id);
-                crec.members = crec.members.filter(uid => !uid.equals(user._id));
-                await crec.save();
-            }
-
-            user.joinedChannels = user.joinedChannels.filter(cid =>
-                !cids.some(id => id.equals(cid)));
+        let smm = null;
+        if ((user.accountType === 'user') && (user.smm)) {
+            smm = await User.findOne({ _id: user.smm });
+            user.smm = null;
         }
 
         let err = null;
@@ -187,10 +322,19 @@ class UserService {
 
         if (err) return Service.rejectResponse(err);
         
-        return Service.successResponse(user);
+        user = await UserService.getSecureUserRecord({ handle: user.handle })
+
+        SquealSocket.userChaged({
+            populatedUser: user,
+            ebody: UserService.makeUserObject(user),
+            socket: socket,
+            old_smm_handle: smm?.handle,
+        })
+
+        return Service.successResponse(UserService.makeUserObject(user));
     }
 
-    static async grantAdmin({ handle }) {
+    static async grantAdmin({ handle, socket }) {
         
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
@@ -201,7 +345,13 @@ class UserService {
             // If this throws it should be caught by the controller since 
             // is a 5xx error
             user.admin = true;
-            await user.save();  
+            await user.save();
+
+            SquealSocket.userChanged({
+                populatedUser: user,
+                ebody: { admin: true },
+                socket: socket,
+            });
 
             return Service.successResponse()
 
@@ -211,7 +361,7 @@ class UserService {
 
     }
 
-    static async revokeAdmin({ handle }) {
+    static async revokeAdmin({ handle, socket }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
@@ -223,6 +373,12 @@ class UserService {
             // is a 5xx error
             user.admin = false;
             await user.save();
+
+            SquealSocket.userChanged({
+                populatedUser: user,
+                ebody: { admin: false },
+                socket: socket,
+            });
 
             return Service.successResponse();
 
@@ -250,7 +406,7 @@ class UserService {
         return Service.successResponse(results);
     }
 
-    static async changeSmm({ handle, operation, smm }){
+    static async changeSmm({ handle, operation, smm, socket }){
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
@@ -265,10 +421,11 @@ class UserService {
         } 
 
         // User Fetching
-
-        const user = await User.findOne({ handle: handle });
+        let user = await User.findOne({ handle: handle }).populate('smm', 'handle');
 
         if (!user) return Service.rejectResponse({ message: `User '${handle}' not found` });
+        
+        let smm_handle = user.smm?.handle;
 
         // if op was remove we are done
         if (operation === 'remove') {
@@ -277,14 +434,25 @@ class UserService {
 
             await user.save();
 
+            SquealSocket.userChanged({
+                populatedUser: user,
+                old_smm_handle: smm_handle,
+                socket: socket,
+                ebody: { smm: null }
+            })
+
             return Service.successResponse();
         }
 
         // else it was change, fetch new user and set smm
         const new_smm_acc = await User.findOne({ handle: smm });
 
-        if (!new_smm_acc) return Service.rejectResponse({ message: `User '${smm}' not found` });
+        if (!new_smm_acc) {
+            logger.error(`User '${smm}' not found`)
+            return Service.rejectResponse({ message: `User '${smm}' not found` });
+        }
 
+        //logger.debug('AAAAAAAAAAAAAAA')
 
         // operation was 'change'
         user.smm = new_smm_acc._id;
@@ -292,50 +460,71 @@ class UserService {
         let err = null;
 
         try {
-            await user.save();
+            user = await user.save();
         } catch (e) {
             err = e;
         }
 
-        if (err) return Service.rejectResponse(err);
+        //logger.error(err)
+        if (err) {
+            
+            return Service.rejectResponse(err);
+        }
+
+        user = await User.findOne({ handle: user.handle })
+            .populate('smm', 'handle');
+
+        SquealSocket.userChanged({
+            populatedUser: user,
+            old_smm_handle: smm_handle,
+            ebody: { handle: new_smm_acc.handle },
+            socket: socket,
+        })
 
         return Service.successResponse()
     }
 
-    // TODO change name to remove managed
-    static async changeManaged({ handle, reqUser, users }) {
+    static async removeManaged({ handle, users, socket }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
         
-        // User Fetching
-
-        let urec = reqUser;
-
-        // In theory this cant happen but oh well
-        if (urec.handle !== handle) {
-
-            urec = await User.findOne({ handle: handle });
-
-            if (!urec) return Service.rejectResponse({ message: `No user called ${handle}` })
-        }
-
-        if (users instanceof Array) {
-          
-            if (users.length > 0) {
-
-                for (let i = 0; i < users.length; i++) {
-
-                    let u = await User.findOne({ handle: users[i] });
-
-                    if ((u.smm) && (u.smm.equals(urec._id))) {
-
-                        u.smm = null;
-                        await u.save();
-                    }
-                }
-            }
+        let urec = await UserService.getSecureUserRecord({ handle: handle });
+        
+        let user_records = null;
+        if (!users?.length) {
             
+            user_records = await User.find()
+                .where('smm').equals(urec._id);
+        
+        } else {
+            
+            user_records = await User.find()
+                .where('handle').in(users)
+                .where('smm').equals(urec._id);
         }
+
+        user_records = await Promise.all(user_records.map(u => {
+            if (urec._id.equals(u.smm)) {
+                u.smm = null;
+                return u.save()
+            }
+        }));
+
+        user_records.map(u => {
+            SquealSocket.userChanged({
+                populatedUser: u,
+                socket: socket,
+                ebody: { smm: null }
+            })
+        });
+
+        urec.managed = []
+        SquealSocket.userChanged({
+            populatedUser: urec,
+            socket: socket,
+            ebody: { managed: null }
+        })
+
 
         return Service.successResponse()
     }
@@ -352,9 +541,12 @@ class UserService {
             if (!user) return Service.rejectResponse({ message: "Must provide a valid handle" })
         }
 
-        const res = await User.find({ smm: user._id }).select('-__v -password');
+        const res = await user.populate('managed', 'handle charLeft');
 
-        return Service.successResponse(res.map( u => u.toObject()));
+        return Service.successResponse(res.managed.map(o => ({
+            handle: o.handle,
+            charLeft: o.charLeft,
+        })));
     }
 }
 

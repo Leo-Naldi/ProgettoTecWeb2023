@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
 
-const Message = require('./Message')
-
 
 const ChannelSchema = new mongoose.Schema(
     {
@@ -16,15 +14,7 @@ const ChannelSchema = new mongoose.Schema(
             type: mongoose.ObjectId,
             ref: 'User',
             required: true,
-         },
-        messages: [{ 
-            type: mongoose.ObjectId,
-            ref: 'Message',
-        }],
-        members: [{
-            type: mongoose.ObjectId,
-            ref: 'Message',
-        }],
+        },
         publicChannel: { type: Boolean, default: true, required: true, },
         official: { type: Boolean, default: false, required: true, },
         created: {
@@ -32,8 +22,6 @@ const ChannelSchema = new mongoose.Schema(
             required: true,
             default: Date.now,
         },
-        // TODO add a waiting list of people who want to join
-        // TODO differentiate between people who can only read and people who can rw
     }, {
         virtuals: {
             privateChannel: {
@@ -44,6 +32,43 @@ const ChannelSchema = new mongoose.Schema(
         }
     }
 );
+
+ChannelSchema.virtual('memberRequests', {
+    ref: 'User',
+    localField: '_id',
+    foreignField: 'joinChannelRequests'
+});
+
+ChannelSchema.virtual('editorRequests', {
+    ref: 'User',
+    localField: '_id',
+    foreignField: 'editorChannelRequests'
+});
+
+ChannelSchema.virtual('members', {
+    ref: 'User',
+    localField: '_id',
+    foreignField: 'joinedChannels'
+});
+
+ChannelSchema.virtual('editors', {
+    ref: 'User',
+    localField: '_id',
+    foreignField: 'editorChannels'
+});
+
+/*
+// users requesting reading permission
+        memberRequests: [{
+            type: mongoose.ObjectId,
+            ref: 'User',
+        }],
+        // users requesting writing permission
+        editorRequests: [{
+            type: mongoose.ObjectId,
+            ref: 'User',
+        }],
+*/
 
 const Channel = new mongoose.model('Channel', ChannelSchema);
 

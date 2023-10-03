@@ -1,5 +1,6 @@
 const config = require('./config');
-const ExpressLoader = require('./server');
+const ExpressServer = require('./server');
+const { logger } = require('./config/logging');
 const mongoose = require('mongoose');
 
 const User = require('./models/User');
@@ -8,19 +9,13 @@ const Channel = require('./models/Channel');
 const Plan = require('./models/Plan');
 const { makeDefaultUsers } = require('./utils/defaultUsers');
 
-// TODO document arrays have an id field SOOOOO use it
 
-const {
-    dailyCharsJob,
-    weeklyCharsJob,
-    monthlyCharsJob,
-} = require('./config/crons');
+const crons = require('./config/crons');
 
 
 mongoose.connect(config.db_url).then(async () => {
 
-    console.log(config.db_url)
-    console.log(`connected db at ${config.db_url}`);
+    logger.info(`Connected DB at ${config.db_url}`);
     
     // delete all tables and recreate them
     await User.deleteMany({});
@@ -28,14 +23,9 @@ mongoose.connect(config.db_url).then(async () => {
     await Channel.deleteMany({});
     await Plan.deleteMany({});
 
-    makeDefaultUsers();
+    await makeDefaultUsers();
 
-    dailyCharsJob.start();
-    weeklyCharsJob.start();
-    monthlyCharsJob.start();
+    const exp_server = new ExpressServer(crons);
 
-
-    //await makeDefaultUsers()
-
-    new ExpressLoader();
+    exp_server.launchServer();
 });
