@@ -801,6 +801,61 @@ paths:
         '409':
           description: Invalid handle
 
+  /user/{handle}/subscription:
+    post: 
+      tags:
+        - User 
+      operationId: changeSubscription
+      description: Set user subscription.
+      parameters:
+        - name: handle
+          in: path
+          description: User's handle
+          required: true
+          schema: 
+            type: string 
+            example: handle1 
+        - name: proPlanName
+          in: query 
+          required: true 
+          description: Name of the new pro plan 
+          schema:
+            type: string 
+            example: Montly subscription plan 
+        - name: autoRenew
+          in: query 
+          required: true
+          description: Wether or not to auto renew the subscription when it expires 
+          schema:
+            default: true
+            type: boolean 
+            example: true 
+      responses:
+        '200':
+          description: Subscription changes
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid plan name
+    delete: 
+      tags:
+        - User 
+      operationId: deleteSubscription
+      description: Delete user subscription. 
+      parameters:
+        - name: handle
+          in: path
+          description: User's handle
+          required: true
+          schema: 
+            type: string 
+            example: handle1
+      responses:
+        '200':
+          description: Subscription deleted
+        '401':
+          description: Unauthorized operation  
+
   /users/{handle}/messages/stats:
     get:
       tags:

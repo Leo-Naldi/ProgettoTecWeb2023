@@ -134,13 +134,15 @@ class TestEnv {
      */
     addTestUser({ pro=false, admin=false, day=1000, week=7000, month=31000, 
             smmIndex=-1, created=null, joinedChannelIndexes=[],
-            proPlanIndex=-1, subscriptionExpiration=null, autoRenew=false, }
+            proPlanIndex=-1, subscriptionExpiration=null, autoRenew=false, 
+            handle=null,
+        }
         = { pro: false, admin: false, day: 1000, week: 7000, month: 31000,
             smmIndex: -1, created: null, joinedChannelIndexes: [],
             proPlanIndex: -1, subscriptionExpiration: null, autoRenew: false }) {
 
 
-        const handle = `${this.#prefix}-${this.#env_id++}-test_user-${TestEnv.getRandom(0, 4000000000)}`;
+        handle = handle ?? `${this.#prefix}-${this.#env_id++}-test_user-${TestEnv.getRandom(0, 4000000000)}`;
         
         const u = new User({
             handle: handle,
@@ -243,14 +245,17 @@ class TestEnv {
      * @returns The channel's index in this.channels
      * @public
      */
-    addTestChannel({ creatorIndex, membersIndexes=[], editorIndexes=[], publicChannel=true, official=false, created=null, }) {
+    addTestChannel({ creatorIndex, membersIndexes=[], editorIndexes=[], 
+        publicChannel=true, official=false, created=null, name=null,
+        description=null
+    }) {
         
-        const name = `${this.#prefix}-${this.#env_id++}-test_channel-${TestEnv.getRandom(0, 4000000000)}`;
+        name = name ?? `${this.#prefix}-${this.#env_id++}-test_channel-${TestEnv.getRandom(0, 4000000000)}`;
 
         const c = new Channel({
             creator: this.users[creatorIndex]._id,
             name: name,
-            description: TestEnv.lorem.generateParagraphs(1),
+            description: description ?? TestEnv.lorem.generateParagraphs(1),
             publicChannel, official,
             members: []
         })
@@ -454,6 +459,34 @@ class TestEnv {
             .filter(i => this.messages[i].publicMessage);
         
         return  public_message_indexes[TestEnv.getRandom(0, public_message_indexes.length)];
+    }
+
+    /**
+     * Returns the indexes of the channel members
+     * @param {number} channel_index The channel's index
+     * @returns An array of the channel's members indexes
+     */
+    getMembers(channel_index) {
+
+        let channel_id = this.channels[channel_index]._id
+
+        return Array.from({ length: this.users.length }, (v, i) => i)
+            .filter(i => this.users[i].joinedChannels
+                .some(cid => channel_id.equals(cid)));
+    }
+
+    /**
+     * Returns the indexes of the channel editors
+     * @param {number} channel_index The channel's index
+     * @returns An array of the channel's editors indexes
+     */
+    getEditors(channel_index) {
+
+        let channel_id = this.channels[channel_index]._id
+
+        return Array.from({ length: this.users.length }, (v, i) => i)
+            .filter(i => this.users[i].editorChannels
+                .some(cid => channel_id.equals(cid)));
     }
 
     /**

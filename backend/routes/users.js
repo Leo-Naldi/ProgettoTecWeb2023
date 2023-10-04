@@ -57,6 +57,20 @@ UserRouter.delete('/:handle', getAuthMiddleware('basicAuth'), checkOwnUser,
     }
 );
 
+UserRouter.delete('/:handle/subscription', getAuthMiddleware('basicAuth'), checkOwnUser,
+    async (req, res) => {
+
+        await Controller.handleRequest(req, res, UserService.deleteSubscription);
+    }
+);
+
+UserRouter.post('/:handle/subscription', getAuthMiddleware('basicAuth'), checkOwnUser,
+    async (req, res) => {
+
+        await Controller.handleRequest(req, res, UserService.changeSubscription);
+    }
+);
+
 UserRouter.post('/:handle/smm', getAuthMiddleware('proAuth'), checkOwnUser,
     async (req, res) => {
 
@@ -64,7 +78,7 @@ UserRouter.post('/:handle/smm', getAuthMiddleware('proAuth'), checkOwnUser,
     }
 );
 
-UserRouter.post('/:handle/managed', getAuthMiddleware('proAuth'), checkOwnUser,
+UserRouter.delete('/:handle/managed', getAuthMiddleware('proAuth'), checkOwnUser,
     async (req, res) => {
 
         await Controller.handleRequest(req, res, UserService.removeManaged);

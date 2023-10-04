@@ -41,9 +41,9 @@ ChannelRouter.get('/:name', getAuthMiddleware('basicAuth'), async (req, res) => 
 ChannelRouter.post('/:name', getAuthMiddleware('basicAuth'), async (req, res) => {
 
     let requestParams = {
-        ...request.params,
-        ...request.body,
-        ...request.query,
+        ...req.params,
+        ...req.body,
+        ...req.query,
     };
 
     if (requestParams.hasOwnProperty('official')) {

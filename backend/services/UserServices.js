@@ -203,8 +203,7 @@ class UserService {
     static async writeUser({ handle, username,
         email, password, name, lastName, 
         phone, gender, blocked, charLeft, addMemberRequest, 
-        addEditorRequest, removeMember, removeEditor, 
-        proPlanName, autoRenew, deleteSubscription=false, socket
+        addEditorRequest, removeMember, removeEditor, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -213,7 +212,7 @@ class UserService {
             email, password, name, lastName, 
             phone, gender, username,
         }
-        let user = await User.findOne({ handle: handle });
+        let user = await User.findOne({ handle: handle }).populate('smm', 'handle _id');
 
         if (!user) return Service.rejectResponse({ 
             message: "User with given handle not found",
@@ -274,45 +273,6 @@ class UserService {
                 !channels.find(c => c._id.equals(cid)));
         }
 
-        if (proPlanName) {
-
-            let pro_plan = await Plan.findOne({ name: proPlanName });
-            
-            if (pro_plan){
-
-                let expiration_date;
-
-                switch (pro_plan.period) {
-                    case 'month':
-                        expiration_date = (new dayjs()).add(1, 'month').toDate();
-                        break;
-                    case 'year':
-                        expiration_date = (new dayjs()).add(1, 'year').toDate();
-                        break;
-                }
-
-                user.subscription = {
-                    proPlan: pro_plan._id,
-                    expires: expiration_date,
-                    autoRenew: autoRenew,
-                }
-
-                if (pro_plan.pro) user.accountType = 'pro';
-                else user.accountType = 'user';
-            } else {
-                return Service.rejectResponse({ message: `No subscription plan named: ${proplanName}` });
-            }
-        }
-
-        if (((autoRenew === true) || (autoRenew === false)) && (user.subscription)) {
-            user.subscription.autoRenew = autoRenew;
-        }
-
-        if (deleteSubscription) {
-            user.subscription = null;
-            user.accountType = 'user';
-        }
-
         //logger.debug(user.subscription)
 
         let smm = null;
@@ -333,7 +293,7 @@ class UserService {
         
         user = await UserService.getSecureUserRecord({ handle: user.handle })
 
-        SquealSocket.userChaged({
+        SquealSocket.userChanged({
             populatedUser: user,
             ebody: UserService.makeUserObject(user),
             socket: socket,
@@ -341,6 +301,97 @@ class UserService {
         })
 
         return Service.successResponse(UserService.makeUserObject(user));
+    }
+
+    static async deleteSubscription({ handle, socket }) {
+        let user = await User.findOne({ handle: handle })
+            .populate('smm', 'handle _id');
+
+        if (!user) return Service.rejectResponse({
+            message: "User with given handle not found",
+        });
+
+        let smm = user.smm?.handle;
+        
+        user.subscription = null;
+        user.accountType = 'user';
+        user.smm = null;
+
+        await user.save();
+
+        user = await UserService.getSecureUserRecord({ handle: handle });
+
+        await User.updateMany({ smm: user._id }, { smm: null });
+
+        SquealSocket.userChanged({
+            populatedUser: user,
+            ebody: UserService.makeUserObject(user),
+            socket: socket,
+            old_smm_handle: smm?.handle,
+        })
+
+        return Service.successResponse(UserService.makeUserObject(user));
+    }
+
+    static async changeSubscription({ handle, proPlanName, autoRenew=true, socket }) {
+        let user = await User.findOne({ handle: handle })
+            .populate('smm', 'handle _id');
+
+        if (!user) return Service.rejectResponse({
+            message: "User with given handle not found",
+        });
+
+        let smm = user.smm?.handle;
+        user.smm = user.smm?._id;
+
+        let pro_plan = await Plan.findOne({ name: proPlanName });
+
+        if (pro_plan) {
+
+            let expiration_date;
+
+            switch (pro_plan.period) {
+                case 'month':
+                    expiration_date = (new dayjs()).add(1, 'month').toDate();
+                    break;
+                case 'year':
+                    expiration_date = (new dayjs()).add(1, 'year').toDate();
+                    break;
+            }
+
+            user.subscription = {
+                proPlan: pro_plan._id,
+                expires: expiration_date,
+                autoRenew: autoRenew,
+            }
+
+            if (pro_plan.pro){
+                user.accountType = 'pro';
+            } else {
+                user.accountType = 'user';
+                user.smm = null;
+            }
+        } else {
+            return Service.rejectResponse({ message: `No subscription plan named: ${proplanName}` });
+        }
+
+        await user.save();
+
+        user = await UserService.getSecureUserRecord({ handle: handle });
+        
+        if (user.accountType === 'user') {
+            await User.updateMany({ smm: user._id }, { smm: null });
+        }
+
+        SquealSocket.userChanged({
+            populatedUser: user,
+            ebody: UserService.makeUserObject(user),
+            socket: socket,
+            old_smm_handle: smm?.handle,
+        })
+
+        return Service.successResponse(UserService.makeUserObject(user));
+
     }
 
     static async grantAdmin({ handle, socket }) {

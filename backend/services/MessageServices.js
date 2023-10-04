@@ -125,7 +125,7 @@ class MessageService {
                 query.where('destUser').in(users.map(u => u._id));
             } 
         } 
-        
+
         if (author) {
                 query.where('author').equals(author._id);
         }
@@ -135,8 +135,7 @@ class MessageService {
         }
 
         if (answering) {
-            //logger.debug(answering)
-            query.where('answering').equals(answering);
+            query.find({ answering: answering });
         }
 
         if (_.isBoolean(official)) query.where('official').equals(true);
@@ -239,7 +238,10 @@ class MessageService {
             query.skip((page - 1) * results_per_page)
             .limit(results_per_page);
 
-        return MessageService.#populateMessageQuery(query);
+        let r = MessageService.#populateMessageQuery(query);
+
+        return r;
+
     }
 
     static #makeMessageObject(message, deleteAuthor = false) {
@@ -315,7 +317,7 @@ class MessageService {
         mentions = [], keywords = [], results_per_page=config.results_per_page,
     }={ page: 1, reqUser: null }) {
 
-        //logger.info(`Answering: ${answering}`)
+        //logger.info(`Answering: ${answering}`)        
 
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
@@ -343,17 +345,22 @@ class MessageService {
      * @returns A message object array
      */
     static async getChannelMessages({ reqUser, name }){
-        const ch = await Channel.findOne({ name: name });
+        const ch = await Channel.findOne({ name: name }).populate('members');
+        
         if (!ch) return Service.rejectResponse({ message: `No channel named ${name}` })
 
-        if (!ch.members.find(id => reqUser._id.equals(id))) {
+        if (!ch.members.find(u => reqUser._id.equals(u._id))) {
             return Service.rejectResponse({ 
                 message: `Cannot messages to §${name} since you are not a member.`
             })
         }
+
+
         
         const query = MessageService.#populateMessageQuery(
-                Message.find().where('destChannel').in(ch._id));
+                Message.find({
+                    destChannel: ch._id,
+                }));
         
         let res = await query;
 
