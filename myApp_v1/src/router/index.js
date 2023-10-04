@@ -31,7 +31,7 @@ export default route(function (/* { store, ssrContext } */) {
     // // console.log(from);
     let token = localStorage.getItem("token");
     // //console.log(token);
-    if (token || to.path === "/login") {
+    if (token || to.path === "/login" || to.path ==="/register" || to.path ==="/forgot-password" ) {
       next();
       // console.log(token);
     } else {
