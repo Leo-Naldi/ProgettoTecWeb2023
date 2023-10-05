@@ -36,6 +36,8 @@ class SquealSocket {
             namespaces.add(`/pro-io/${populatedMessage.author.smm.handle}`)
         }
 
+        //logger.debug(populatedMessage.author.smm.handle)
+
         return namespaces;
     }
 
@@ -52,6 +54,7 @@ class SquealSocket {
     static userChanged({ populatedUser, ebody, old_smm_handle, socket }) {
         let nms = new Set([`/user-io/${populatedUser.handle}`]);
 
+        //logger.debug(JSON.stringify(populatedUser))
         if (populatedUser.smm?.handle) nms.add(`/pro-io/${populatedUser.smm.handle}`);
 
         if (old_smm_handle) nms.add(`/pro-io/${old_smm_handle}`);
@@ -59,6 +62,8 @@ class SquealSocket {
         if (populatedUser.managed?.length) {
             populatedUser.managed.map(u => nms.add(`/user-io/${u.handle}`))
         }
+
+        ebody = populatedUser;
 
         SquealSocket.emit({
             socket: socket,
@@ -137,12 +142,34 @@ class SquealSocket {
         });
     }
 
+    static reactionRecived({ id, smm_handle, type, socket }) {
+        namespaces = new Set([`/pro-io/${smm_handle}`]);
+        SquealSocket.emit({
+            socket: socket,
+            namespaces: namespaces,
+            eventName: 'reaction:recived',
+            eventBody: { id: id, type: type },
+        });
+    }
+
+    static reactionDeleted({ id, smm_handle, type, socket }) {
+        namespaces = new Set([`/pro-io/${smm_handle}`]);
+        SquealSocket.emit({
+            socket: socket,
+            namespaces: namespaces,
+            eventName: 'reaction:deleted',
+            eventBody: { id: id, type: type },
+        });
+    }
+
     static channelChanged({ populatedChannelObject, ebody, socket }) {
         const namespaces = SquealSocket.#makeNamespacesFromPopulatedChannel(populatedChannelObject);
 
         if (!ebody) {
             ebody = populatedChannelObject;
         }
+
+        if (!ebody.name) ebody = { ...ebody, name: populatedChannelObject.name };
 
         SquealSocket.emit({
             socket: socket,

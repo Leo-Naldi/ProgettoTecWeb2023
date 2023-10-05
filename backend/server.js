@@ -15,6 +15,7 @@ const { logger, morganLogMiddleware } = require('./config/logging');
 const SocketServer = require('./socket/SocketServer');
 const PlansRouter = require('./routes/plans');
 const PublicRouter = require('./routes/public');
+const DebugRouter = require('./routes/debug');
 
 class ExpressServer {
     constructor(crons=[]) {
@@ -44,6 +45,7 @@ class ExpressServer {
         app.use('/image', ImageRouter);
         app.use('/plans', PlansRouter);
         app.use('/public', PublicRouter);
+        app.use('/debug', DebugRouter);
 
 
         this.app = app;

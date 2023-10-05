@@ -1,22 +1,37 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="lHr LpR fFf">
     <q-header elevated>
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <q-toolbar-title>{{ $q.screen.width }} 宽度 x {{ $q.screen.height }} 高度, {{ $q.screen.gt.xs && $q.screen.lt.md }},
+        </q-toolbar-title>
 
         <div>Quasar v{{ $q.version }}</div>
+
+        <q-btn dense flat round icon="menu" aria-label="rightSideBar" @click="toggleRightDrawer" />
+
       </q-toolbar>
     </q-header>
 
     <q-drawer v-model="leftDrawerOpen" show-if-above :mini="miniState.value" @mouseover="miniState.value = false"
-      @mouseout="miniState.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="280" :breakpoint="500" bordered class="bg-grey-3">
+      @mouseout="miniState.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="280" :breakpoint="600" bordered class="bg-grey-3">
       <q-list>
         <q-item-label header> Essential Links </q-item-label>
 
         <EssentialLink v-for="link in essentialLinks" :key="link.title" v-bind="link" />
       </q-list>
+    </q-drawer>
+
+    <q-drawer :breakpoint="600" :mini="miniStateR.value" @mouseover="miniStateR.value = false"
+      @mouseout="miniStateR.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="280" show-if-above v-model="rightDrawerOpen" side="right" bordered>
+      <div class="col-9 q-gutter-md q-pa-md">
+        <q-input placeholder="Search Qwitter" outlined rounded dense>
+          <template v-slot:prepend>
+            <q-icon name="search" />
+          </template>
+        </q-input>
+      </div>
     </q-drawer>
 
     <q-page-container>
@@ -84,23 +99,25 @@ export default defineComponent({
   },
   setup() {
     const leftDrawerOpen = ref(false);
+    const rightDrawerOpen = ref(false);
     const $q= useQuasar();
     const miniState = ref(computed(() => {
       return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
+    }));
+    const miniStateR = ref(computed(() => {
+      return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
     }))
-   /*  const miniState = computed(() => {
-      return !(useQuasar().screen.gt.xs && useQuasar().screen.lt.md) ? false : true
-    }) */
-    // const mouseOutHandler =() =>{
-    //   miniState.value= true
-    // };
     return {
       essentialLinks: linksList,
       leftDrawerOpen,
+      rightDrawerOpen,
       miniState,
-      // mouseOutHandler,
+      miniStateR,
       toggleLeftDrawer() {
         leftDrawerOpen.value = !leftDrawerOpen.value;
+      },
+      toggleRightDrawer() {
+        rightDrawerOpen.value = !rightDrawerOpen.value;
       },
     };
   },

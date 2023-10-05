@@ -8,11 +8,14 @@
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Channel = require('../models/Channel');
+const Plan = require('../models/Plan');
 
 const mongoose = require('mongoose')
 
 const dayjs = require('dayjs');
 const LoremIpsum = require("lorem-ipsum").LoremIpsum;
+
+const _ = require('underscore');
 
 
 /**
@@ -65,8 +68,10 @@ class TestEnv {
      * @param {string} prefix Unique prefix to add to user handles and channel names
      * @param {number} num_users Number of users to create. addUser with default parameters is used
      * @param {number} num_channels Number of channels to create. addChannels with default parameters is used
-     */
-    constructor(prefix, password, num_users=0, num_channels=0, proPlans=[]) {
+     * @param {Plan[]} proPlans Array of Pro plans to use to generate pro users
+     * @param {string[]} image_urls Array of image urls to use in messages
+    */
+    constructor(prefix, password, num_users=0, num_channels=0, proPlans=[], image_urls=[]) {
     
         this.#prefix = prefix;
 
@@ -110,6 +115,14 @@ class TestEnv {
 
         for (let i = 0; i < num_users; i++) this.addTestUser()
         for (let i = 0; i < num_channels; i++) this.addRandomChannel()
+
+        /**
+         * Array of image urls to be used in message generation.
+         * 
+         * @type {string[]}
+         * @public
+         */
+        this.image_urls = image_urls;
     }
 
     /**
@@ -134,13 +147,15 @@ class TestEnv {
      */
     addTestUser({ pro=false, admin=false, day=1000, week=7000, month=31000, 
             smmIndex=-1, created=null, joinedChannelIndexes=[],
-            proPlanIndex=-1, subscriptionExpiration=null, autoRenew=false, }
+            proPlanIndex=-1, subscriptionExpiration=null, autoRenew=false, 
+            handle=null,
+        }
         = { pro: false, admin: false, day: 1000, week: 7000, month: 31000,
             smmIndex: -1, created: null, joinedChannelIndexes: [],
             proPlanIndex: -1, subscriptionExpiration: null, autoRenew: false }) {
 
 
-        const handle = `${this.#prefix}-${this.#env_id++}-test_user-${TestEnv.getRandom(0, 4000000000)}`;
+        handle = handle ?? `${this.#prefix}-${this.#env_id++}-test_user-${TestEnv.getRandom(0, 4000000000)}`;
         
         const u = new User({
             handle: handle,
@@ -193,16 +208,17 @@ class TestEnv {
      * @param {number[]} param0.destChannelIndexes Array of indexes in this.channel of destChannel
      * @param {number} param0.answeringIndex Index in this.messages of the message being answered, -1 if no message is being answered
      * @param {string} param0.text Message's text content
-     * @param {string} param0.imageurl Message's image
+     * @param {string} param0.image_index index of the image url to be used
      * @param {Object} param0.reactions Message's reaction object
      * @param {number} param0.reactions.positive Message's positive reactions. Must be a non negative int.
      * @param {number} param0.reactions.negative Message's negative reactions. Must be a non negative int.
      * @returns The message's index in this.messages
      * @public
      */
-    addMessage({ authorIndex, text, imageurl,  
+    addMessage({ authorIndex, text,  
             destChannelIndexes = [], destUserIndexes = [],
             reactions= { positive: 0, negative: 0 }, meta = null, answeringIndex=-1,
+            image_index=-1,
         }) {
         const destUser = destUserIndexes.map(i => this.users[i]._id);
         
@@ -213,12 +229,18 @@ class TestEnv {
             c.publicChannel);
 
         const author = this.users[authorIndex]._id;
+        const content = new Object();
+
+        if (text?.length) content.text = text;
+        
+        if (image_index >= 0) content.image = this.image_urls[image_index];
 
         const m = new Message({
             author, destUser, reactions, 
-            content: text ? { text }: { image: imageurl },
+            content: content,
             destChannel: destChannel.map(c => c._id)
         })
+
 
         if (answeringIndex >= 0) m.answering = this.messages[answeringIndex]._id;
 
@@ -243,14 +265,17 @@ class TestEnv {
      * @returns The channel's index in this.channels
      * @public
      */
-    addTestChannel({ creatorIndex, membersIndexes=[], editorIndexes=[], publicChannel=true, official=false, created=null, }) {
+    addTestChannel({ creatorIndex, membersIndexes=[], editorIndexes=[], 
+        publicChannel=true, official=false, created=null, name=null,
+        description=null
+    }) {
         
-        const name = `${this.#prefix}-${this.#env_id++}-test_channel-${TestEnv.getRandom(0, 4000000000)}`;
+        name = name ?? `${this.#prefix}-${this.#env_id++}-test_channel-${TestEnv.getRandom(0, 4000000000)}`;
 
         const c = new Channel({
             creator: this.users[creatorIndex]._id,
             name: name,
-            description: TestEnv.lorem.generateParagraphs(1),
+            description: description ?? TestEnv.lorem.generateParagraphs(1),
             publicChannel, official,
             members: []
         })
@@ -366,11 +391,13 @@ class TestEnv {
      * @param {number} parma0.week Number of messages created in a random date spanning from the start of the week to now.
      * @param {number} parma0.day Number of messages created in a random date spanning from the start of the day to now.
      * @param {boolean} parma0.answering True if the messages should be responding to another random message.
-     * @param {(Function|null)} parma0.reaction_function Function to be used to generate reactions on each message. If not provided, they are generated at random (but will be <= 10)
+     * @param {(Function|null)} parma0.reaction_function Function to be used to generate reactions on each message. 
+     *          If not provided, they are generated at random (but will be <= 10).
+     * @param {number} parma0.image_prob Probability that each message contains an image.
      */
     addRandomMessages({ authorIndex=-1, 
         allTime = 0, year = 0, month = 0, week = 0, today = 0,
-        answering = false, reaction_function = null
+        answering = false, reaction_function = null, image_prob=0.0
     }) {
 
         let author = (authorIndex >= 0) ? this.users[authorIndex] : this.users[TestEnv.getRandom(0, this.users.length)];
@@ -382,7 +409,7 @@ class TestEnv {
 
         const addMiniBulk = (period, amount) => {
 
-            let destUser, destChannel, answered, created;
+            let destUser, destChannel, answered, created, image_index;
             
             let author_creation = new dayjs(author.meta.created);
             
@@ -398,6 +425,11 @@ class TestEnv {
                     TestEnv.getRandom(0, this.messages.length): -1;
 
                 const text = TestEnv.lorem.generateSentences(TestEnv.getRandom(1, 4));
+                
+                image_index = -1;
+                if ((Math.random() < image_prob) && (this.image_urls.length)) {
+                    image_index = TestEnv.getRandom(0, this.image_urls.length);
+                }
                 
                 if (period === 'all time') {
                     const min = author_creation;
@@ -419,7 +451,8 @@ class TestEnv {
                     meta: {
                         created: created.toDate(),
                         lastModified: created.toDate(),
-                    }
+                    },
+                    image_index: image_index,
                 })
             }
         }
@@ -449,11 +482,38 @@ class TestEnv {
     }
 
     getRandomPublicMessageIndex() {
-        const public_message_indexes = Array
-            .from({ length: this.messages.length }, (v, i) => i)
+        const public_message_indexes = _.range(this.messages.length)
             .filter(i => this.messages[i].publicMessage);
         
         return  public_message_indexes[TestEnv.getRandom(0, public_message_indexes.length)];
+    }
+
+    /**
+     * Returns the indexes of the channel members
+     * @param {number} channel_index The channel's index
+     * @returns An array of the channel's members indexes
+     */
+    getMembers(channel_index) {
+
+        let channel_id = this.channels[channel_index]._id
+
+        return _.range(this.users.length)
+            .filter(i => this.users[i].joinedChannels
+                .some(cid => channel_id.equals(cid)));
+    }
+
+    /**
+     * Returns the indexes of the channel editors
+     * @param {number} channel_index The channel's index
+     * @returns An array of the channel's editors indexes
+     */
+    getEditors(channel_index) {
+
+        let channel_id = this.channels[channel_index]._id
+
+        return _.range(this.users.length)
+            .filter(i => this.users[i].editorChannels
+                .some(cid => channel_id.equals(cid)));
     }
 
     /**
@@ -618,7 +678,7 @@ class TestEnv {
 
         let random_length = TestEnv.getRandom(min_length, n+1);
         
-        let indexes = Array.from({ length: n }, (v, i) => i);
+        let indexes = _.range(n);
         indexes = TestEnv.shuffle(indexes);
 
         return indexes.slice(0, random_length);

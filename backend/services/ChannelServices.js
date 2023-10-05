@@ -126,6 +126,28 @@ class ChannelServices{
         )
     }
 
+    // Get all channels that users have joined
+    static async getEditorChannels({ reqUser, handle }) {
+
+        if (!handle) Service.rejectResponse({ message: `Did not provide a handle` })
+
+        let user = reqUser;
+        if (user.handle !== handle) user = await User.findOne({ handle: handle });
+
+        if (!user) return Service.rejectResponse({ message: `No user named @${handle}` });
+
+        let channels = await ChannelServices
+            .populateQuery(Channel.find({ _id: { $in: user.editorChannels } }));
+
+        //logger.info(channels[0].editors)
+
+        return Service.successResponse(
+            ChannelServices.#trimChannelArray(
+                ChannelServices.#makeChannelObjectArray(channels), reqUser
+            )
+        )
+    }
+
     // Get the handle of the creator of the channel based on the channel name 
     static async getChannelCreator({ name }){
 
@@ -142,7 +164,8 @@ class ChannelServices{
 
     // get all channels
     static async getChannels({ 
-        reqUser = null, page = 1, owner = null, publicChannel=null,
+        reqUser = null, page = 1, results_per_page=config.results_per_page,
+        owner = null, publicChannel=null,
         member=null, name=null, namesOnly=false, official } = {
             reqUser: null, page: 1, owner: null, postCount: -1, publicChannel: null,
             member: null, namesOnly: false,
@@ -193,9 +216,11 @@ class ChannelServices{
 
         query.sort('created')
         
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
         if (page > 0) {
-            query.skip((page - 1) * config.results_per_page)
-                .limit(config.results_per_page);
+            query.skip((page - 1) * results_per_page)
+                .limit(results_per_page);
         }
 
         if (namesOnly) {

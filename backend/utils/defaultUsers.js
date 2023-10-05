@@ -11,35 +11,148 @@ const Message = require('../models/Message');
 const _ = require('underscore')
 
 
+const pw = '12345678';
+
+const monthly_plan = new Plan({
+    name: 'Monthly subscription plan',
+    price: 4.99,
+    period: 'month',
+    extraCharacters: {
+        day: 300,
+        week: 320 * 7,
+        month: 330 * 31,
+    },
+    pro: true,
+})
+
+const yearly_plan = new Plan({
+    name: 'Yearly subscription plan',
+    price: 49.99,
+    period: 'year',
+    extraCharacters: {
+        day: 300,
+        week: 320 * 7,
+        month: 330 * 31,
+    },
+    pro: true,
+})
+
+let image_urls = [
+    'https://picsum.photos/200/300',
+    'https://picsum.photos/400',
+    'https://picsum.photos/450/300',
+    'https://picsum.photos/450/900',
+    'https://picsum.photos/900/450',
+]
+
+const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan], image_urls);
+
+/**
+ * Data used in postman tests at 
+ */
+function makeTestData() {
+
+    const l = 40
+
+    const creator_indexes = _.range(l).map(i =>
+        test_env.addTestUser({ handle: `creator_user${i}` }));
+
+    const test_user_indexes = _.range(l).map(i =>
+        test_env.addTestUser({ handle: `test_user${i}` }));
+
+    const test_pro_user_indexes = _.range(l).map(i =>
+        test_env.addTestUser({ handle: `test_pro_user${i}`, pro: true }));
+
+    const channel_indexes = _.range(l).map(i =>
+        test_env.addTestChannel({ name: `test_channel${i}`, creatorIndex: creator_indexes[i] }));
+
+    // add members test
+    let i = 0
+    let channel = test_env.channels[channel_indexes[i]]
+    test_env.users[test_user_indexes[i]].joinChannelRequests.addToSet(channel._id);
+
+    // remove members test
+    i = 1
+    channel = test_env.channels[channel_indexes[i]]
+    test_env.users[test_user_indexes[i]].joinedChannels.addToSet(channel._id);
+
+    // add editors test
+    i = 2
+    channel = test_env.channels[channel_indexes[i]]
+    test_env.users[test_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
+
+    // remove editors test
+    i = 3
+    channel = test_env.channels[channel_indexes[i]]
+    test_env.users[test_user_indexes[i]].editorChannels.addToSet(channel._id);
+
+    // modify channel 
+    i = 4
+
+    // delete channel
+    i = 5
+
+    // delete channel messages
+    i = 6
+    channel = test_env.channels[channel_indexes[i]]
+    editors = test_env.getEditors(channel_indexes[i]);
+
+    editors.map(i => test_env.addRandomMessages({
+        authorIndex: i,
+        allTime: 10,
+    }))
+
+    _.last(test_env.channels, 10).map(m => m.destChannel = [channel._id]);
+
+    // remove managed
+    i = 7
+    test_env.users[test_pro_user_indexes[i - 1]].smm = test_env.users[test_pro_user_indexes[i]]._id;
+    test_env.users[test_pro_user_indexes[i - 2]].smm = test_env.users[test_pro_user_indexes[i]]._id;
+
+    // write user
+    i = 8
+
+    // change subscription plan
+    i = 9
+
+    // remove subscription plan
+    i = 10
+
+    // block user
+    i = 11
+
+    // unblock user 
+    i = 12
+
+    test_env.users[test_user_indexes[i]].blocked = true;
+
+    // delete user 
+    i = 13
+
+    // change smm
+    i = 13
+
+    // remove smm
+    i = 14
+
+    test_env.users[test_pro_user_indexes[i]].smm = test_env.users[test_pro_user_indexes[11]]._id;
+
+    // grant admin
+    i = 15
+
+    // revoke admin
+    i = 16
+    test_env.users[test_user_indexes[i]].admin = true;
+
+    // request member 
+    i = 17
+
+    // request editor 
+    i = 18
+}
+
+
 async function makeDefaultUsers() {
-
-    const pw = '12345678';
-
-    const monthly_plan = new Plan({
-        name: 'Monthly subscription plan',
-        price: 4.99,
-        period: 'month',
-        extraCharacters: {
-            day: 300,
-            week: 320*7,
-            month: 330*31,
-        },
-        pro: true,
-    })
-
-    const yearly_plan = new Plan({
-        name: 'Yearly subscription plan',
-        price: 49.99,
-        period: 'year',
-        extraCharacters: {
-            day: 300,
-            week: 320 * 7,
-            month: 330 * 31,
-        },
-        pro: true,
-    })
-
-    const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan]);
 
     // Utenti richiesti
     const user1 = new User({
@@ -186,7 +299,17 @@ async function makeDefaultUsers() {
         password: pw,
     });
 
+    let channel_requests_user2 = new User({
+        handle: '12345678user',
+        username: 'user12345678',
+        email: 'mailBuffuirhfwiuhrqlfhqoirhfmquwpewqohfmqhmrfq@mail.com',
+        password: pw,
+    });
+
     let channel_requests_user_index = test_env.addUser(channel_requests_user);
+    let channel_requests_user_index2 = test_env.addUser(channel_requests_user2);
+
+    test_env
 
     const channel_indexes = [
         test_env.addRandomChannel(u1_index, 2),
@@ -384,7 +507,8 @@ async function makeDefaultUsers() {
         allTime: u5startMessages,
         year: u5startMessages + 20,
         month: u5startMessages,
-        reaction_function: popular_reaction
+        reaction_function: popular_reaction,
+        image_prob: 0.1,
     })
 
     test_env.addRandomMessages({
@@ -393,6 +517,7 @@ async function makeDefaultUsers() {
         year: u6startMessages + 20,
         month: u6startMessages,
         reaction_function: unpopular_reaction,
+        image_prob: 0.1,
     })
 
     const u2_r_max = 2 * config.fame_threshold;
@@ -406,6 +531,7 @@ async function makeDefaultUsers() {
         month: 50,
         today: 10,
         reaction_function: u2_rfunc,
+        image_prob: 0.1,
     })
 
     u5startMessages *= 3;
@@ -620,6 +746,10 @@ async function makeDefaultUsers() {
             m.destChannel = [channel6._id];
         })
     }
+
+    // add some messages with images
+
+    makeTestData()
 
     await test_env.saveAll();
 
