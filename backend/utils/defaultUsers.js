@@ -37,22 +37,33 @@ const yearly_plan = new Plan({
     pro: true,
 })
 
-const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan]);
+let image_urls = [
+    'https://picsum.photos/200/300',
+    'https://picsum.photos/400',
+    'https://picsum.photos/450/300',
+    'https://picsum.photos/450/900',
+    'https://picsum.photos/900/450',
+]
 
+const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan], image_urls);
+
+/**
+ * Data used in postman tests at 
+ */
 function makeTestData() {
 
     const l = 40
 
-    const creator_indexes = Array.from({ length: l }, (v, i) =>
+    const creator_indexes = _.range(l).map(i =>
         test_env.addTestUser({ handle: `creator_user${i}` }));
 
-    const test_user_indexes = Array.from({ length: l }, (v, i) =>
+    const test_user_indexes = _.range(l).map(i =>
         test_env.addTestUser({ handle: `test_user${i}` }));
 
-    const test_pro_user_indexes = Array.from({ length: l }, (v, i) =>
+    const test_pro_user_indexes = _.range(l).map(i =>
         test_env.addTestUser({ handle: `test_pro_user${i}`, pro: true }));
 
-    const channel_indexes = Array.from({ length: l }, (v, i) => 
+    const channel_indexes = _.range(l).map(i =>
         test_env.addTestChannel({ name: `test_channel${i}`, creatorIndex: creator_indexes[i] }));
 
     // add members test
@@ -496,7 +507,8 @@ async function makeDefaultUsers() {
         allTime: u5startMessages,
         year: u5startMessages + 20,
         month: u5startMessages,
-        reaction_function: popular_reaction
+        reaction_function: popular_reaction,
+        image_prob: 0.1,
     })
 
     test_env.addRandomMessages({
@@ -505,6 +517,7 @@ async function makeDefaultUsers() {
         year: u6startMessages + 20,
         month: u6startMessages,
         reaction_function: unpopular_reaction,
+        image_prob: 0.1,
     })
 
     const u2_r_max = 2 * config.fame_threshold;
@@ -518,6 +531,7 @@ async function makeDefaultUsers() {
         month: 50,
         today: 10,
         reaction_function: u2_rfunc,
+        image_prob: 0.1,
     })
 
     u5startMessages *= 3;
@@ -732,6 +746,8 @@ async function makeDefaultUsers() {
             m.destChannel = [channel6._id];
         })
     }
+
+    // add some messages with images
 
     makeTestData()
 
