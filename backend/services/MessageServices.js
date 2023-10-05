@@ -12,6 +12,7 @@ const { logger } = require('../config/logging');
 const SquealSocket = require('../socket/Socket');
 const Reaction = require('../models/Reactions');
 const dayjs = require('dayjs');
+const UserService = require('./UserServices');
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -611,7 +612,16 @@ class MessageService {
             populatedMessage: message,
             populatedMessageObject: resbody,
             socket: socket,
-        })
+        });
+
+        if (used_chars) {
+            user = await UserService.getSecureUserRecord({ handle: handle });
+            SquealSocket.userChanged({
+                populatedUser: user,
+                ebody: UserService.makeUserObject(user),
+                socket: socket,
+            })
+        }
         
         return Service.successResponse({ message: resbody, charLeft: user.charLeft});
     }

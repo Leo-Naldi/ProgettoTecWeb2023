@@ -24,12 +24,12 @@ class UserService {
 
     static populateQuery(query) {
         return query
-            .populate('smm', 'handle')
+            .populate('smm', 'handle _id')
             .populate('editorChannels', 'name _id')
             .populate('joinedChannels', 'name _id')
             .populate('editorChannelRequests', 'name _id')
             .populate('joinChannelRequests', 'name _id')
-            .populate('managed', 'handle')
+            .populate('managed', 'handle _id')
             .populate('subscription.proPlan', '-__v');
     }
 
@@ -45,6 +45,7 @@ class UserService {
         res.editorChannelRequests = res.editorChannelRequests?.map(c => c?.name || c);
 
         res.smm = res.smm?.handle || res.smm;
+        logger.debug(res.smm);
 
         if (user.managed) {
             res.managed = user.managed.map(u => u.handle)

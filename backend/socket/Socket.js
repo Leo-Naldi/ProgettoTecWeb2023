@@ -54,6 +54,7 @@ class SquealSocket {
     static userChanged({ populatedUser, ebody, old_smm_handle, socket }) {
         let nms = new Set([`/user-io/${populatedUser.handle}`]);
 
+        //logger.debug(JSON.stringify(populatedUser))
         if (populatedUser.smm?.handle) nms.add(`/pro-io/${populatedUser.smm.handle}`);
 
         if (old_smm_handle) nms.add(`/pro-io/${old_smm_handle}`);
@@ -62,7 +63,7 @@ class SquealSocket {
             populatedUser.managed.map(u => nms.add(`/user-io/${u.handle}`))
         }
 
-        if (!ebody.handle) ebody = { ...ebody, handle: populatedUser.handle }
+        ebody = populatedUser;
 
         SquealSocket.emit({
             socket: socket,
