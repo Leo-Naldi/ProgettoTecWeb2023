@@ -126,6 +126,28 @@ class ChannelServices{
         )
     }
 
+    // Get all channels that users have joined
+    static async getEditorChannels({ reqUser, handle }) {
+
+        if (!handle) Service.rejectResponse({ message: `Did not provide a handle` })
+
+        let user = reqUser;
+        if (user.handle !== handle) user = await User.findOne({ handle: handle });
+
+        if (!user) return Service.rejectResponse({ message: `No user named @${handle}` });
+
+        let channels = await ChannelServices
+            .populateQuery(Channel.find({ _id: { $in: user.editorChannels } }));
+
+        //logger.info(channels[0].editors)
+
+        return Service.successResponse(
+            ChannelServices.#trimChannelArray(
+                ChannelServices.#makeChannelObjectArray(channels), reqUser
+            )
+        )
+    }
+
     // Get the handle of the creator of the channel based on the channel name 
     static async getChannelCreator({ name }){
 

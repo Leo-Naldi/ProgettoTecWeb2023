@@ -961,6 +961,68 @@ paths:
         '409':
           description: Invalid handle
 
+  /users/{handle}/joined:
+    get:
+      tags:
+        - User
+        - Channel
+      description: Get channels where the user is a member
+      operationId: getJoinedChannels
+      security:
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Operation successful.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+  /users/{handle}/editor:
+    get:
+      tags:
+        - User
+        - Channel
+      description: Get channels where the user is an editor
+      operationId: getEditorChannels
+      security:
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Operation successful.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
   /messages/: 
     get:
       tags:

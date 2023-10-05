@@ -36,6 +36,8 @@ class SquealSocket {
             namespaces.add(`/pro-io/${populatedMessage.author.smm.handle}`)
         }
 
+        //logger.debug(populatedMessage.author.smm.handle)
+
         return namespaces;
     }
 

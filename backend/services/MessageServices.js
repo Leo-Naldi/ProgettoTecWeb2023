@@ -592,11 +592,18 @@ class MessageService {
 
         if (err) return Service.rejectResponse(err);
 
-        message = await message.populate('author', 'handle');
+        message = await message.populate({
+            path: 'author',
+            select: 'handle _id smm',
+            populate: {
+                path: 'smm',
+                select: 'handle _id'
+            }
+        });
         message.destUser = destUser;
         message.destChannel = destChannel
 
-        //logger.debug(destChannel)
+        logger.debug(message)
 
         resbody = MessageService.#makeMessageObject(message);
 
