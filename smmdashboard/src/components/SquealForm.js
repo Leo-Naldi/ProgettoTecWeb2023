@@ -183,12 +183,13 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     function getChannelNamesFetch() {
 
         return authorizedRequest({
-            endpoint: '/channels/',
+            endpoint: `/users/${managedAccount.handle}/editor`,
             token: smm.token,
             query: {
                 namesOnly: 'true'
             }
         }).then(res => res.json())
+        .then(channels => channels.map(c => c.name))
     }
 
     function postSqueal(body) {

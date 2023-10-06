@@ -17,7 +17,6 @@ import { Button } from '@mui/material';
 import SquealFormModal from './SquealForm';
 
 
-
 export default function Dashboard({ managed }) {
 
     const num_checkpoints = 8;
@@ -85,7 +84,10 @@ export default function Dashboard({ managed }) {
             >
                 <Toolbar />
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                <SquealFormModal open={openSquealModal} setOpen={setOpenSquealModal} managed={managed}/>
+                    
+                    <SquealFormModal open={openSquealModal} setOpen={setOpenSquealModal} managed={managed}/>
+
+
                     <Grid container spacing={3}>
                         
                         <Grid item xs={12} md={8} lg={9}>

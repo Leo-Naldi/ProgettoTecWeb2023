@@ -10,6 +10,8 @@ export default function managedAccountsReducer(state, action) {
             let res = [...state];
             const i = state.findIndex(u => u.handle === action.payload.handle)
 
+            console.log(i)
+            if (i >= 0)
             res[i].charLeft = action.payload.charLeft;
 
             return res;
@@ -21,8 +23,9 @@ export default function managedAccountsReducer(state, action) {
 
             let res = [...state];
             const i = state.findIndex(u => u.handle === action.handle)
-
-            res[i] = { ...res[i], ...action.changes };
+            console.log(i)
+            if (i >= 0)
+                res[i] = { ...res[i], ...action.changes };
 
             return res;
         }

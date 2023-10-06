@@ -3,6 +3,7 @@ import { React, createContext, useReducer, useContext, useEffect } from 'react';
 import managedAccountsReducer from '../reducers/ManagedAccountsReducer';
 import { useAccount } from './CurrentAccountContext';
 import authorizedRequest from '../utils/authorizedRequest';
+import { useSocket } from './SocketContext';
 
 const ManagedAccountsContext = createContext(null);
 const ManagedAccountsDispatchContext = createContext(null);

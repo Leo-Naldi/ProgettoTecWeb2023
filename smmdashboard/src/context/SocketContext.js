@@ -41,29 +41,33 @@ export default function SocketContextProvider({ children }) {
     }, [smm.loggedIn]);
 
     useEffect(() => {
-        if (socket) {
-            
-            socket.on('user:changed', (changes) => {
-                if (managedAccounts.some(u => u.handle === changes.handle)) {
+        
+            console.log("BBBBBBBBBBBBBBBBBBBBBBBbbbbbb")
+            socket?.on('user:changed', (user) => {
+                console.log(user.handle)
+                console.log(managedAccounts.some(u => u.handle === user.handle))
+                console.log(managedAccounts)
 
-                    if (smm.handle !== changes.smm) {
+                if (managedAccounts.some(u => u.handle === user.handle)) {
+
+                    if (smm.handle !== user.smm) {
                         // smm is no longer user's manager
                         managedAccountsDispatch({
                             type: 'USER_REMOVED',
-                            handle: changes.handle,
+                            handle: user.handle,
                         });
                     } else {
                         managedAccountsDispatch({
                             type: 'USER_CHANGED',
-                            handle: changes.handle,
-                            changes: changes
+                            handle: user.handle,
+                            changes: user
                         });
                     }
 
                 }
             })
 
-            socket.on('user:deleted', (delete_info) => {
+            socket?.on('user:deleted', (delete_info) => {
                 if (managedAccounts.some(u => u.handle === delete_info.handle)) {
 
                     managedAccountsDispatch({
@@ -73,13 +77,13 @@ export default function SocketContextProvider({ children }) {
 
                 }
             })
-        }
+        
 
         return () => {
             socket?.off('user:changed');
             socket?.off('user:deleted');
         }
-    }, [socket]);
+    }, [socket, managedAccounts]);
     
 
     return (

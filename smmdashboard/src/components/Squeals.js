@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -13,17 +13,35 @@ import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 import dayjs from 'dayjs';
 import Spinner from './Spinner';
-import { Box, Button, Pagination } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Pagination } from '@mui/material';
 import fetchCheckPointData from '../utils/fetchStats';
 import { useManagedAccounts } from '../context/ManagedAccountsContext';
 import { useSocket } from '../context/SocketContext';
 import authorizedRequest from '../utils/authorizedRequest';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
+import ImageIcon from '@mui/icons-material/Image';
+import HideImageOutlinedIcon from '@mui/icons-material/HideImageOutlined';
 
+import _ from 'underscore';
+import ImageModal from './ImageModal';
+
+
+function parseMessage (message) {
+    message.meta = {
+        ...message.meta,
+        created: new dayjs(message.meta.created),
+        lastModified: new dayjs(message.meta.lastModified)
+    }
+
+    message.content = _.defaults(message.content, { text: '', image: null })
+
+    return message;
+}
 
 export default function Squeals({ managed }) {
 
 
-    console.log(managed)
+    //console.log(managed)
     const messagesPerPage = 25;
 
     const [page, setPage] = useState(1);
@@ -32,10 +50,13 @@ export default function Squeals({ managed }) {
     const [fetchingStats, setFetchingStats] = useState(true);
     const [maxPages, setMaxPages] = useState(null);
 
+    const [openImageModal, setOpenImageModal] = useState(false);
+    const [imageUrl, setImageUrl] = useState(null);
+
     const smm = useAccount();
     const managedUsers = useManagedAccounts();
     const userAccount = managedUsers?.find(u => u.handle === managed);
-    console.log(userAccount)
+    //console.log(userAccount)
     const socket = useSocket();
 
     const fetchMessages = () => {
@@ -47,14 +68,7 @@ export default function Squeals({ managed }) {
             query: { page: page, results_per_page: messagesPerPage }
         })
             .then(res => res.json())
-            .then(res => res.map(m => ({
-                ...m,
-                meta: {
-                    created: new dayjs(m.meta.created),
-                    lastModified: new dayjs(m.meta.lastModified)
-                }
-            }))
-            )
+            .then(res => res.map(parseMessage))
             .then(res => {
                 setMessages(res);
                 setFetchingMessages(false);
@@ -62,55 +76,106 @@ export default function Squeals({ managed }) {
     }
 
     useEffect(() => {
-        if (managed) {
+        if (managed && (!messages.length)) {
             fetchMessages();
         }
     }, [page]);
 
     useEffect(() => {
-        setFetchingStats(true);
-        fetchCheckPointData(new dayjs(), new dayjs(userAccount.meta.created), managed, smm.token)
-        .then(res => res.json())
-        .then(res => {
-            setMaxPages(Math.ceil(res.total / messagesPerPage));
-            setFetchingStats(false);
-        })
-        setPage(1);
-        fetchMessages();
+        if (!messages?.length) {
+            setFetchingStats(true);
+            fetchCheckPointData(new dayjs(), new dayjs(userAccount.meta.created), managed, smm.token)
+            .then(res => res.json())
+            .then(res => {
+                setMaxPages(Math.ceil(res.total / messagesPerPage));
+                setFetchingStats(false);
+            })
+            setPage(1);
+            fetchMessages();
+        }
     }, [managed])
 
     useEffect(() => {
 
         socket.on('message:created', (message) => {
-            if (message.author === managed) {
-                // for now refetch messages
-               fetchMessages()
+            if ((message.author === managed) && (page === 1)) {
+                // Add it to the currently displayed messages
+                let newMessages = [ parseMessage(message), 
+                    ...messages.slice(0, messagesPerPage - 1) ];
+                setMessages(newMessages);
             }
-        })
+        });
 
-        socket.on('message:reactions', (message) => {  
-            if (message.author === managed) {
+        socket.on('message:changed', (message) => {
+            if (messages.length) {
                 // for now refetch messages
-                const ind = messages.findIndex(m => m.id === message.id) 
+                const ind = messages.findIndex(m => m.id === message.id)
 
                 if (ind > -1) {
                     let newMessages = [...messages];
-                    newMessages[ind].reactions = message.reactions;
+                    
+                    newMessages[ind] = {
+                        ...newMessages[ind],
+                        ...message,
+                    };
+
+                    newMessages[ind] = parseMessage(newMessages[ind])
+
+                    setMessages(newMessages);
                 }
             }
         })
 
         return () => {
-            socket.off('message:changed');
-            socket.off('message:reactions');
+            socket?.off('message:created');
+            socket?.off('message:changed');
         }
-    }, [socket])
+    }, [socket, messages])
+
+
+    const handleCloseImageModal = () => {
+        setOpenImageModal(false);
+        //setImageUrl(null);
+    }
 
     return (
-        <React.Fragment>
+        <Fragment>
+
+            <Dialog
+                fullWidth={true}
+                maxWidth={'sm'}
+                open={openImageModal}
+                onClose={handleCloseImageModal}
+            >
+                <DialogContent>
+
+                    <Box
+                        display={'flex'}
+                        justifyContent={'center'}
+                        >
+
+                        <img src={imageUrl} alt={'Squeal image'}
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '70vh',
+                            }}
+                         />
+
+                    </Box>
+                    
+
+                </DialogContent>
+                <Divider />
+                <DialogActions>
+                    <Button onClick={handleCloseImageModal}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
             <Title>Squeals</Title>
             {getMessagesTable()}
-            <Box display='flex' justifyContent='center'>
+            <Box 
+                display='flex' 
+                justifyContent='center'>
 
                 <Pagination 
                     color='primary'
@@ -118,12 +183,15 @@ export default function Squeals({ managed }) {
                     onChange={(_, p) => setPage(p)}
                     sx={{ mt: 2 }}/>
             </Box>
-        </React.Fragment>
+        </Fragment>
     );
 
     function getMessagesTable() {
         if (fetchingMessages || fetchingStats) {
-            return (<Spinner />)
+            return (
+                <Fragment>
+                    <Spinner />
+                </Fragment>)
         } else {
             return (
                 <Table size="small">
@@ -139,34 +207,56 @@ export default function Squeals({ managed }) {
                             <TableCell>
                                 <ThumbDownAltIcon />
                             </TableCell>
+                            <TableCell>
+                                <PhotoLibraryIcon />
+                            </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {messages.map(m => {
-
-                            const destChannel = m.dest.filter(d => d.charAt(0) === '§');
-                            const destUser = m.dest.filter(d => d.charAt(0) === '@');
-
-                            return (<TableRow key={m.id}>
-                                <TableCell>{m.meta.created.format('YYYY/MM/DD')}</TableCell>
-                                <TableCell>
-                                    <Typography
-                                        sx={{
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                        }}>
-                                        {m.content.text}
-                                    </Typography>
-                                </TableCell>
-                                <TableCell>{(destChannel.length) ? destChannel.join(', ') : "-"}</TableCell>
-                                <TableCell>{(destUser.length) ? destUser.join(', ') : "-"}</TableCell>
-                                <TableCell>{m.reactions.positive}</TableCell>
-                                <TableCell>{m.reactions.negative}</TableCell>
-                            </TableRow>)
-                        })}
+                        {messages.map(makeMessageRow)};
                     </TableBody>
                 </Table>
             )
         }
+    }
+
+    function makeMessageRow(m) {
+        const destChannel = m.dest.filter(d => d.charAt(0) === '§');
+        const destUser = m.dest.filter(d => d.charAt(0) === '@');
+
+        //console.log(m.content.image)
+
+        return (
+            <Fragment>
+                <TableRow key={`squeal-${m.id}`}>
+                    <TableCell>{m.meta.created.format('YYYY/MM/DD')}</TableCell>
+                    <TableCell>
+                        <Typography
+                            sx={{
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                            }}>
+                            {(m.content.text?.length) ? m.content.text : '-'}
+                        </Typography>
+                    </TableCell>
+                    <TableCell>{(destChannel.length) ? destChannel.join(', ') : "-"}</TableCell>
+                    <TableCell>{(destUser.length) ? destUser.join(', ') : "-"}</TableCell>
+                    <TableCell>{m.reactions.positive}</TableCell>
+                    <TableCell>{m.reactions.negative}</TableCell>
+                    <TableCell>{(_.isString( m.content.image)) ?
+                        (<IconButton
+                            aria-label='Show Squeal Image'
+                            onClick={() => {
+                                console.log(`Clicked on: ${m.content.image}`)
+                                setImageUrl(m.content.image);
+                                setOpenImageModal(true);
+                            }}>
+                            <ImageIcon />
+                        </IconButton>
+                        ) :
+                        (<HideImageOutlinedIcon />)}</TableCell>
+                    </TableRow>
+                </Fragment>
+            );
     }
 }
