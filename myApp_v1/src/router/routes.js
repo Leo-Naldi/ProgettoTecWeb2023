@@ -29,7 +29,11 @@ const routes = [
     redirect: { name: 'Home' },
     // meta: { public: false },
     children: [
-      { path: '', name: 'Home', component: () => import('pages/HomePage.vue') }
+      { path: '', name: 'Home', component: () => import('pages/HomePage.vue') },
+      {path: '/all', name: 'All', meta:{keepAlive:true},component: () => import('pages/AllPosts.vue')},
+      {path: '/channels/details/:channelName', name: 'ChannelDetail',component: () => import('pages/ChannelPage.vue')},
+      // {path: '/all', name: 'All',component: () => import('pages/AllPosts.vue')},
+
     ]
   },
 

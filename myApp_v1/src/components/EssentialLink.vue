@@ -79,8 +79,10 @@ export default defineComponent({
   border-radius: 99px
 
 .my-hover:hover
-  background-color: #1da1f2
-  color: #e8f5ff
+  color: #1da1f2
+  background-color: #e8f5ff
+  // background-color: #1da1f2
+  // color: #e8f5ff
   box-sizing: border-box
 
 .between-icon

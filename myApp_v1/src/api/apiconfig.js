@@ -1,10 +1,15 @@
 import { api } from "boot/axios";
 
 export default {
+  userDetails: (user_id)=> "#/user/details/"+user_id,
+  channelDetails: (channel_id) =>"#/channels/details/"+channel_id,
+  hashtagPath: (hashtag) => "#/search/"+hashtag,
+
   login: (credentials) => api.post("auth/login", credentials),
   // register: (data) => api.post('/register', data),
   // forgotPassword: (email) => api.post('/forgot-password', email),
   // logout: () => api.get('/logout'),
+
 
   all_messages: () => api.get("messages/"),
   all_users: () => api.get("users/"),
@@ -22,6 +27,9 @@ export default {
 
   like_messages: (msg_id) => api.post("messages/up/"+msg_id),
   dislike_messages: (msg_id) => api.post("messages/down/"+msg_id),
+
+  undo_like_messages: (msg_id) => api.delete("messages/up/"+msg_id),
+  undo_dislike_messages: (msg_id) => api.delete("messages/down/"+msg_id),
 
   send_message: (user_handle, messages_json) => api.post("messages/user/"+user_handle, messages_json),
   send_image: (user_handle, image_data) => api.post("image/upload/"+user_handle, image_data),

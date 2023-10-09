@@ -18,7 +18,7 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     getUser() {
-      return  LocalStorage.getItem(USER_KEY);
+      return  JSON.parse(LocalStorage.getItem(USER_KEY));
     },
     getToken(){
       return LocalStorage.getItem(TOKEN_KEY);
@@ -40,7 +40,8 @@ export const useAuthStore = defineStore('auth', {
         .then((response) => {
           if (response.status === 200) {
             this.saveUser(response.data.user, response.data.token);
-            this.router.push({ path: '/home' });
+            // this.router.push({ path: '/home' });
+            this.router.push({ path: '/all' });
           }
           return response;
         })

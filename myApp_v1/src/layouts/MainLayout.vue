@@ -47,7 +47,7 @@
           <q-menu style="border-radius: 12px;" :offset="[-90, 0]">
             <!-- <q-menu style="border-radius: 1rem;" anchor="top middle" self="top middle"> -->
             <q-list>
-              <q-item clickable v-close-popup @click="logout">
+              <q-item clickable v-close-popup @click="logout()">
                 <q-item-section>Logout from @{{ user ? JSON.parse(user).handle : "Null" }}</q-item-section>
               </q-item>
             </q-list>
@@ -79,6 +79,7 @@ import { defineComponent, ref, onMounted, watch, computed, toRefs } from "vue";
 import EssentialLink from "components/EssentialLink.vue";
 import { useQuasar } from "quasar";
 import { LocalStorage } from "quasar";
+import { useAuthStore } from 'src/stores/auth.js';
 
 const linksList = [
   {
@@ -106,11 +107,11 @@ const linksList = [
     icon: "bookmark",
     link: "/bookmark",
   },
-  {
+/*   {
     title: "User",
     icon: "person",
     link: "/user/details/" + LocalStorage.getItem('handle'),
-  },
+  }, */
   /*   {
       title: "Quasar",
       caption: "Community Quasar projects",
@@ -134,6 +135,7 @@ export default defineComponent({
     return {
       token: localStorage.getItem("token"),
       user: LocalStorage.getItem("user"),
+      authStore: useAuthStore()
     };
   },
   setup() {
@@ -160,6 +162,11 @@ export default defineComponent({
       },
     };
   },
+  methods:{
+    logout(){
+      this.authStore.logout()
+    }
+  }
 });
 </script>
 
@@ -186,8 +193,8 @@ export default defineComponent({
   background-color: #000000
   color: #f0f8ff
 .my-button:hover
-  background-color: #1da1f2
-  color: #e8f5ff
+  color: #1da1f2
+  background-color: #e8f5ff
 
 .my-avatar
   margin-left: 0.8rem
