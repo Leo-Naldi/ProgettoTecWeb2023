@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Main Page</title>
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Include custom CSS for styling -->
+    <style>
+        .content {
+            display: none;
+        }
+
+        .active-content {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+
+
+    <div class="container">
+        <!-- Header Bar -->
+        
+
+        <header class="mt-2">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" id="usersTab" href="#">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="messagesTab" href="#">Messages</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="channelsTab" href="#">Channels</a>
+                </li>
+            </ul>
+        </header>
+
+        <!-- Main Content -->
+        <div class="content active-content" id="usersContent">
+            <!-- Users content goes here -->
+
+            <div class="row my-3 d-flex justify-content-center" id="user-search-widgets">
+                <div class="col-md-7">
+                    <!-- Search Bar -->
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search by Name" id="userSearchInput">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" id="searchButton">Search</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3" id="user-filter">
+                    <!-- Filter Dropdowns -->
+                    <div class="form-group">
+                        <label for="accountTypeFilter">Account Type:</label>
+                        <select class="form-control" id="accountTypeFilter">
+                            <option value="">All</option>
+                            <option value="user">User</option>
+                            <option value="pro">Pro User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="userPopularityFilter">Popularity:</label>
+                        <select class="form-control" id="userPopularityFilter">
+                            <option value="">All</option>
+                            <option value="popular">Popular</option>
+                            <option value="unpopular">Unpopular</option>
+                            <option value="controversial">Controversial</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Users Content</h2>
+        </div>
+        <div class="content" id="messagesContent">
+            <!-- Messages content goes here -->
+
+            <div class="row my-3 d-flex justify-content-center" id="message-search-widgets">
+                
+                <div class="col-md-5" id="filter-dropdowns">
+                    <!-- Filter Dropdowns -->
+                    <div class="form-group">
+                        <label for="authorSearchInput">Author:</label>
+                        <input type="text" class="form-control" placeholder="Author..." id="authorSearchInput"> 
+                    </div>
+                    <div class="form-group">
+                        <label for="destField">Destined To:</label>
+                        <input type="text" class="form-control" id="destField">
+                    </div>
+                    <div class="form-group">
+                        <label for="dateFilter">Date:</label>
+                        <input type="date" class="form-control" id="dateFilter">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="content" id="channelsContent">
+            <!-- Channels content goes here -->
+            <h2>Channels Content</h2>
+        </div>
+        </div>
+
+    <!-- Include Bootstrap and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="../scripts/dashboard.js"></script>
+
+</body>
+
+</html>
