@@ -22,16 +22,16 @@
                         <h3>Login</h3>
                     </div>
                     <div class="card-body">
-                        <form id="login-form">
-                            <div class="form-group">
-                                <label for="username">Username:</label>
-                                <input type="text" class="form-control" id="username" placeholder="Enter username">
+                        <form class="px-3">
+                            <div class="mb-3">
+                                <label for="handle" class="form-label">Handle</label>
+                                <input type="text" name="handle" class="form-control" id="handle">
                             </div>
-                            <div class="form-group">
-                                <label for="password">Password:</label>
-                                <input type="password" class="form-control" id="password" placeholder="Enter password">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" name="password" class="form-control" id="password">
                             </div>
-                            <button type="submit" class="btn btn-primary">Submit</button>
+                            <button type="submit" class="btn btn-primary">Log in</button>
                         </form>
                     </div>
                 </div>
@@ -49,6 +49,9 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/underscore@1.13.6/underscore-umd-min.js"></script>
     
+    <script src="../scripts/requests.js"></script>
+    <script src="../scripts/links.js"></script>
+    <script src="../scripts/saveLogin.js"></script>
     <script src="../scripts/login.js"></script>
 
 </body>

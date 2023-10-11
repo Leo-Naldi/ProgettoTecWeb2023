@@ -604,7 +604,7 @@ class MessageService {
         message.destUser = destUser;
         message.destChannel = destChannel
 
-        logger.debug(message)
+        //logger.debug(message)
 
         resbody = MessageService.#makeMessageObject(message);
 
