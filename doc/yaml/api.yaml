@@ -25,9 +25,10 @@ paths:
       parameters:
         - name: page
           in: query
-          description: Paginate results. Page one will be returned by default, use -1 to disable pagination.
+          description: Paginate results. A non-positive value disables pagination.
           schema:
             type: integer
+            default: 1
             example: 3
         - name: results_per_page
           in: query
@@ -80,6 +81,89 @@ paths:
                     - $ref: '#/components/schemas/UserPro'
         '401':
           description: Unauthorized operation
+
+  /users/:
+    get:
+      tags:
+        - User
+      description: Get users.
+      operationId: getUsers
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results. A non-positive number disables pagination.
+          schema:
+            type: integer
+            default: 1
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each page.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+        - name: handle
+          in: query
+          description: Only return users whose handle contains the given string. Matching is case-insensitive.
+          required: False
+          schema: 
+            type: string
+            minLength: 3
+            example: user
+        - name: admin
+          in: query
+          description: Only return admin or non-admin users.
+          required: False
+          schema: 
+            type: boolean
+            example: False
+        - name: accountType
+          in: query
+          description: Only return pro or non-pro accounts.
+          required: False
+          schema: 
+            type: string
+            enum: 
+              - user 
+              - pro 
+            example: pro
+        - name: handleOnly
+          in: query
+          description: Return an array of handles instead of user objects.
+          required: False
+          schema: 
+            type: boolean
+            example: False
+            default: False
+      responses:
+        '200':
+          description: User Created, the JWT token is in the body.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - anyOf:
+                    - $ref: '#/components/schemas/User'   
+                    - $ref: '#/components/schemas/UserPro'   
+                  - $ref: '#/components/schemas/TokenInfo'   
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle or email
+          content:
+            application/json:
+                schema:
+                  type: object
+                  properties:
+                    invalid: 
+                      type: array
+                      description: A list of data that was invalid
+                      items:
+                        type: string
+                        enum:
+                          - handle
+                          - email
+                      minItems: 1
   
   /users/{handle}:
     put:
@@ -442,7 +526,7 @@ paths:
             example: userHandle123
         - name: page
           in: query
-          description: To paginate results. -1 to disable pagination.
+          description: To paginate results. A non-positive number disables pagination.
           schema:
             type: integer
         - name: popular
@@ -1032,7 +1116,7 @@ paths:
       parameters:
         - name: page
           in: query
-          description: To paginate results. A negative number disables pagination.
+          description: To paginate results. A non-positive number disables pagination.
           schema:
             type: integer
             default: 1
@@ -1164,7 +1248,7 @@ paths:
             example: userHandle123
         - name: page
           in: query
-          description: To paginate results. -1 to disable pagination.
+          description: To paginate results. A non-positive value disables pagination.
           schema:
             type: integer
         - name: popular
@@ -1374,7 +1458,7 @@ paths:
       parameters:
         - name: page
           in: query
-          description: To paginate results. A 0 or negative number disables pagination.
+          description: To paginate results. A non-positive value disables pagination.
           schema:
             type: integer
             example: 3
@@ -1701,7 +1785,7 @@ paths:
       parameters:
         - name: page
           in: query
-          description: To paginate results. A negative number disables pagination.
+          description: To paginate results. A non-positive value disables pagination.
           schema:
             type: integer
             default: 1
@@ -1822,7 +1906,7 @@ paths:
       parameters:
         - name: page
           in: query
-          description: To paginate results. A 0 or negative number disables pagination.
+          description: To paginate results. A non-positive value disables pagination.
           schema:
             type: integer
             example: 3
