@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { LocalStorage } from 'quasar';
 import AUTH from "src/api/apiconfig";
+import { format } from "date-fns";
+
 
 const USER_KEY = 'user';
 const TOKEN_KEY = 'token';
@@ -19,6 +21,9 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     getUser() {
       return  JSON.parse(LocalStorage.getItem(USER_KEY));
+    },
+    getUserHandle(){
+      return JSON.parse(LocalStorage.getItem(USER_KEY)).handle
     },
     getToken(){
       return LocalStorage.getItem(TOKEN_KEY);
@@ -39,7 +44,9 @@ export const useAuthStore = defineStore('auth', {
       return AUTH.login(credentials)
         .then((response) => {
           if (response.status === 200) {
-            this.saveUser(response.data.user, response.data.token);
+            const my_user = response.data.user;
+            my_user["meta"].created=format(new Date(my_user["meta"].created), 'MMMM yyyy');
+            this.saveUser(my_user, response.data.token);
             // this.router.push({ path: '/home' });
             this.router.push({ path: '/all' });
           }

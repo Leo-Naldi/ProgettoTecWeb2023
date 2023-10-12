@@ -74,5 +74,5 @@ function followChannel(){
 .leave-button:hover
   color: #ff0000
   border: 2px solid #ff0000
-  transition: 0.5s color, 0.5s border
+  transition: 1s color, 1s border
 </style>

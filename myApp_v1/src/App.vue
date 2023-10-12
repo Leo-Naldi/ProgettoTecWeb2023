@@ -5,6 +5,8 @@
 <script>
 import { defineComponent } from 'vue'
 import { usePostStore } from "src/stores/posts.js";
+import { useChannelStore } from "src/stores/channels.js";
+import { useAuthStore } from './stores/auth';
 import { LocalStorage } from 'Quasar'
 
 export default defineComponent({
@@ -12,12 +14,19 @@ export default defineComponent({
   data() {
     return {
       postStore: usePostStore(),
+      authStore: useAuthStore(),
+      channelStore: useChannelStore(),
     };
   },
   created() {
-    if (LocalStorage.getItem('user')) {
+    this.postStore.fetchPosts()
+      this.channelStore.fetchAutoCompleteChannels()
+      this.channelStore.fetchAllChannelName()
+/*     if (LocalStorage.getItem('user')) {
       this.postStore.fetchPosts()
-    }
+      this.channelStore.fetchAutoCompleteChannels()
+      this.channelStore.fetchAllChannelName()
+    } */
   },
 })
 

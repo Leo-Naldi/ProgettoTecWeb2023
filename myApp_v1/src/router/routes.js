@@ -31,7 +31,9 @@ const routes = [
     children: [
       { path: '', name: 'Home', component: () => import('pages/HomePage.vue') },
       {path: '/all', name: 'All', meta:{keepAlive:true},component: () => import('pages/AllPosts.vue')},
-      {path: '/channels/details/:channelName', name: 'ChannelDetail',component: () => import('pages/ChannelPage.vue')},
+      {path: '/channel/details/:channelName', name: 'ChannelDetail',component: () => import('pages/ChannelPage.vue')},
+      {path: "/user/details/:userId",name: "userDetail",component: () => import("pages/UserPage.vue")},
+      {path: "/search/:searchText",name: "searchPage",component: () => import("pages/SearchPage.vue")},
       // {path: '/all', name: 'All',component: () => import('pages/AllPosts.vue')},
 
     ]

@@ -10,6 +10,10 @@
 <script>
 import ShowPost from "src/components/posts/ShowPost.vue";
 import { usePostStore } from "src/stores/posts.js";
+import { useChannelStore } from "src/stores/channels.js";
+import { useAuthStore } from 'src/stores/auth';
+import { LocalStorage } from 'Quasar'
+
 export default {
   name: "AllPosts",
   data() {

@@ -33,24 +33,42 @@
       <div class="post-content" v-html="content.text"></div>
 
       <q-img :src="content.image" v-if="content.image" spinner-color="white" class="my-img" />
-      <!-- <MapTemplate v-if="meta.geo && meta.geo.coordinates.length != 0" :myPosition="meta.geo.coordinates"
+<!--       <ShowMap v-if="meta.geo && meta.geo.coordinates.length != 0"  :myPosition="meta.geo.coordinates"
           :style="$q.screen.gt.sm ? 'height: 280px; max-width:  100%' :  'height: 200px; max-width: 100%'" /> -->
+          <ShowMap v-if="meta.geo && meta.geo.coordinates.length != 0" :mapId="id" :my-position="meta.geo.coordinates"></ShowMap>
+          <!-- <GMapMap
+            v-if="meta.geo && meta.geo.coordinates.length != 0"
+              :center="{
+                lat: meta.geo.coordinates[0],
+                lng: meta.geo.coordinates[1],
+              }"
+              :zoom="15"
+              map-type-id="terrain"
+              style="width: 500px; height: 300px"
+            >
+              <GMapMarker
+                :position="{
+                  lat: meta.geo.coordinates[0],
+                  lng: meta.geo.coordinates[1],
+                }"
+              />
+            </GMapMap> -->
 
-      <div class="my-buttons q-mt-sm q-ml-sm text-grey-7">
+          <div class="my-buttons q-mt-sm q-ml-sm text-grey-7">
         <div class="my-button" id="dislike">
-          <q-btn flat round :color="disliked ? 'black' : 'grey'" :icon="disliked
+          <q-btn flat round :color="hasLiked.disliked ? 'black' : 'grey'" :icon="hasLiked.disliked
               ? 'fa-sharp fa-solid fa-thumbs-down'
               : 'fa-sharp fa-regular fa-thumbs-down'
             " size="sm" id="dislikeBtn" @click.stop.prevent="addNegReaction(id)"></q-btn>
-          <span> {{ reactions.negative }}</span>
+          <span> {{ reactiveCnt.negative }}</span>
         </div>
         <div class="my-button" id="like">
-          <q-btn id="likeBtn" flat round :color="liked ? 'red' : 'grey'" :icon="liked
+          <q-btn id="likeBtn" flat round :color="hasLiked.liked ? 'red' : 'grey'" :icon="hasLiked.liked
               ? 'fa-sharp fa-solid fa-thumbs-up'
               : 'fa-sharp fa-regular fa-thumbs-up'
             " size="sm" @click.stop.prevent="addPosReaction(id)">
           </q-btn>
-          <span>{{ reactions.positive }}</span>
+          <span>{{ reactiveCnt.positive }}</span>
 
         </div>
 
@@ -60,7 +78,7 @@
             <NewPosts :id="id" :author="author"></NewPosts>
           </q-popup-proxy> -->
           </q-btn>
-          <span>{{ reactions.negative }}</span>
+          <span>{{ postReplies.length }}</span>
         </div>
 
         <div class="my-button" id="chart">
@@ -75,15 +93,19 @@
         </div>
       </div>
     </q-item-section>
+
   </q-item>
 </template>
 
 <script setup>
 import { useAuthStore } from "src/stores/auth";
 import { usePostStore } from "src/stores/posts";
+import { useUserStore } from "src/stores/user";
 import { useRouter } from "vue-router";
 import { formatDistance } from "date-fns";
 import { parseISO } from "date-fns";
+import { onMounted, reactive,ref } from "vue";
+import  ShowMap  from 'src/components/ShowMap.vue'
 
 const props = defineProps({
   id: {
@@ -139,28 +161,40 @@ const props = defineProps({
     type: String,
     default: "",
   },
-  liked: {
+/*   liked: {
     type: Boolean,
     default: false,
   },
   disliked: {
     type: Boolean,
     default: false,
-  },
+  }, */
   canModify:{
     type: Boolean,
     default: false,
   },
-  hide:{
-    type: Boolean,
-    default: false,
-  }
+  // hide:{
+  //   type: Boolean,
+  //   default: false,
+  // }
 });
 
 /******************************************
                     data
  *******************************************/
 const postStore = usePostStore();
+const userStore = useUserStore();
+const authStore = useAuthStore();
+const router = useRouter();
+
+const reactiveCnt= reactive({
+  positive:props.reactions.positive,
+  negative:props.reactions.negative
+})
+const hasLiked = reactive({
+  liked: false,
+  disliked: false
+})
 
 /******************************************
                functions
@@ -181,20 +215,72 @@ const modifyPost = (id) => { };
 const hidePost = (id) => {
   postStore.hidePost(id);
 };
-const addNegReaction = (id) => {
-  postStore.add_negReaction(id)
-};
-const addPosReaction = (id) => {
-  postStore.add_posReaction(id);
-};
+
 const addToBookmark = (id) => {
   postStore.addToBookmark(id);
 };
 
+const userLikes = reactive({
+  userLiked:null,
+  userDisliked: null
+})
+
+const postReplies = ref([])
+
+const fetchUserData = async (author) => {
+  const data = await userStore.searchUser(author)
+  userLikes.userLiked=data.liked
+  userLikes.userDisliked=data.disliked
+  if (userLikes.userLiked.includes(props.id)){
+    hasLiked.liked=true
+  }
+  if (userLikes.userDisliked.includes(props.id)){
+    hasLiked.disliked = true
+  }
+}
+const fetchPostReplies = async (id) =>{
+  const data = await postStore.fetchReplis(id)
+  postReplies.value = data
+}
+
+const addPosReaction = async (id) => {
+  const data = await postStore.add_posReaction(id);
+  console.log("up status", data)
+  if(data==200){
+    hasLiked.liked=true
+    reactiveCnt.positive+=1
+  }
+  else if (data==409){
+    hasLiked.liked=false
+    reactiveCnt.positive>0? reactiveCnt.positive-=1 : reactiveCnt.positive
+  }
+}
+
+const addNegReaction = async (id)=>{
+  const data = await postStore.add_negReaction(id);
+  console.log("down status", data)
+  if(data==200){
+    hasLiked.disliked=true
+    reactiveCnt.negative+=1
+  }
+  else if (data==409){
+    hasLiked.disliked=false
+    reactiveCnt.negative-=1
+  }
+}
+
+onMounted(()=>{
+  const paramId = router.currentRoute.value.params.userId;
+  const searchLikes=paramId?paramId:authStore.getUserHandle()
+  fetchUserData(searchLikes)
+  fetchPostReplies(props.id)
+})
 /******************************************
                 debug functions
  *******************************************/
 const getPostsId = (id) => { };
+
+
 </script>
 
 <style lang="sass" scoped>
@@ -273,7 +359,7 @@ const getPostsId = (id) => { };
   a[href^="#/search/"]:hover
     // text-decoration: underline
     color: #ff7701
-  a[href^="#/channels/"]:hover
+  a[href^="#/channel/"]:hover
     color: #e777a9
   a[href^="#/user/details/"]:hover
     color: #ff77e9

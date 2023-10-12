@@ -2,7 +2,7 @@ import { api } from "boot/axios";
 
 export default {
   userDetails: (user_id)=> "#/user/details/"+user_id,
-  channelDetails: (channel_id) =>"#/channels/details/"+channel_id,
+  channelDetails: (channel_id) =>"#/channel/details/"+channel_id,
   hashtagPath: (hashtag) => "#/search/"+hashtag,
 
   login: (credentials) => api.post("auth/login", credentials),
@@ -15,12 +15,19 @@ export default {
   all_users: () => api.get("users/"),
   all_channels: () => api.get("channels/"),
 
+  all_channels_name: () => api.get("channels/?namesOnly=true"),                   // channel name only
+
+
   message: (msg_id) => api.get("messages/" + msg_id),                             // given id, find one message
   replies: (msg_id) => api.get("messages/?answering=" + msg_id),                  // given id, find replies
+
 
   search_channel: (channel_name) => api.get("channels/?name=" + channel_name),    // find channel with name *name*
   search_user: (user_name) => api.get("users/?handle=" + user_name),              // find user with name *name*
   search_messages: (msg_name) => api.get("messages/?text=" + msg_name),           // find messages with text *text*
+  // TODO: more search API
+
+  get_message:(msg_id) =>api.get("messages/"+msg_id),
 
   user: (user_handle) => api.get("users/" + user_handle),                         // get user by handle
   user_messages: (user_handle) => api.get("users/" + user_handle + "/messages"),  // get user messages by handle

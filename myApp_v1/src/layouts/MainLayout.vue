@@ -59,8 +59,8 @@
     <q-drawer :breakpoint="600" :mini="miniStateR.value" @mouseover="miniStateR.value = false"
       @mouseout="miniStateR.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="350" show-if-above
       v-model="rightDrawerOpen" side="right" bordered>
-      <div class="col-9 q-gutter-md q-pa-md">
-        <q-input placeholder="Search Qwitter" outlined rounded dense>
+      <div v-if="router.currentRoute.value.name!='searchPage'" class="col-9 q-gutter-md q-pa-md">
+        <q-input v-model="searchText" @keyup.enter="submit" placeholder="Search Qwitter" outlined rounded dense>
           <template v-slot:prepend>
             <q-icon name="search" />
           </template>
@@ -80,6 +80,9 @@ import EssentialLink from "components/EssentialLink.vue";
 import { useQuasar } from "quasar";
 import { LocalStorage } from "quasar";
 import { useAuthStore } from 'src/stores/auth.js';
+import { useRouter } from "vue-router";
+
+const authStore= useAuthStore()
 
 const linksList = [
   {
@@ -107,11 +110,11 @@ const linksList = [
     icon: "bookmark",
     link: "/bookmark",
   },
-/*   {
+  {
     title: "User",
     icon: "person",
-    link: "/user/details/" + LocalStorage.getItem('handle'),
-  }, */
+    link: "/user/details/" + authStore.getUserHandle(),
+  },
   /*   {
       title: "Quasar",
       caption: "Community Quasar projects",
@@ -135,13 +138,15 @@ export default defineComponent({
     return {
       token: localStorage.getItem("token"),
       user: LocalStorage.getItem("user"),
-      authStore: useAuthStore()
+      searchText:"",
+      router: useRouter(),
     };
   },
   setup() {
     const leftDrawerOpen = ref(false);
     const rightDrawerOpen = ref(false);
     const $q = useQuasar();
+
     const miniState = ref(computed(() => {
       return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
     }));
@@ -164,7 +169,15 @@ export default defineComponent({
   },
   methods:{
     logout(){
-      this.authStore.logout()
+      authStore.logout()
+    },
+    submit(){
+      this.router.push({
+        name: "searchPage",
+        params: {
+          searchText: this.searchText,
+        },
+      });
     }
   }
 });
