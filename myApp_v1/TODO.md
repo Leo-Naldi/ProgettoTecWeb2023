@@ -42,3 +42,6 @@ done actions:
 - [ ] dark mode
 - [ ] send message with more pictures
 - [ ] send message with custom locations
+
+- [ ] search with more keywords
+- [ ] pagination

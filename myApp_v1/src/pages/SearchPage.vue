@@ -42,19 +42,19 @@
 
     <div>
       <div v-if="isActive === 'posts'">
-        <ShowPost v-for="post in searchResults.posts" :key="post._id" v-bind="post" />
+        <ShowPost v-for="post in searchResults.posts" :key="post._id" v-bind="post" clickable/>
         <p v-if="searchResults.posts.length == 0" style="text-align: center; vertical-align:center">No result</p>
       </div>
       <div v-if="isActive === 'user'">
-        <ShowPost v-for="user in searchResults.users" :key="user._id" v-bind="user" />
+        <ShowPost v-for="user in searchResults.users" :key="user._id" v-bind="user" clickable/>
         <p v-if="searchResults.users.length == 0" style="text-align: center; vertical-align:center">No result</p>
       </div>
       <div v-if="isActive === 'channel'">
-        <ShowPost v-for="channel in searchResults.channels" :key="channel._id" v-bind="channel" />
+        <ShowPost v-for="channel in searchResults.channels" :key="channel._id" v-bind="channel" clickable/>
         <p v-if="searchResults.channels.length == 0" style="text-align: center; vertical-align:center">No result</p>
       </div>
       <div v-if="isActive === 'tag'">
-        <ShowPost v-for="tag in searchResults.tags" :key="tag._id" v-bind="tag" />
+        <ShowPost v-for="tag in searchResults.tags" :key="tag._id" v-bind="tag" clickable/>
         <p v-if="searchResults.tags.length == 0" style="text-align: center; vertical-align:center">No result</p>
       </div>
     </div>

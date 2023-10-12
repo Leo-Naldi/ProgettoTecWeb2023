@@ -16,6 +16,7 @@ export default {
   all_channels: () => api.get("channels/"),
 
   all_channels_name: () => api.get("channels/?namesOnly=true"),                   // channel name only
+  all_users_name: () => api.get("users/?handleOnly=true"),                        // user name only
 
 
   message: (msg_id) => api.get("messages/" + msg_id),                             // given id, find one message
@@ -31,6 +32,8 @@ export default {
 
   user: (user_handle) => api.get("users/" + user_handle),                         // get user by handle
   user_messages: (user_handle) => api.get("users/" + user_handle + "/messages"),  // get user messages by handle
+
+  channel_messages: (channel_name) => api.get("messages/channel/"+channel_name),
 
   like_messages: (msg_id) => api.post("messages/up/"+msg_id),
   dislike_messages: (msg_id) => api.post("messages/down/"+msg_id),

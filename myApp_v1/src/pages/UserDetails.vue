@@ -64,19 +64,19 @@
 
     <div>
       <q-list v-if="isActive === 'posts'" separator>
-        <ShowPost v-show="!post.hide" v-for="post in userMessageDetails.userPosts" :key="post.id" v-bind="post"
-          class="q-py-md" />
+        <ShowPost v-for="post in userMessageDetails.userPosts" :key="post.id" v-bind="post"
+          class="q-py-md" clickable/>
       </q-list>
       <q-list v-if="isActive === 'replies'" separator>
-        <ShowPost v-show="!post.hide" v-for="post in userMessageDetails.userReplies" :key="post.id" v-bind="post"
-          class=" q-py-md" />
+        <ShowPost v-for="post in userMessageDetails.userReplies" :key="post.id" v-bind="post"
+          class=" q-py-md" clickable />
       </q-list>
       <q-list v-if="isActive === 'media'" separator>
-        <ShowPost v-show="!post.hide" v-for="post in userMessageDetails.userMedias" :key="post.id" v-bind="post"
-          class="q-py-md" />
+        <ShowPost v-for="post in userMessageDetails.userMedias" :key="post.id" v-bind="post"
+          class="q-py-md" clickable/>
       </q-list>
       <q-list v-if="isActive === 'likes'" separator>
-        <ShowPost v-show="!post.hide" v-for="post in userMessageDetails.userAgrees" :key="post.id" v-bind="post" class="q-py-md" />
+        <ShowPost v-for="post in userMessageDetails.userAgrees" :key="post.id" v-bind="post" class="q-py-md" clickable/>
           <!-- {{ userDetails.liked }} -->
         <p style="display:flex;align-items: center; justify-content:center" v-if="userMessageDetails.userAgrees.length<=0">No user Likes!</p>
       </q-list>
@@ -88,25 +88,18 @@
 import { ref, reactive, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import ShowPost from "src/components/posts/ShowPost.vue";
-import { useAuthStore } from "stores/auth";
 import { usePostStore } from "src/stores/posts";
 import { useUserStore } from "src/stores/user";
 import { format } from "date-fns";
 
 const router = useRouter();
 
-const authStore = useAuthStore()
 const postStore = usePostStore()
 const userStore = useUserStore()
 
-const paramId = router.currentRoute.value.params.userId;
 
 
-// const userPosts = computed(() => userStore.getUserMessages);
-// const userReplies = computed(() => userStore.getUserReplies);
-// const userMedias = computed(() => userStore.getUserMedias);
-// const userAgrees = computed(() => userStore.getUserAgrees);
-const user = authStore.getUser()
+
 
 const isActive = ref("posts");
 
@@ -149,12 +142,13 @@ const fetchUserData = async (paramId) => {
   return data
 }
 
-
 watch(
   () => router.currentRoute.value.params,
   async (v) => {
+    if(v.userId){
     fetchUserMessages(v.userId);
     fetchUserData(v.userId)
+    }
   },
   {
     deep: false,
@@ -168,9 +162,11 @@ watch(
 
 onMounted(() => {
   const paramId = router.currentRoute.value.params.userId;
-  console.log("now you're searching informations for user: ", paramId)
-  fetchUserMessages(paramId)
-  fetchUserData(paramId)
+  if (typeof paramId !== 'undefined') {
+    console.log("now you're searching informations for user: ", paramId)
+    fetchUserMessages(paramId)
+    fetchUserData(paramId)
+  }
 })
 </script>
 

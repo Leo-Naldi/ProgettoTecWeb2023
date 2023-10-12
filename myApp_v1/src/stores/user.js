@@ -29,7 +29,7 @@ export const useUserStore = defineStore('User', {
         })
         .catch((err) => console.log("fetch all Users error!!!", err));
     },
-/*     async fetchAllUserName(){ //TODO: get all user handle
+    async fetchAllUserName(){
       return await API.all_users_name()
         .then((response) => {
           if (response.status === 200) {
@@ -37,7 +37,7 @@ export const useUserStore = defineStore('User', {
           }
         })
         .catch((err) => console.log("fetch all User name error!!!", err));
-    }, */
+    },
     async searchUser(user_name){
       try {
         const response = await API.user(user_name)

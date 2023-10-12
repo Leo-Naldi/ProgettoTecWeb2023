@@ -33,7 +33,11 @@
 
       <q-separator class="divider" color="grey-2" size="10px" />
 
+      <q-list separator>
+        <ShowPost v-for="post in channelDetails.messages" :key="post.id" v-bind="post" clickable />
 
+    </q-list>
+    <p v-if="channelDetails.messages.length <= 0">没有相关回复</p>
     <!-- </q-scroll-area> -->
   </q-page>
 </template>
@@ -42,26 +46,45 @@
 <script setup>
 import ChannelButton from 'src/components/ChannelButton.vue';
 import { useChannelStore } from 'src/stores/channels.js';
+import { usePostStore } from 'src/stores/posts';
 import { ref, onMounted, reactive } from "vue";
+import ShowPost from "src/components/posts/ShowPost.vue";
+import { useRouter } from "vue-router";
+
 
 const channelStore= useChannelStore()
+const postStore = usePostStore()
+const router = useRouter();
+
+
 
 const channelDetails = reactive({
   description:null,
   creator:null,
-  members:null
+  members:null,
+  messages: [],
 })
 
-const fetchData = async () => {
-  const data = await channelStore.searchChannel("daily_news")
+const fetchChannelData = async (channelId) => {
+  const data = await channelStore.searchChannel(channelId)
   channelDetails.description=data[0].description
   channelDetails.creator=data[0].creator
   channelDetails.members = data[0].members.length
-
 }
 
+const fetchChannelMessages = async(channelId)=>{
+  const data = await postStore.fetchChannelPost(channelId)
+  channelDetails.messages = data
+}
+
+
 onMounted(()=>{
-  fetchData()
+  const paramId = router.currentRoute.value.params.channelName;
+  if (typeof paramId !== 'undefined') {
+    console.log("now you're searching informations for channel: ", paramId)
+    fetchChannelData(paramId)
+    fetchChannelMessages(paramId)
+  }
 })
 
 </script>

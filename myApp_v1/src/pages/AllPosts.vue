@@ -2,7 +2,8 @@
   <!-- <q-page padding> -->
   <q-page class="relative-position">
     <q-list separator>
-      <ShowPost style="border-radius:12px; margin: 0.4rem 0.2rem 0.3rem 0.2rem"  v-show="!post.hide" v-for="post in post_list" :key="post.id" v-bind="post" clickable @click="gotoDetail(post.id)" />
+      <ShowPost style="border-radius:12px; margin: 0.4rem 0.2rem 0.3rem 0.2rem" v-show="!post.hide"
+        v-for="post in post_list" :key="post.id" v-bind="post" clickable />
     </q-list>
   </q-page>
 </template>
@@ -13,27 +14,27 @@ import { usePostStore } from "src/stores/posts.js";
 import { useChannelStore } from "src/stores/channels.js";
 import { useAuthStore } from 'src/stores/auth';
 import { LocalStorage } from 'Quasar'
+import { useRouter } from "vue-router";
+
 
 export default {
   name: "AllPosts",
   data() {
     return {
       postStore: usePostStore(),
+      router: useRouter(),
     };
   },
   components: {
     ShowPost,
   },
-  computed:{
-    post_list(){
+  computed: {
+    post_list() {
       return this.postStore.getPosts
     },
   },
   methods: {
-    gotoDetail(id) {
-      console.log("go to post's detail page!");
-    },
-  },
+  }
 };
 </script>
 

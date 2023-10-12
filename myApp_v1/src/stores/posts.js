@@ -41,6 +41,7 @@ export const usePostStore = defineStore("post", {
           // '<router-link  @click.stop.prevent to="' +route +'">' + match + "</router-link>"
           '<a  @click.stop.prevent href="' +route +'">' + match + "</a>"
 
+
         );
       });
 
@@ -61,6 +62,7 @@ export const usePostStore = defineStore("post", {
         return obj;
       });
     },
+    // fetch all posts
     async fetchPosts() {
       console.log("i've fetched again all posts!");
       return API.all_messages()
@@ -88,6 +90,27 @@ export const usePostStore = defineStore("post", {
         })
         .catch((err) => console.log("fetch all posts error!!!", err));
     },
+    // fetch one posts
+    async fetchPost(id){
+      try {
+        const response = await API.message(id)
+        return this.messageHandler([response.data])
+      } catch (error) {
+        console.log("fetch one post error!!!", error);
+        throw error;
+      }
+    },
+    // fetch channel posts
+    async fetchChannelPost(channel_name){
+      try {
+        const response = await API.channel_messages(channel_name)
+        return this.messageHandler(response.data)
+      } catch (error) {
+        console.log("fetch channel post error!!!", error);
+        throw error;
+      }
+    },
+    // fetch replies to a post
     async fetchReplis(id){
       try {
         const response = await API.replies(id)

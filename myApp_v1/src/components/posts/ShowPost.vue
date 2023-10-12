@@ -1,5 +1,5 @@
 <template>
-  <q-item class="my-posts q-py-md">
+  <q-item class="my-posts q-py-md" @click="goToDetails(id)">
     <q-item-section avatar top>
       <q-avatar color="blue-6" text-color="white" size="xl" @click.stop.prevent="gotoAuthor(author)">
         {{ author ? author[0] + author[1] : "Null" }}
@@ -73,7 +73,7 @@
         </div>
 
         <div class="my-button" id="reply">
-          <q-btn id="replyBtn" flat round icon="fa-regular fa-comment" size="sm" @click.stop.prevent="getPostsId(id)">
+          <q-btn id="replyBtn" flat round icon="fa-regular fa-comment" size="sm" @click.stop.prevent="showReplies(id)">
             <!-- <q-popup-proxy>
             <NewPosts :id="id" :author="author"></NewPosts>
           </q-popup-proxy> -->
@@ -95,6 +95,7 @@
     </q-item-section>
 
   </q-item>
+
 </template>
 
 <script setup>
@@ -203,11 +204,20 @@ const gotoAuthor = (author) => {
   console.log("goto post's author page");
 };
 
+const goToDetails = ((id) => {
+  router.push({
+    name: "PostDetail",
+    params: {
+      postId: id,
+    },
+  });
+})
+
 const relativeDate = (value) => {
   return formatDistance(parseISO(value), new Date());
 };
 
-// v-if：in UserPage(handle's page) only
+// v-if：in UserDetails(handle's page) only
 const deletePost = (id) => { };
 const modifyPost = (id) => { };
 
@@ -269,16 +279,18 @@ const addNegReaction = async (id)=>{
   }
 }
 
+const showReplies = (id) => { alert("查看回复！")};
+
 onMounted(()=>{
   const paramId = router.currentRoute.value.params.userId;
   const searchLikes=paramId?paramId:authStore.getUserHandle()
   fetchUserData(searchLikes)
   fetchPostReplies(props.id)
 })
+
 /******************************************
-                debug functions
+                debug funconsti
  *******************************************/
-const getPostsId = (id) => { };
 
 
 </script>
