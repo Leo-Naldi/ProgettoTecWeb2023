@@ -10,6 +10,8 @@ const SquealSocket = require("../socket/Socket");
 const { logger } = require("../config/logging");
 const dayjs = require("dayjs");
 
+const _ = require('underscore');
+
 class UserService {
 
     static getSecureUserRecords(filter) {
@@ -74,22 +76,22 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
-    static async getUsers({ handle, admin, accountType, handleOnly, page = 1, 
-        results_per_page=config.results_per_page
+    static async getUsers({ handle, admin, accountType, handleOnly=false, page = 1, 
+        results_per_page=config.results_per_page,
      } = { page: 1, results_per_page: config.results_per_page }){
         let filter = new Object();
 
         if (handle) filter.handle = { $regex: handle, $options: 'i' };
-        if ((admin === true) || (admin === false)) filter.admin = admin;
+        if (_.isBoolean(admin)) filter.admin = admin;
         if (accountType) filter.accountType = accountType;
 
         let users;
-        if ((handleOnly === true) || (handleOnly === false)) {
+        if ((_.isBoolean(handleOnly)) && handleOnly) {
             users = await UserService.getSecureUserRecords(filter)
                 .sort('meta.created')
                 .select('handle');
             
-            return Service.successResponse(UserService.makeUserObjectArr(users));
+            return Service.successResponse(users.map(u => u.handle));
         } else {
 
             let query = UserService.getSecureUserRecords(filter)

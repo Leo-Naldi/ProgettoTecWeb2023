@@ -54,7 +54,7 @@ class Controller {
      * @static
      */
     static handleBoolean(value) {
-        if (value === 'false') return false;
+        if ((value === 'false') || (value === 'False')) return false;
 
         return !!value;
     }

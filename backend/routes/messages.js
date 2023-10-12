@@ -112,7 +112,7 @@ MessageRouter.delete('/up/:id', getAuthMiddleware('basicAuth'),
 );
 
 // user add negative reactions
-MessageRouter.delete('/down/:id', getAuthMiddleware('basicAuth'),
+MessageRouter.post('/down/:id', getAuthMiddleware('basicAuth'),
     async (req, res) => {
 
         await Controller.handleRequest(req, res, MessageServices.deleteNegativeReaction);
