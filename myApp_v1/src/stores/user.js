@@ -23,7 +23,7 @@ export const useUserStore = defineStore('User', {
               var tmp_res2 = { value: "", username: "" };
               tmp_res2.value = response.data[element].handle;
               tmp_res2.username = response.data[element].username;
-              this.AutoCompleteUserList.push(tmp_res2);
+              this.autoComplateAllUser.push(tmp_res2);
             }
           }
         })

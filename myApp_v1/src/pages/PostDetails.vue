@@ -6,6 +6,8 @@
     <router-view :key="router.fullPath"></router-view>
 
     <!-- <NewShowPost :author="info.post[0].author"></NewShowPost> -->
+    <WritePost></WritePost>
+
     <q-separator class="divider" color="grey-2" size="10px" />
 
     <q-list separator>
@@ -20,6 +22,7 @@
 import { reactive, ref, computed, onMounted, watch } from "vue";
 import { usePostStore } from "src/stores/posts";
 import ShowPost from "src/components/posts/ShowPost.vue";
+import WritePost from "src/components/posts/WritePost.vue";
 
 import { useRouter } from "vue-router";
 

@@ -25,14 +25,14 @@ export const useMapStore = defineStore("map", {
           '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(this.map);
     },
-    getCurrentLocation (state) {
+    getCurrentLocation () {
       navigator.geolocation.getCurrentPosition((position) => {
-        state.center = [
+        this.center = [
           position.coords.latitude,
           position.coords.longitude,
         ];
       });
-      return state.center
+      return this.center
     },
 
     setCenter(center) {
