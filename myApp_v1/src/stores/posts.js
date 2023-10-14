@@ -62,6 +62,16 @@ export const usePostStore = defineStore("post", {
         return obj;
       });
     },
+    async sendPost(handle, post){
+      try {
+        const response = await API.send_message(handle, post)
+        const data= this.messageHandler([response.data.message])
+        return data
+      } catch (error) {
+        console.log("fetch one post error!!!", error);
+        throw error;
+      }
+    },
     // fetch all posts
     async fetchPosts() {
       console.log("i've fetched again all posts!");
@@ -152,66 +162,6 @@ export const usePostStore = defineStore("post", {
         throw error;
       }
     },
-    /* async add_negReaction(id) {
-      const res = this.allPosts.find((iter) => iter.id === id);
-      try {
-        await API.dislike_messages(id);
-        res.disliked = true;
-        res.reactions.negative += 1;
-        console.log("踩成功");
-      } catch (error) {
-        if (error.response && error.response.status === 409) {
-          console.log("已经踩过，发起取消踩请求");
-          await this.undo_negaReaction(id);
-          res.disliked = false;
-          res.reactions.negative =
-            res.reactions.negative > 0 ? (res.reactions.negative -= 1) : 0;
-          console.log("取消踩成功");
-        } else {
-          console.error("踩失败", error);
-        }
-      }
-    },
-    async add_posReaction(id) {
-      const res = this.allPosts.find((iter) => iter.id === id);
-      try {
-        await API.like_messages(id);
-        res.liked = true;
-        res.reactions.positive += 1;
-        console.log("点赞成功");
-      } catch (error) {
-        if (error.response && error.response.status === 409) {
-          console.log("已经点过赞，发起取消点赞请求");
-          await this.undo_posReaction(id);
-          res.liked = false;
-          res.reactions.positive =
-          //   res.reactions.positive > 0 ? (res.reactions.positive -= 1) : 0;
-          console.log("取消点赞成功");
-        } else {
-          console.error("点赞失败", error);
-        }
-      }
-    }, */
-    /* async add_negReaction(id) {
-      try {
-        await API.dislike_messages(id);
-        console.log("踩成功");
-        return 200
-      } catch (error) {
-        console.log("踩失败");
-        return error.response.status
-      }
-    },
-    async add_posReaction(id) {
-      try {
-        await API.like_messages(id);
-        console.log("点赞成功");
-        return 200
-      } catch (error) {
-        console.error("点赞失败", error);
-        return error.response.status
-      }
-    }, */
     async add_negReaction(id) {
       try {
         await API.dislike_messages(id);

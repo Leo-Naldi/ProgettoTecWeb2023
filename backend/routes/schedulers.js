@@ -7,13 +7,17 @@ const SchedulerMessageService = require("../services/MessageSchedulerServices");
 const MessageServices = require('../services/MessageServices');
 const SchedulerMessageRouter = express.Router();
 
+const makeToken = require('../utils/makeToken.js');
+
 
 SchedulerMessageRouter.post('/at/:handle', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM,
     async (req, res) => {;
-        // await Controller.handleRequest(req,res, SchedulerMessageService(schedule));
+        // await Controller.handleRequest(req,res, SchedulerMessageService.setPostTime);
 
         
-        // await Controller.handleRequest(req,res, MessageServices.postUserMessage);
+        await Controller.handleRequest(req,res, MessageServices.postUserMessage);
+
+        
     }
 );
 

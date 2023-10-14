@@ -14,8 +14,8 @@
       <img src="https://cdn.quasar.dev/img/avatar2.jpg">
     </q-avatar>
     <div class="my-input">
-      <!-- <p v-if="clickedInput && props.author != 'Error'" class="text-weight-bold text-blue-6"
-        style="position: fixed;  margin-left:0">Replying to: @{{ props.author }}</p> -->
+      <p v-if="clickedInput && props.author != ''" class="text-weight-bold text-blue-6"
+        style="position: absolute;  margin-left:0">Replying to: @{{ props.author }}</p>
       <Mentionable :keys="['@', '#', '§']" :items="MentionableItems" offset="6" insert-space @open="onOpen"
         @apply="onApply">
         <q-input id="inputElement" @click="clickedInput = true" v-model="newPost.content" class="my-input-textarea"
@@ -31,6 +31,15 @@
             class="closeIcon" color="red" icon="fa-regular fa-circle-xmark" />
         </div>
 
+        <div v-if="clickedInput" class="sendTips cursor-pointer"  @click="whoCanSee()" >
+          <!-- <q-btn  flat round color="primary" icon="public" @click="newPost.everyOneCanSee = false"/> -->
+
+
+          <q-icon style="margin: 0.22rem 0.2rem 0 0" name="public"  />
+          <p v-if="newPost.everyOneCanSee==false" class="text-weight-bold text-blue-6">Only Selected can see</p>
+          <p v-else class="text-weight-bold text-blue-6">Everyone can see</p>
+        </div>
+
         <div class="my-icons">
           <span class="my-icon-left text-grey-7 ">
             <q-btn flat round icon="fa-regular fa-calendar-plus" size="sm" @click="scheduleMsg(post)">
@@ -39,7 +48,7 @@
             </q-btn>
             <q-btn flat round icon="fa-solid fa-user" size="sm">
               <q-popup-proxy>
-                <q-select filled v-model="destUsers" use-input use-chips stack-label multiple input-debounce="0"
+                <q-select filled v-model="newPost.destUsers" use-input use-chips stack-label multiple input-debounce="0"
                   label="Simple filter" :options="optionsUser" @filter="filterFnUser" style="width: 250px"
                   behavior="menu">
                   <template v-slot:no-option>
@@ -54,7 +63,7 @@
             </q-btn>
             <q-btn flat round icon="fa-solid fa-list" size="sm">
               <q-popup-proxy>
-                <q-select filled v-model="destChannel" use-input use-chips stack-label multiple input-debounce="0"
+                <q-select filled v-model="newPost.destChannels" use-input use-chips stack-label multiple input-debounce="0"
                   label="Simple filter" :options="optionsChannel" @filter="filterFnChannel" style="width: 250px"
                   behavior="menu">
                   <template v-slot:no-option>
@@ -72,7 +81,7 @@
                 <!--                 <q-video
                   src="https://www.youtube.com/embed/k3_tw44QsZQ?rel=0"
                 /> -->
-                <q-uploader @uploaded="handleUploaded" :url="globalStore.baseURL+'image/upload/'+authStore.getUserHandle()"
+                <q-uploader @uploaded="handleUploaded" :url="globalStore.baseURL+'image/upload/'+user_handle"
                   label="upload one or more imgs(choose one in a time)" style="width: 300px" />
               </q-popup-proxy>
             </q-btn>
@@ -157,19 +166,22 @@ import { useGlobalStore } from "src/stores/global";
 const authStore = useAuthStore()
 const userStore = useUserStore()
 const channelStore = useChannelStore()
+const postStore = usePostStore()
 const mapStore = useMapStore()
 const imageStore = useImageStore()
 const router = useRouter();
 const globalStore = useGlobalStore()
 
 const props = defineProps({
+  // pass this in reply icon
   id: {
     type: String,
     default: "",
   },
+  // replying to: author
   author: {
     type: String,
-    default: "Error"
+    default: ""
   }
 });
 
@@ -201,27 +213,25 @@ const tags = [
 
 const clickedInput = ref(false)                       /* replying to... */
 const userInput = ref(null)                           /* clipboard image */
-const user_handle = useAuthStore().getUserHandle()      /* upload image */
+const user_handle = authStore.getUserHandle()         /* upload image */
 
 const newPost = reactive({
+  everyOneCanSee: true,
   content: "",
   imageURL: "",
   mapName: "tmp",
   coordinate: [],
-  dest: [],
-  answering: "",
-  meta: {
-    created: formatISO(new Date()),
-    lastModified: formatISO(new Date()),
-  },
+  destUsers: null,
+  destChannels: null,
+  answering: props.id != "" ? props.id :
+    router.currentRoute.value.params ? router.currentRoute.value.params.postId : "",
+  // answering comes from: or postDetails page in router param, or from reply button in props
 });
 
 /******************************************
               drop down select
 *******************************************/
 
-const destUsers = ref(null);
-const destChannel = ref(null);
 
 const channelsName = computed(() => channelStore.getChannels)
 const usersName = computed(() => userStore.getUsers)
@@ -299,20 +309,68 @@ const getGeo = () => {
   alert(newPost.coordinate)
 }
 
-const sendNewPost = () => {
-  alert("send!")
+const whoCanSee=()=>{
+  newPost.everyOneCanSee = !newPost.everyOneCanSee
 }
 
+
+const sendNewPost = () => {
+  const toSend = {}
+  if(newPost.everyOneCanSee==false)
+    toSend.publicMessage=false
+  if(newPost.answering!="")                                                             // answering
+    toSend.answering=newPost.answering
+  if (newPost.destUsers!=null && newPost.destUsers!=[]) {                               // destUsers
+    const destUsers = newPost.destUsers.map(function (element) {
+      return "@" + element;
+    });
+    toSend.dest= "dest" in toSend? (Array.isArray(toSend.dest) ? toSend.dest.concat(destUsers) : [toSend.dest, destUsers]) : destUsers
+  }
+  if (newPost.destChannels != null && newPost.destChannels!=[]){                        // destChannels
+    const destChannels = newPost.destChannels.map(function (element) {
+      return "§" + element;
+    });
+    toSend.dest = "dest" in toSend? (Array.isArray(toSend.dest) ? toSend.dest.concat(destChannels) : [toSend.dest, destChannels]) : destChannels    // dest
+
+  }
+  if (newPost.content!=""){                                                             // content
+    toSend.content={}
+    toSend.content.text=newPost.content;
+  }
+  if (newPost.imageURL!=""){                                                             // image
+    if (!("content" in toSend)){
+      toSend.content={}
+    }
+    toSend.content.image = newPost.imageURL
+  }
+  if (newPost.coordinate.length!=0)                                                      // coordinate
+    toSend.meta  = { geo: { type: "Point", coord: toRaw(newPost.coordinate) } };
+
+
+  if(newPost.imageURL!="" || newPost.coordinate.length!=0 || newPost.content!=""){
+    // TODO: 可能需要更新 store 的值？？？ 回复页，全部页，用户消息页
+    postStore.sendPost(user_handle,toSend)
+  }
+
+  newPost.everyOneCanSee=true
+  newPost.content=""
+  newPost.imageURL=""
+  newPost.coordinate=[]
+  newPost.destUsers=null
+  newPost.destChannels=null
+}
+
+// TODO: 当点击叉号后连带后端里的图片也删掉
 const deleteImage = () => {
   newPost.imageURL = ""
   newPost.coordinate = []
 }
 
+// 获得调用上传图片 API 之后的返回值
 const handleUploaded=(response) =>{
       const img_name = response.files[0].xhr.response
-
       const baseURL = globalStore.getBaseURL
-      const handle = authStore.getUserHandle()
+      const handle = user_handle
       newPost.imageURL=baseURL+handle+"/"+img_name
       console.log(img_name);
     }
@@ -323,47 +381,11 @@ onMounted(() => {
   channelStore.fetchAllChannelName()
   channelStore.fetchAutoCompleteChannels()
 
-
-
-
   const el = userInput.value.getNativeElement();
-
   el.addEventListener("paste", async (e) => {
-
-
     if (e.clipboardData && typeof e.clipboardData.getData === "function" && e.clipboardData.getData('text/plain')) { }
     else {
       e.preventDefault();
-
-      // let clipboardText;
-      // if (navigator.clipboard && typeof navigator.clipboard.readText === "function") {
-      //   navigator.clipboard.readText()
-      //     .then((text) => {
-      //       clipboardText = text;
-      //       if (clipboardText) {
-      //         alert("is text！");
-      //       }
-      //     })
-      //     .catch((error) => {
-      //       console.error("read clipboard error：", error);
-      //     });
-      // } else
-      /* if (e.clipboardData && typeof e.clipboardData.getData === "function") {
-        const text = e.clipboardData.getData('text/plain');
-        const image = e.clipboardData.getData('image/');
-
-
-        if (text) {
-          // await navigator.clipboard.writeText(text)
-
-          alert("is text！"+text)
-
-        }
-        if(image){
-          alert("is picture！"+image)
-        }
-
-      } */
       const clipboardItems =
         typeof navigator?.clipboard?.read === "function"
           ? await navigator.clipboard.read()
@@ -379,15 +401,6 @@ onMounted(() => {
     }
   });
 });
-
-// if (clipboardItem.type?.startsWith("text/")) {
-
-// await navigator.clipboard.writeText(clipboardItem);
-// }
-// console.log(clipboardItem)
-// const text=await clipboardItem.getText();
-// console.log(text)
-// await navigator.clipboard.writeText(clipboardItem);
 
 /******************************************
                 debug functions

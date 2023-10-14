@@ -6,7 +6,7 @@
     <router-view :key="router.fullPath"></router-view>
 
     <!-- <NewShowPost :author="info.post[0].author"></NewShowPost> -->
-    <WritePost></WritePost>
+    <WritePost :author="postInfo.author"></WritePost>
 
     <q-separator class="divider" color="grey-2" size="10px" />
 
@@ -40,12 +40,14 @@ const mysocket = socketStore.getSocket;
 
 const postInfo = reactive({
   post: null,
+  postAuthor: "",
   replies: []
 })
 
 const fetchPost = async (id) => {
   const data = await postStore.fetchPost(id)
   postInfo.post = data
+  postInfo.author=data[0].author
 }
 
 const fetchPostReplies = async (id) => {

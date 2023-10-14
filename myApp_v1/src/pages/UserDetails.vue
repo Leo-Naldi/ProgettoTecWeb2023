@@ -127,6 +127,8 @@ const userMessageDetails = reactive({
 
 const fetchUserMessages = async (paramId) => {
   userMessageDetails.userPosts = await postStore.fetchUserPosts(paramId)
+  userMessageDetails.userMedias = computed(()=>userMessageDetails.userPosts.filter( obj => obj.content !== undefined && obj.content.image !=undefined))
+  userMessageDetails.userReplies = computed(()=>userMessageDetails.userPosts.filter( obj => obj.answering !== undefined))
 }
 
 
