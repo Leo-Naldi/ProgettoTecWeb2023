@@ -1,8 +1,36 @@
 $(function () {
+    
+    let mem = localStorage.getItem('modDashboardData');
 
-    $('div.container>*').detach();
+    let mod_data = (mem) ? JSON.parse(mem) :null;
+
+    console.log(mod_datarefre)
+
+    if (mod_data) {
+
+        const timestamp = new dayjs(mod_data.timestamp);
+        const exp = timestamp.add(1, 'week');
+
+        if ((new dayjs()).isBefore(exp)) {
+            refreshToken();
+            mountDashboard();
+        } else {
+            mountLogin();
+        }
+    } else {
+       mountLogin();
+    }
+    
+});
+
+function mountLogin() {
+    $('div.container').empty();
+
     $('div.container').append(makeLogin());
+    addLoginFormListeners();
+}
 
+function addLoginFormListeners() {
     $('#login-form').on('submit', function (event) {
         event.preventDefault();
 
@@ -19,6 +47,7 @@ $(function () {
             if (res.ok) {
                 return res.json().then(data => {
                     saveLogin(data);
+                    console.log('aaaaaaa')
                     mountDashboard();
                 })
             } else {
@@ -37,7 +66,7 @@ $(function () {
             console.log(err);
         })
     });
-});
+}
 
 function makeLogin() {
     let login_body =  $(`
@@ -70,11 +99,21 @@ function makeLogin() {
 
 function mountDashboard(){
 
+    let container = $('div.container');
+    
+    container.empty();
+
     let header = makeDashboardHeader();
     let users = makeUserContent();
     let messages = makeMessagesContent();
     let channels = makeChannelsContent();
 
+    container.append(header);
+    container.append(users);
+    container.append(messages);
+    container.append(channels);
+
+    addTabClickListeners()
 }
 
 function makeDashboardHeader() {
@@ -84,16 +123,21 @@ function makeDashboardHeader() {
     });
 
     ['Users', 'Messages', 'Channels'].map((val, i) => {
-        ul.append($(`<li>`, {
-            'class': 'nav-item'
-        }).append($(`<a>${val}</a>`, {
-            'class': (i === 0) ? 'nav-link active': 'nav-link',
-            id: val.toLowerCase()+'Tab'
-        })))
+
+        let li = $('<li>', { "class": 'nav-item' });
+        let a = $('<a>', {
+            'class': (i === 0) ? 'nav-link active' : 'nav-link',
+            id: val.toLowerCase() + 'Tab',
+            text: val,
+        });
+        li.append(a);
+        ul.append(li);
     })
 
-    return $('<header>', { 'class': 'mt-2' })
-        .append(ul)
+    let header = $('<header>', { 'class': 'mt-2' });
+    header.append(ul)
+
+    return header;
 }
 
 function makeUserContent() {
