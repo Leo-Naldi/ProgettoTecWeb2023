@@ -847,25 +847,13 @@ class MessageService {
             return Service.rejectResponse(err);
 
         message = await MessageService.#populateMessageQuery(Message.findById(id));
-        let message_object = MessageService.#makeMessageObject(message);
 
-        SquealSocket.messageChanged({
+
+        SquealSocket.reactionRecived({
             populatedMessage: message,
-            ebody: {
-                reactions: message_object.reactions,
-                id: message_object.id,
-                _id: message_object._id,
-            },
-            socket: socket
-        })
-
-        if (smm_handle)
-            SquealSocket.reactionRecived({
-                id: message_object.id,
-                smm_handle: smm_handle,
-                type: 'negative',
-                socket: socket,
-            });
+            type: 'negative',
+            socket: socket,
+        });
 
         if (user) {
             if (user.smm) {
@@ -953,26 +941,13 @@ class MessageService {
             return Service.rejectResponse(err);
 
         message = await MessageService.#populateMessageQuery(Message.findById(id));
-        let message_object = MessageService.#makeMessageObject(message);
 
     
-        SquealSocket.messageChanged({
+        SquealSocket.reactionRecived({
             populatedMessage: message,
-            populatedMessageObject: {
-                reactions: message_object.reactions,
-                id: message_object.id,
-                _id: message_object._id,
-            },
-            socket: socket
-        })
-
-        if (smm_handle)
-            SquealSocket.reactionRecived({
-                id: message_object.id,
-                smm_handle: smm_handle,
-                type: 'positive',
-                socket: socket,
-            });
+            type: 'positive',
+            socket: socket,
+        }); 
 
         if (user) {
             if (user.smm) {
@@ -1032,25 +1007,12 @@ class MessageService {
             return Service.rejectResponse(err);
 
         message = await MessageService.#populateMessageQuery(Message.findById(id));
-        let message_object = MessageService.#makeMessageObject(message);
 
-        SquealSocket.messageChanged({
+        SquealSocket.reactionDeleted({
             populatedMessage: message,
-            ebody: {
-                reactions: message_object.reactions,
-                id: message_object.id,
-                _id: message_object._id,
-            },
-            socket: socket
+            type: 'negative',
+            socket: socket,
         });
-
-        if (message.author.smm)
-            SquealSocket.reactionDeleted({
-                id: message_object.id,
-                smm_handle: message.author.smm.handle,
-                type: 'negative',
-                socket: socket,
-            });
 
         return Service.successResponse();
     };
@@ -1095,25 +1057,12 @@ class MessageService {
             return Service.rejectResponse(err);
 
         message = await MessageService.#populateMessageQuery(Message.findById(id));
-        let message_object = MessageService.#makeMessageObject(message);
 
-        SquealSocket.messageChanged({
+        SquealSocket.reactionDeleted({
             populatedMessage: message,
-            ebody: {
-                reactions: message_object.reactions,
-                id: message_object.id,
-                _id: message_object._id,
-            },
-            socket: socket
+            type: 'positive',
+            socket: socket,
         });
-
-        if (message.author.smm)
-            SquealSocket.reactionDeleted({
-                id: message_object.id,
-                smm_handle: message.author.smm.handle,
-                type: 'positive',
-                socket: socket,
-            });
 
         return Service.successResponse();
     };

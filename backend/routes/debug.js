@@ -3,7 +3,10 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const { logger } = require('../config/logging');
 const Channel = require('../models/Channel');
-const _ = require('underscore')
+const _ = require('underscore');
+const Controller = require('../controllers/Controller');
+const MessageService = require('../services/MessageServices');
+const Reaction = require('../models/Reactions');
 
 const DebugRouter = express.Router();
 
@@ -34,6 +37,61 @@ DebugRouter.get('/public_message', async (req, res) => {
     if (!message) {
         return res.status(500).json({ message: 'No public message' });
     }
+
+    return res.status(200).json({ id: message._id.toString() });
+});
+
+DebugRouter.post('/reaction/:type/from/:handle', async (req, res) => {
+
+    const user = await User.findOne({ handle: req.params.handle });
+
+    if (!user) {
+        return res.status(409).json({ message: `No user named @${handle}` });
+    }
+
+    let messages = await Message.find({
+        publicMessage: true,
+    });
+
+    if (!messages.length) {
+        return res.status(500).json({ message: `No public messages left` });
+    }
+
+    let message = messages[0];
+
+    let reaction = await Reaction.findOne({
+        user: user._id,
+        message: message._id,
+        type: req.params.type,
+    });
+
+    if (reaction) {
+        return res.status(409).json({ message: `Already disliked message ${id}` });
+    }
+
+    reaction = new Reaction({
+        user: user._id,
+        message: message._id,
+        type: req.params.type,
+    })
+
+    if (req.params.type === 'positive')
+        message.reactions.positive += 1;
+    else
+        message.reactions.negative += 1;
+
+    let err = null;
+    try {
+        message = await message.save();
+        await reaction.save()
+
+    } catch (e) {
+        err = e;
+        logger.error(`debug add reaction Error: ${e.message}`);
+    }
+
+    if (err)
+        return res.status(500).json(err);
 
     return res.status(200).json({ id: message._id.toString() });
 })

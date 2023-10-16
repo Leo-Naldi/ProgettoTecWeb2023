@@ -149,6 +149,12 @@ function makeTestData() {
 
     // request editor 
     i = 18
+
+    // delete like
+    i = 19
+
+    // delete dislike
+    i = 19
 }
 
 
