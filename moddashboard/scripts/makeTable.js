@@ -7,6 +7,8 @@
  */
 function makeTable(headers, data) {
     
+    // TODO add onclick to rows
+
     let thead = $('<thead>');
     let tbody = $('<tbody>');
 
@@ -20,7 +22,7 @@ function makeTable(headers, data) {
         let row = $('<tr>');
         
         headers.map(header => {
-            row.append($(`<td>${d.header}</td>`));
+            row.append($(`<td>${d[header]}</td>`));
         });
 
         tbody.append(row);

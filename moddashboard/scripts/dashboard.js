@@ -1,10 +1,13 @@
+let user_table = null;
+let message_table = null;
+let channel_table = null;
+
+
 $(function () {
     
     let mem = localStorage.getItem('modDashboardData');
 
     let mod_data = (mem) ? JSON.parse(mem) :null;
-
-    console.log(mod_datarefre)
 
     if (mod_data) {
 
@@ -113,7 +116,8 @@ function mountDashboard(){
     container.append(messages);
     container.append(channels);
 
-    addTabClickListeners()
+    addTabClickListeners();
+    fetchUserData();
 }
 
 function makeDashboardHeader() {
@@ -141,43 +145,64 @@ function makeDashboardHeader() {
 }
 
 function makeUserContent() {
-    return $(`
-        <div class="content active-content" id="usersContent">
-
-            <div class="row my-3 d-flex justify-content-center" id="user-search-widgets">
-                <div class="col-md-7">
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Search by Name" id="userSearchInput">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="button" id="searchButton">Search</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3" id="user-filter">
-                    <div class="form-group">
-                        <label for="accountTypeFilter">Account Type:</label>
-                        <select class="form-control" id="accountTypeFilter">
-                            <option value="">All</option>
-                            <option value="user">User</option>
-                            <option value="pro">Pro User</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="userPopularityFilter">Popularity:</label>
-                        <select class="form-control" id="userPopularityFilter">
-                            <option value="">All</option>
-                            <option value="popular">Popular</option>
-                            <option value="unpopular">Unpopular</option>
-                            <option value="controversial">Controversial</option>
-                        </select>
+    
+    let result = $("<div>", {
+        'class': 'container active-content',
+        id: 'usersContent',
+    })
+    
+    let filters = $(`
+        <div class="row my-3 d-flex justify-content-center" id="user-search-widgets">
+            <div class="col-md-7">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search by Name" id="userSearchInput">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" id="searchButton">Search</button>
                     </div>
                 </div>
             </div>
-
-            <h2>Users Content</h2>
+            <div class="col-md-3" id="user-filter">
+                <div class="form-group">
+                    <label for="accountTypeFilter">Account Type:</label>
+                    <select class="form-control" id="accountTypeFilter">
+                        <option value="">All</option>
+                        <option value="user">User</option>
+                        <option value="pro">Pro User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="userPopularityFilter">Popularity:</label>
+                    <select class="form-control" id="userPopularityFilter">
+                        <option value="">All</option>
+                        <option value="popular">Popular</option>
+                        <option value="unpopular">Unpopular</option>
+                        <option value="controversial">Controversial</option>
+                    </select>
+                </div>
+            </div>
         </div>
+    
     `)
+
+    result.append(filters);
+
+    let headers_map = new Map();
+
+    
+
+    user_table = DataTable(result, )
+
+    return result;
+}
+
+function fetchUserData() {
+    getUsers()
+        .then(res => res.json())
+        .then(data => {
+            let headers = ['Handle', 'Type',];
+            $('#user-spinner').remove()
+        })
 }
 
 function makeMessagesContent() {
@@ -228,3 +253,4 @@ function addTabClickListeners() {
         $("#" + tabId).addClass("active-content");
     });
 }
+
