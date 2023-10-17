@@ -1,19 +1,21 @@
 class DataTable {
     
-    constructor(container, headers, data_transform=null) {
+    constructor(container, headers, endpoint, data_transform=null) {
         this.headers = headers;
         this.table = null;
         this.spinner = null;
         this.container = container;
+        this.endpoint = endpoint;
         this.data_transform = data_transform;
+        this.selected_row = null;
     }
 
 
-    mount(endpoint, query) {
+    mount(query) {
         this.mountSpinner();
 
         authorizedRequest({
-            endpoint: endpoint,
+            endpoint: this.endpoint,
             method: 'get',
             query: query,
             token: DataTable.#getToken(),
@@ -30,8 +32,10 @@ class DataTable {
         this.table?.remove();
 
         this.spinner = $(`
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
         `);
 
@@ -53,13 +57,23 @@ class DataTable {
         thead.append(headers_row);
 
         data.map(d => {
-            let row = $('<tr>');
-
-            headers.map(header => {
-                row.append($(`<td>${d[header.toLowerCase()]}</td>`));
+            let row = $('<tr>', {
+                id: d.id,
             });
 
+            this.headers.map(header => {
+                row.append($(`<td>`, {
+                    text: d[header.toLowerCase()],
+                    'class': 'ellipsis-text',
+                }));
+
+            });
             tbody.append(row);
+
+            let td = this;
+            row.click(function (event) {
+                td.#selectRow($(this));
+            });
         });
 
         let table = $('<table>', { "class": "table" });
@@ -68,6 +82,17 @@ class DataTable {
         table.append(tbody);
 
         return table;
+    }
+
+    #selectRow(row) {
+        this.selected_row?.toggleClass('table-primary');
+        
+        if (this.selected_row?.attr('id') !== row.attr('id')) {
+            row.toggleClass('table-primary');
+            this.selected_row = row;
+        } else {
+            this.selected_row = null;
+        }
     }
 
     static #getToken() {

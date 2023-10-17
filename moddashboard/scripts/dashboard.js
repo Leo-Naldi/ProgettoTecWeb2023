@@ -117,7 +117,6 @@ function mountDashboard(){
     container.append(channels);
 
     addTabClickListeners();
-    fetchUserData();
 }
 
 function makeDashboardHeader() {
@@ -151,58 +150,10 @@ function makeUserContent() {
         id: 'usersContent',
     })
     
-    let filters = $(`
-        <div class="row my-3 d-flex justify-content-center" id="user-search-widgets">
-            <div class="col-md-7">
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Search by Name" id="userSearchInput">
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="button" id="searchButton">Search</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3" id="user-filter">
-                <div class="form-group">
-                    <label for="accountTypeFilter">Account Type:</label>
-                    <select class="form-control" id="accountTypeFilter">
-                        <option value="">All</option>
-                        <option value="user">User</option>
-                        <option value="pro">Pro User</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="userPopularityFilter">Popularity:</label>
-                    <select class="form-control" id="userPopularityFilter">
-                        <option value="">All</option>
-                        <option value="popular">Popular</option>
-                        <option value="unpopular">Unpopular</option>
-                        <option value="controversial">Controversial</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    
-    `)
-
-    result.append(filters);
-
-    let headers_map = new Map();
-
-    
-
-    user_table = DataTable(result, )
+    let users_content = new UserContent(result);
+    users_content.mount();
 
     return result;
-}
-
-function fetchUserData() {
-    getUsers()
-        .then(res => res.json())
-        .then(data => {
-            let headers = ['Handle', 'Type',];
-            $('#user-spinner').remove()
-        })
 }
 
 function makeMessagesContent() {

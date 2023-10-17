@@ -24,6 +24,7 @@ function authorizedRequest({ endpoint, token, method = 'get', query = null, body
     }
 
     if (body) opt.body = body;
+    if (query) opt.query = query;
 
     return fetch(url.href, opt);
 }
