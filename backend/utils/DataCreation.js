@@ -16,6 +16,7 @@ const dayjs = require('dayjs');
 const LoremIpsum = require("lorem-ipsum").LoremIpsum;
 
 const _ = require('underscore');
+const Reaction = require('../models/Reactions');
 
 
 /**
@@ -123,6 +124,8 @@ class TestEnv {
          * @public
          */
         this.image_urls = image_urls;
+
+        this.reactions = [];
     }
 
     /**
@@ -516,6 +519,33 @@ class TestEnv {
                 .some(cid => channel_id.equals(cid)));
     }
 
+    addReactions(message_index, type, min, max) {
+
+        let reaction_num = Math.min(TestEnv.getRandom(min, max), this.users.lenght);
+        let reacting_user_indexes = TestEnv.getRandomIndexes(this.users.length, reaction_num);
+
+        for (let i = 0; i < reaction_num; i++){
+            this.addReactionFromUser(message_index, reacting_user_indexes[i], type);
+        }
+    }
+
+    addReactionFromUser(message_index, user_index, type) {
+        let message = this.messages[message_index];
+        let user = this.users[user_index];
+        
+        this.reactions.push(new Reaction({
+            user: user._id,
+            message: message._id,
+            type: type,
+        }));
+        
+        if (type === 'positive') {
+            message.reactions.positive += 1;
+        } else {
+            message.reactions.negative += 1;
+        }
+    }
+
     /**
      * Saves all users, messages, channels and proPlans to the db.
      * 
@@ -523,11 +553,13 @@ class TestEnv {
      * @async
      */
     async saveAll() {
-        await Promise.all([...this.users.map(u => u.save()),
-                           ...this.channels.map(c => c.save()),
-                           ...this.messages.map(m => m.save()),
-                           ...this.proPlans.map(p => p.save()),
-                        ]);
+        await Promise.all([
+            ...this.users.map(u => u.save()),
+            ...this.channels.map(c => c.save()),
+            ...this.messages.map(m => m.save()),
+            ...this.proPlans.map(p => p.save()),
+            ...this.reactions.map(r => r.save()),
+        ]);
     }
 
     /**

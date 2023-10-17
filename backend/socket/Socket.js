@@ -142,23 +142,27 @@ class SquealSocket {
         });
     }
 
-    static reactionRecived({ id, smm_handle, type, socket }) {
-        namespaces = new Set([`/pro-io/${smm_handle}`]);
+    static reactionRecived({ populatedMessage, type, socket }) {
+        
+        let namespaces = SquealSocket.#makeNamespacesFromPopulatedMessage(populatedMessage);
+        
         SquealSocket.emit({
             socket: socket,
             namespaces: namespaces,
             eventName: 'reaction:recived',
-            eventBody: { id: id, type: type },
+            eventBody: { id: populatedMessage._id.toString(), type: type },
         });
     }
 
-    static reactionDeleted({ id, smm_handle, type, socket }) {
-        namespaces = new Set([`/pro-io/${smm_handle}`]);
+    static reactionDeleted({ populatedMessage, type, socket }) {
+        
+        let namespaces = SquealSocket.#makeNamespacesFromPopulatedMessage(populatedMessage);
+        
         SquealSocket.emit({
             socket: socket,
             namespaces: namespaces,
             eventName: 'reaction:deleted',
-            eventBody: { id: id, type: type },
+            eventBody: { id: populatedMessage._id.toString(), type: type },
         });
     }
 
