@@ -37,7 +37,7 @@ class Controller {
      * @static
      */
     static sendError(response, error) {
-        logger.error(`[${error.status || 500}]: ${error.error || error.message}`)
+        logger.error(`The following Error occurred: ${error}`);
         response.status(error.status || 500);
         if (error.error instanceof Object) {
             response.json(error.error);

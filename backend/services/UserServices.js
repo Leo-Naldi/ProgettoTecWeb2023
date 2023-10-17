@@ -47,7 +47,6 @@ class UserService {
         res.editorChannelRequests = res.editorChannelRequests?.map(c => c?.name || c);
 
         res.smm = res.smm?.handle || res.smm;
-        logger.debug(res.smm);
 
         if (user.managed) {
             res.managed = user.managed.map(u => u.handle)
@@ -79,6 +78,7 @@ class UserService {
     static async getUsers({ handle, admin, accountType, handleOnly=false, page = 1, 
         results_per_page=config.results_per_page,
      } = { page: 1, results_per_page: config.results_per_page }){
+        
         let filter = new Object();
 
         if (handle) filter.handle = { $regex: handle, $options: 'i' };
@@ -275,8 +275,6 @@ class UserService {
             user.editorChannels = user.editorChannels.filter(cid =>
                 !channels.find(c => c._id.equals(cid)));
         }
-
-        //logger.debug(user.subscription)
 
         let smm = null;
         if ((user.accountType === 'user') && (user.smm)) {
@@ -514,8 +512,6 @@ class UserService {
             logger.error(`User '${smm}' not found`)
             return Service.rejectResponse({ message: `User '${smm}' not found` });
         }
-
-        //logger.debug('AAAAAAAAAAAAAAA')
 
         // operation was 'change'
         user.smm = new_smm_acc._id;
