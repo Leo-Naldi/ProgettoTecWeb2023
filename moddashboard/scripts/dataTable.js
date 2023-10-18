@@ -1,6 +1,6 @@
 class DataTable {
     
-    constructor(container, headers, endpoint, data_transform=null) {
+    constructor(container, headers, endpoint, after_row_select, data_transform=null) {
         this.headers = headers;
         this.table = null;
         this.spinner = null;
@@ -8,6 +8,8 @@ class DataTable {
         this.endpoint = endpoint;
         this.data_transform = data_transform;
         this.selected_row = null;
+        this.selected_user = null;
+        this.after_row_select = after_row_select;
     }
 
 
@@ -20,7 +22,6 @@ class DataTable {
             query: query,
             token: DataTable.#getToken(),
         }).then(data => data.json())
-        .then(data => this.data_transform?.(data) ?? data)
         .then(data => {
             this.table = this.#makeTable(data);
             this.spinner?.remove();
@@ -32,7 +33,7 @@ class DataTable {
         this.table?.remove();
 
         this.spinner = $(`
-            <div class="d-flex justify-content-center">
+            <div class="d-flex justify-content-center mt-4">
                 <div class="spinner-border" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
@@ -44,8 +45,8 @@ class DataTable {
 
     #makeTable(data) {
 
-        // TODO add onclick to rows
-
+        let div = $('<div>');
+        
         let thead = $('<thead>');
         let tbody = $('<tbody>');
 
@@ -61,9 +62,10 @@ class DataTable {
                 id: d.id,
             });
 
+            let transformed = this.data_transform?.(d) ?? d;
             this.headers.map(header => {
                 row.append($(`<td>`, {
-                    text: d[header.toLowerCase()],
+                    text: transformed[header.toLowerCase()],
                     'class': 'ellipsis-text',
                 }));
 
@@ -72,27 +74,33 @@ class DataTable {
 
             let td = this;
             row.click(function (event) {
-                td.#selectRow($(this));
+                td.#selectRow($(this), d);
             });
         });
 
-        let table = $('<table>', { "class": "table" });
+        let table = $('<table>', { "class": "table table-hover" });
 
         table.append(thead);
         table.append(tbody);
 
-        return table;
+        
+        div.append(table);
+        return div;
     }
 
-    #selectRow(row) {
+    #selectRow(row, user) {
         this.selected_row?.toggleClass('table-primary');
         
         if (this.selected_row?.attr('id') !== row.attr('id')) {
             row.toggleClass('table-primary');
             this.selected_row = row;
+            this.selected_user = user;
         } else {
             this.selected_row = null;
+            this.selected_user = null;
         }
+
+        this.after_row_select(this);
     }
 
     static #getToken() {

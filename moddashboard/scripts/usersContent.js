@@ -11,25 +11,87 @@ class UserContent{
             'Blocked',
         ]
 
-        let transform = (data) => {
-
-            return data.map(d => {
-
+        let transform = (d) => {
                 d.member = (d.joinedChannels?.length) ? d.joinedChannels: '-';
                 d['account type'] = d.accountType;
                 d.editor = (d.editorChannels?.length) ? d.editorChannels : '-';
                 return d;
-            });
-        } 
+        }; 
 
-        this.data_table = new DataTable(this.container, headers, 'http://localhost:8000/users', transform);
+        let after_row_select = () => {
+            if (this.data_table?.selected_user) {
+                this.edit_button?.attr('disabled', false);
+            } else {
+                this.edit_button?.attr('disabled', true);
+            }
+        }
+
+        this.data_table = new DataTable(
+            this.container, 
+            headers, 
+            'http://localhost:8000/users', 
+            after_row_select,
+            transform
+        );
+
+        this.edit_button = null;
+        this.search_button = null;
     }
 
     mount() {
 
         this.container.empty();
 
-        this.filters = $(`
+        let modal_id = 'edit-user-modal';
+        
+        let modal = this.#makeModal(modal_id);
+
+        let filters_form = $('<form>', {
+            'class': 'row my-3 d-flex justify-content-center',
+            'id': 'user-search-widgets',
+        });
+
+        filters_form.append($('<div>', {
+                'class': 'col-md-8',
+            }).append($('<div>', {
+                    'class': 'input-group'
+                }).append($('<input>', {
+                        'name': 'handle',
+                        'type': 'text',
+                        'class': 'form-control',
+                        'placeholder': 'Search by Handle',
+                        'id': 'userSearchInput',
+                    })
+                )
+            )
+        );
+
+        filters_form.append($('<div>', {
+            'class': 'col-md-2',
+        }).append($('<div>', {
+            'class': 'form-group'
+        }).append($('<button>', {
+            'type': 'submit',
+            'class': 'btn btn-primary',
+            'text': 'Search',
+        }))));
+
+        this.edit_button = $('<button>', {
+            'type': 'button',
+            'class': 'btn btn-primary',
+            'text': 'Edit',
+            'disabled': true,
+            'data-bs-toggle': 'modal',
+            'data-bs-target': '#'+modal_id,
+        })
+
+        filters_form.append($('<div>', {
+            'class': 'col-md-2',
+        }).append($('<div>', {
+            'class': 'form-group'
+        }).append(this.edit_button)));
+
+        let f = $(`
             <form class="row my-3 d-flex justify-content-center" id="user-search-widgets">
                 <div class="col-md-7">
                     <div class="input-group">
@@ -64,9 +126,14 @@ class UserContent{
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary">Search</button>
                     </div>
+                    <div class="form-group">
+                        <button type="button" class="btn btn-primary" disabled>Edit</button>
+                    </div>
                 </div>
             </form>
         `);
+
+        this.filters = filters_form;
 
         let dt = this.data_table;
 
@@ -85,12 +152,60 @@ class UserContent{
         })
 
         this.container.append(this.filters);
-        this.data_table.mount();
+        this.container.append(modal);
+        this.data_table.mount({
+            results_per_page: 25,
+        });
     }
 
+    #makeModal(id) {
+        let modal = $('<div>', {
+            'class': 'modal fade',
+            id: id,
+            tabindex: -1,
+            'aria-hidden': true,
+            role: 'dialog'
+        })
 
-    makeUserTable() {
+        
+        let dialog = $('<div>', {
+            'class': 'modal-dialog',
+            role: 'document'
+        })
+        
+        modal.append(dialog)
 
+        let modal_content = $('<div>', {
+            'class': 'modal-content'
+        });
+
+        dialog.append(modal_content);
+
+        modal_content.append($('<div>', {
+            'class': 'modal-header'  
+        }).append($('<h1>', {
+            'text': 'Edit @'+ this.data_table?.selected_user?.handle,
+            'class': 'modal-title fs-5'
+        })).append($('<button>', {
+            'type': 'button',
+            'class': 'btn-close',
+            'data-bs-dismiss': 'modal',
+            'aria-label': 'Close'
+        })))
+
+        modal_content.append($('<div>', {
+            'class': 'modal-body',
+            text: 'TODO'
+        }))
+
+        modal_content.append($('<div>', {
+            'class': 'modal-footer',
+        }).append($('<button>', {
+            type: 'button',
+            text: 'Save',
+            'class': 'btn btn-primary',
+        })))
+
+        return modal;
     }
-
 }
