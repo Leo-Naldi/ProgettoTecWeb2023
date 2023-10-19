@@ -419,9 +419,15 @@ class MessageService {
 
         if (!message) return Service.rejectResponse({ message: `No message with id ${id}` });
         
-        if ((message.privateMessage) && (reqUser.handle !== message.author.handle)
-            && (!message.destUser.some(uid => reqUser._id.equals(uid)))) {
-            return Service.rejectResponse({ message: `Cant read message ${id}` });
+        if (!message.publicMessage) {
+
+            if ((message.author.handle !== reqUser.handle) 
+                && (!message.destUser.some(u => reqUser._id.equals(u._id)))
+                && (!message.destChannel.some(
+                    c => reqUser.joinedChannels.some(ch => ch._id.equals(c._id))))
+                )
+                
+                return Service.rejectResponse({ message: `Cant read message ${id}` });
         }
 
         await Message.updateOne({ _id: message._id }, { $inc: { 'meta.impressions': 1 } });
@@ -604,7 +610,7 @@ class MessageService {
         message.destUser = destUser;
         message.destChannel = destChannel
 
-        logger.debug(message)
+        //logger.debug(message)
 
         resbody = MessageService.#makeMessageObject(message);
 

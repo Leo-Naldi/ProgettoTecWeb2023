@@ -8,6 +8,11 @@ const Controller = require('../controllers/Controller');
 const MessageService = require('../services/MessageServices');
 const Reaction = require('../models/Reactions');
 
+
+/**
+ * Debug Routes used in postman pre request scripts.
+ */
+
 const DebugRouter = express.Router();
 
 DebugRouter.get('/answered_message', async (req, res) => {
@@ -40,6 +45,47 @@ DebugRouter.get('/public_message', async (req, res) => {
 
     return res.status(200).json({ id: message._id.toString() });
 });
+
+DebugRouter.get('/private_message/:dest', async (req, res) => {
+    let filter = {
+        publicMessage: false,
+    }
+
+    let dest = req.params.dest;
+
+    if (dest.charAt(0) === '@') {
+
+        let user = await User.findOne({ handle: dest.slice(1) });
+
+        if (!user) return res.status(409).json({ message: `No user named ${dest}` });
+
+        filter.destUser = user._id;
+    } else {
+        let channel = await Channel.findOne({ name: dest.slice(1) });
+
+        if (!channel) return res.status(409).json({ message: `No Channel named ${dest}` });
+
+        filter.destChannel = channel._id;
+    }
+
+    let message;
+    try {
+
+        message = await Message.findOne(filter);
+    } catch (err) {
+        logger.error(err)
+    }
+
+    //logger.debug(message);
+    //logger.debug(JSON.stringify(filter));
+
+    if (!message) return res.status(409).json({ message: `No private message to ${dest}` });
+
+    return res.status(200).json({
+        ...message,
+        id: message._id.toString(),
+    })
+})
 
 DebugRouter.post('/reaction/:type/from/:handle', async (req, res) => {
 
