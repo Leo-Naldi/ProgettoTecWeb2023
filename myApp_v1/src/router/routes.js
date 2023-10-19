@@ -35,6 +35,7 @@ const routes = [
       {path: "/user/details/:userId",name: "userDetail",component: () => import("pages/UserDetails.vue")},
       {path: "/search/:searchText",name: "searchPage",component: () => import("pages/SearchPage.vue")},
       {path: "/post/details/:postId",name: "PostDetail",component: () => import("pages/PostDetails.vue")},
+      {path:"/notifications", name: "notificationPage", component:()=> import("pages/MyNotification.vue")}
 
       // {path: '/all', name: 'All',component: () => import('pages/AllPosts.vue')},
 

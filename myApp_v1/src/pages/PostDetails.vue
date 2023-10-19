@@ -93,11 +93,6 @@ onMounted(() => {
     fetchPost(paramId);
     fetchPostReplies(paramId);
   }
-  /* mysocket.on("message:created", (message) => {
-  if(message.answering && message.answering=== paramId){
-    fetchPostReplies(paramId)
-  }
-    }); */
 
 });
 

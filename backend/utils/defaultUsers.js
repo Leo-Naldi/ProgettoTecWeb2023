@@ -149,6 +149,40 @@ function makeTestData() {
 
     // request editor 
     i = 18
+
+    // delete like
+    i = 19
+
+    // delete dislike
+    i = 20
+
+    // get private message addressed to user
+    i = 21
+
+    test_env.addRandomMessages({
+        authorIndex: creator_indexes[i],
+        allTime: 1
+    });
+
+    test_env.messages.at(-1).destUser = [test_env.users[test_user_indexes[i]]._id]
+    test_env.messages.at(-1).destChannel = [];
+    test_env.messages.at(-1).publicMessage = false;
+
+    // get private message addressed to channel
+    i = 22
+
+    test_env.addRandomMessages({
+        authorIndex: creator_indexes[i],
+        allTime: 1
+    });
+
+    test_env.messages.at(-1).destUser = []
+    test_env.messages.at(-1).destChannel = [test_env.channels[channel_indexes[i]]._id];
+    test_env.messages.at(-1).publicMessage = false;
+
+    let u = test_env.users[test_user_indexes[i]];
+    u.joinedChannels.addToSet(test_env.channels[channel_indexes[i]]._id);
+
 }
 
 

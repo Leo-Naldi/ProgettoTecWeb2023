@@ -1,0 +1,2460 @@
+openapi: 3.0.3
+info:
+  title: "Squealer Backend"
+  description: "Backend API for all Squealer Products"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+tags:
+- name: "Login"
+- name: "Refresh"
+- name: "User"
+- name: "Admin"
+- name: "Message"
+- name: "Channel"
+
+paths:
+
+  /users:
+    get:
+      tags:
+        - User
+      description: Get all users.
+      operationId: getUsers
+      parameters:
+        - name: page
+          in: query
+          description: Paginate results. A non-positive value disables pagination.
+          schema:
+            type: integer
+            default: 1
+            example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
+        - name: handle
+          in: query
+          description: Handle filter. Will return users whose handle contains the given string.
+          schema:
+            type: string
+            example: userhandle99
+        - name: admin
+          in: query 
+          description: Get only Admin accounts (true) or non admin accounts (false)
+          schema:
+            type: boolean
+            example: True
+        - name: accountType
+          in: query 
+          description: Filter by account type 
+          schema:
+            type: string
+            example: pro 
+            enum:
+              - user 
+              - pro 
+        - name: handleOnly
+          in: query 
+          description: Return an array of handles, not of user records. 
+          schema:
+            type: boolean
+            example: False 
+            default: False 
+      security:
+        - adminAuth: []
+      responses:
+        '200':
+          description: Request successfull
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: '#/components/schemas/User'
+                    - $ref: '#/components/schemas/UserPro'
+        '401':
+          description: Unauthorized operation
+
+  /users/:
+    get:
+      tags:
+        - User
+      description: Get users.
+      operationId: getUsers
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results. A non-positive number disables pagination.
+          schema:
+            type: integer
+            default: 1
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each page.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+        - name: handle
+          in: query
+          description: Only return users whose handle contains the given string. Matching is case-insensitive.
+          required: False
+          schema: 
+            type: string
+            minLength: 3
+            example: user
+        - name: admin
+          in: query
+          description: Only return admin or non-admin users.
+          required: False
+          schema: 
+            type: boolean
+            example: False
+        - name: accountType
+          in: query
+          description: Only return pro or non-pro accounts.
+          required: False
+          schema: 
+            type: string
+            enum: 
+              - user 
+              - pro 
+            example: pro
+        - name: handleOnly
+          in: query
+          description: Return an array of handles instead of user objects.
+          required: False
+          schema: 
+            type: boolean
+            example: False
+            default: False
+      responses:
+        '200':
+          description: User Created, the JWT token is in the body.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - anyOf:
+                    - $ref: '#/components/schemas/User'   
+                    - $ref: '#/components/schemas/UserPro'   
+                  - $ref: '#/components/schemas/TokenInfo'   
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle or email
+          content:
+            application/json:
+                schema:
+                  type: object
+                  properties:
+                    invalid: 
+                      type: array
+                      description: A list of data that was invalid
+                      items:
+                        type: string
+                        enum:
+                          - handle
+                          - email
+                      minItems: 1
+  
+  /users/{handle}:
+    put:
+      tags:
+        - User
+      description: Create a new user with the selected handle (min 3 characters). It will return the user object and the token used for all further authorized comunication.
+      operationId: createUser
+      requestBody:
+        description: New user
+        required: True
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInfo'
+      parameters:
+        - name: handle
+          in: path
+          description: The new user's Handle
+          required: True
+          schema: 
+            type: string
+            minLength: 3
+            example: userHandle123
+      responses:
+        '200':
+          description: User Created, the JWT token is in the body.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - anyOf:
+                    - $ref: '#/components/schemas/User'   
+                    - $ref: '#/components/schemas/UserPro'   
+                  - $ref: '#/components/schemas/TokenInfo'   
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle or email
+          content:
+            application/json:
+                schema:
+                  type: object
+                  properties:
+                    invalid: 
+                      type: array
+                      description: A list of data that was invalid
+                      items:
+                        type: string
+                        enum:
+                          - handle
+                          - email
+                      minItems: 1
+    delete:
+      tags:
+        - User
+      description: Delete the user with the given handle
+      operationId: deleteUser
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      security:
+        - adminAuth: []
+        - userAuth: []
+      responses:
+        '200':
+          description: User Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    get:
+      tags:
+        - User
+      description: Get the user with the given handle.
+      operationId: getUser
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      security:
+        - adminAuth: []
+        - userAuth: []
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/User'
+                  - $ref: '#/components/schemas/UserPro'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Invalid handle
+    post:
+      tags:
+        - User
+      description: Change user object. Admins only can change the characters the blocked field.
+      operationId: writeUser
+      requestBody:
+        description: Data to be modified
+        required: True
+        content:
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/WritableUserData'
+                
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: User changed
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/User'
+                  - $ref: '#/components/schemas/UserPro'
+        '401':
+          description: Unauthorized operation. To promote a user to admin one needs to provide an admin token, to set the smm one needs to be a pro user.
+        '409':
+          description: Invalid handle
+
+  /users/{handle}/smm:
+    post: 
+      tags:
+        - "User"
+      description: Add/remove/change user's SMM
+      operationId: changeSmm
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      requestBody:
+        description: Operation Parameters 
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object 
+              properties:
+                operation: 
+                  type: string
+                  enum: 
+                    - change 
+                    - remove 
+                smm: 
+                  type: string 
+                  description: The smm's handle, will be ignored if the operation is remove.
+              required: [operation]
+      responses:
+        200: 
+          description: Ok 
+        401: 
+          description: Unauthorized
+        409: 
+          description: Invalid Handle 
+        500: 
+          description: Internal server error
+
+  /users/{handle}/managed:
+    post: 
+      tags:
+        - "User"
+      description: Remove some managed accounts.
+      operationId: changeManaged
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      requestBody:
+        description: An array of managed accounts to delete
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object 
+              properties:
+                users: 
+                  type: array
+                  minLength: 1
+                  items:
+                    type: string 
+                    example: userHandle123
+                  description: Array of users handles
+              required: [users]
+      responses:
+        200: 
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object 
+                properties:
+                  handle: 
+                    type: string 
+                    description: The user's handle 
+                  charLeft:
+                    $ref: '#/components/schemas/CharactersSchema'
+        401: 
+          description: Unauthorized
+        409: 
+          description: Invalid Handle 
+        500: 
+          description: Internal server error
+    get: 
+      tags:
+        - "User"
+      description: Get managed accounts.
+      operationId: getManaged
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        200: 
+          description: Ok 
+        401: 
+          description: Unauthorized
+        409: 
+          description: Invalid Handle 
+        500: 
+          description: Internal server error
+
+  /users/{handle}/grantAdmin:
+    post: 
+      tags:
+        - Admin
+      description: "Make the user an admin account"
+      operationId: grantAdmin
+      parameters:
+        - name: handle
+          in: path
+          required: True
+          schema:
+            type: string
+      security:
+        - adminAuth: []
+      responses:
+        200:
+          description: "Permission Granted"
+        400:
+          description: "Handle not found"
+        500:
+          description: "Internal Server Error"
+  
+  /users/{handle}/revokeAdmin:
+    post: 
+      tags:
+        - Admin
+      description: "Revoke admin priviledges from an account"
+      operationId: revokeAdmin,
+      parameters:
+        - name: handle
+          in: path
+          required: True
+          schema:
+            type: string
+      security:
+        - adminAuth: []
+      responses:
+        200:
+          description: "Permission Revoked"
+        400:
+          description: "Handle not found"
+        500:
+          description: "Internal Server Error"
+
+  /users/registration/:
+    get:
+      tags:
+        - User 
+        - Login
+      description: make sure the handle and email ara avalible when making registrations
+      requestBody:
+        description: email and/or handle to be checked
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object 
+              properties:
+                handle: 
+                  type: string
+                  minLength: 3
+                  description: The handle whose availability is to be checked
+                  example: handle167
+                email: 
+                  type: string
+                  format: email
+                  description: The email whose availability is to be checked
+                  example: email@gmail.com
+      responses:
+        200:
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: boolean
+                    description: "true if the the given email is available. will only be present if an email was provided"
+                  handle:
+                    type: boolean
+                    description: "true if the the given handle is available. will only be present if an handle was provided"
+        400:
+          description: "Input malformato"
+        500:
+          description: "Internal server error"
+
+  /users/{handle}/messages/:
+    get:
+      tags:
+        - Message
+        - User
+      description: Get all the messages of a specific user
+      operationId: getUserMessages
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: page
+          in: query
+          description: To paginate results. A non-positive number disables pagination.
+          schema:
+            type: integer
+        - name: popular
+          in: query
+          description: Get only pupular messages, value determines the timeframe. If used together with unpopular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: unpopular
+          in: query
+          description: Get only unpupular messages, value determines the timeframe. If used together with popular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: controversial
+          in: query
+          description: Get only controversial messages, value determines the timeframe. 
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: risk
+          in: query
+          description: Get only messages at risk of being controversial, popular or unpopular. 
+          schema:
+            type: string 
+            enum:
+              - controversial
+              - popular 
+              - unpopular
+        - name: before
+          in: query
+          description: Get only messages dated before given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: after
+          in: query
+          description: Get only messages dated after given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: dest
+          in: query
+          description: Get only messages addressed to values. If value starts with @ it will be interpreted
+            as a handle, if it starts with a § it will be interpreted as a channel name and if it starts with
+            a \# it will be interpreted as a keyword channel. Otherwise this field will be ignored.
+          schema:
+            type: string 
+            example: ['#sanremo1312', '@feltri', '§canalebello67']
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    post:
+      tags:
+        - Message
+      description: Post a new Message. This operation will also adjust the poster's character quotas,
+        if there are not enough characters it will fail with error 418.
+      operationId: postUserMessage
+      security:
+        - adminAuth: []
+        - userAuth: []
+      requestBody:
+        description: message to be posted
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: object
+                  properties:
+                    text: 
+                      type: string
+                      example: This is an example squeal that contains very interesting info.
+                    image:
+                      type: string
+                      format: binary
+                      description: An image
+                dest:
+                  type: array
+                  items:
+                    type: string
+                    description: The handle for single individuals, the channel name for channels
+                  example: ['@gianni', '@alberto', '§canalebello']
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Message posted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Invalid handle.
+        '418': 
+          description: User did not have enough characters left.
+          
+    delete:
+      tags:
+        - Message
+      description: Delete all messages from the user with the given handle
+      operationId: deleteUserMessages
+      security:
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Messages Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    
+  /users/{handle}/messages/{id}:
+  
+    delete:
+      tags:
+        - User
+        - Message
+      description: Delete the message with the given id from the user with the given handle.
+      operationId: deleteMessage
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int128
+      responses:
+        '200':
+          description: Message Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+    post:
+      tags:
+        - User
+        - Message
+      description: Change message data. Currently only the reactions can be changed by an admin.
+      operationId: postMessage
+      security:
+        - adminAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: True
+        description: The data to be changed
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/MessageImpressions'
+                - type: object 
+                  properties:
+                    text: 
+                      type: string 
+                      description: Edited Message's text,
+      responses:
+        '200':
+          description: Message Modified
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+  /messages/up/{id}:
+  
+    delete:
+      tags:
+        - User
+        - Message
+      description: Delete a positive reaction.
+      operationId: deletePositiveReaction
+      security:
+        - userAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int128
+      responses:
+        '200':
+          description: Reaction Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid id or No reaction to delete.
+    post:
+      tags:
+        - User
+        - Message
+      description: Add a positive reaction to a message.
+      operationId: postMessage
+      security:
+        - adminAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: True
+        description: The data to be changed
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/MessageImpressions'
+                - type: object 
+                  properties:
+                    text: 
+                      type: string 
+                      description: Edited Message's text,
+      responses:
+        '200':
+          description: Message Modified
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+  /messages/down/{id}:
+  
+    delete:
+      tags:
+        - User
+        - Message
+      description: Delete a negative reaction.
+      operationId: deleteNegativeReaction
+      security:
+        - userAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int128
+      responses:
+        '200':
+          description: Reaction Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid id or No reaction to delete.
+    post:
+      tags:
+        - User
+        - Message
+      description: Add a negative reaction to a message.
+      operationId: addNegetiveReaction
+      security:
+        - adminAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: True
+        description: The data to be changed
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/MessageImpressions'
+                - type: object 
+                  properties:
+                    text: 
+                      type: string 
+                      description: Edited Message's text,
+      responses:
+        '200':
+          description: Message Modified
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+  /user/{handle}/subscription:
+    post: 
+      tags:
+        - User 
+      operationId: changeSubscription
+      description: Set user subscription.
+      parameters:
+        - name: handle
+          in: path
+          description: User's handle
+          required: true
+          schema: 
+            type: string 
+            example: handle1 
+        - name: proPlanName
+          in: query 
+          required: true 
+          description: Name of the new pro plan 
+          schema:
+            type: string 
+            example: Montly subscription plan 
+        - name: autoRenew
+          in: query 
+          required: true
+          description: Wether or not to auto renew the subscription when it expires 
+          schema:
+            default: true
+            type: boolean 
+            example: true 
+      responses:
+        '200':
+          description: Subscription changes
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid plan name
+    delete: 
+      tags:
+        - User 
+      operationId: deleteSubscription
+      description: Delete user subscription. 
+      parameters:
+        - name: handle
+          in: path
+          description: User's handle
+          required: true
+          schema: 
+            type: string 
+            example: handle1
+      responses:
+        '200':
+          description: Subscription deleted
+        '401':
+          description: Unauthorized operation  
+
+  /users/{handle}/messages/stats:
+    get:
+      tags:
+        - Message
+      description: Get users's message statistics
+      operationId: getMessagesStats
+      security:
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: popular
+          in: query
+          description: Get only pupular messages, value determines the timeframe. If used together with unpopular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: unpopular
+          in: query
+          description: Get only unpupular messages, value determines the timeframe. If used together with popular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: controversial
+          in: query
+          description: Get only controversial messages, value determines the timeframe. 
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: risk
+          in: query
+          description: Get only messages at risk of being controversial, popular or unpopular. 
+          schema:
+            type: string 
+            enum:
+              - controversial
+              - popular 
+              - unpopular
+        - name: before
+          in: query
+          description: Get only messages dated before given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: after
+          in: query
+          description: Get only messages dated after given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: dest
+          in: query
+          description: Get only messages addressed to values. If value starts with @ it will be interpreted
+            as a handle, if it starts with a § it will be interpreted as a channel name and if it starts with
+            a \# it will be interpreted as a keyword channel. Otherwise this field will be ignored.
+          schema:
+            type: string 
+            example: ['#sanremo1312', '@feltri', '§canalebello67']
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  positive: 
+                    type: number 
+                    minimum: 0
+                    description: Total number of likes recieved on filtered messages.
+                  negative: 
+                    type: number 
+                    minimum: 0
+                    description: Total number of dislikes recieved on filtered messages.
+                  total: 
+                    type: number 
+                    minimum: 0
+                    description: Total number of messages matched.
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+  /users/{handle}/joined:
+    get:
+      tags:
+        - User
+        - Channel
+      description: Get channels where the user is a member
+      operationId: getJoinedChannels
+      security:
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Operation successful.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+  /users/{handle}/editor:
+    get:
+      tags:
+        - User
+        - Channel
+      description: Get channels where the user is an editor
+      operationId: getEditorChannels
+      security:
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+      responses:
+        '200':
+          description: Operation successful.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+  /messages/: 
+    get:
+      tags:
+        - Message
+      description: Get all messages. Filtering is strongly advised.
+      operationId: getMessages
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results. A non-positive number disables pagination.
+          schema:
+            type: integer
+            default: 1
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each page.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+        - name: popular
+          in: query
+          description: Get only pupular messages within the given timeframe. If used together with unpopular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: unpopular
+          in: query
+          description: Get only unpupular messages within the given timeframe. If used together with popular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: controversial
+          in: query
+          description: Get only controversial messages within the given timeframe. 
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: risk
+          in: query
+          description: Get only messages at risk of being controversial, popular or unpopular. 
+          schema:
+            type: string 
+            enum:
+              - controversial
+              - popular 
+              - unpopular
+        - name: before
+          in: query
+          description: Get only messages dated before given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: after
+          in: query
+          description: Get only messages dated after given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: dest
+          in: query
+          description: Get only messages addressed to values. If value starts with @ it will be interpreted
+            as a handle, if it starts with a § it will be interpreted as a channel name. Otherwise this field will be ignored.
+            Will only returned messages addressed to ALL valid destinations provided. If one of the given values 
+            has no matching user/channel, it will be ignored.
+          schema:
+            type: string 
+            example: ['@feltri', '§canalebello67']
+        - name: keywords
+          in: query 
+          description: Array of the keywords to look for. For each keyword, leading and trailing withe spaces
+            will be removed and a \# will be added at the start if not already present. This will filter 
+            for messages containing all the keywords. Matching is case-insensitive.
+          schema:
+            type: array 
+            items:
+              type: string 
+            example: ['#keyword1', 'keyword2']
+        - name: mentions
+          in: query 
+          description: Array of the mentions to look for. For each mention, leading and trailing withe spaces
+            will be removed and a @ will be added at the start if not already present. This will filter 
+            for messages containing all the mentions. Matching is case-insensitive.
+          schema:
+            type: array 
+            items:
+              type: string 
+            example: ['@fvPro', 'user12345']
+        - name: text 
+          in: query
+          description: Will only return messages containing the text. Matching is case-insensitive.
+          schema: 
+            type: string 
+            example: lorem ipsum
+      responses:
+        200: 
+          description: Ok 
+          content:
+            application/json:
+              schema: 
+                type: array 
+                items:
+                  $ref: '#/components/schemas/Message'
+
+  /messages/user/{handle}: 
+    get:
+      tags:
+        - Message
+        - User
+      description: Get all the messages of a specific user
+      operationId: getUserMessages
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: page
+          in: query
+          description: To paginate results. A non-positive value disables pagination.
+          schema:
+            type: integer
+        - name: popular
+          in: query
+          description: Get only pupular messages, value determines the timeframe. If used together with unpopular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: unpopular
+          in: query
+          description: Get only unpupular messages, value determines the timeframe. If used together with popular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: controversial
+          in: query
+          description: Get only controversial messages, value determines the timeframe. 
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: risk
+          in: query
+          description: Get only messages at risk of being controversial, popular or unpopular. 
+          schema:
+            type: string 
+            enum:
+              - controversial
+              - popular 
+              - unpopular
+        - name: before
+          in: query
+          description: Get only messages dated before given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: after
+          in: query
+          description: Get only messages dated after given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: dest
+          in: query
+          description: Get only messages addressed to values. If value starts with @ it will be interpreted
+            as a handle, if it starts with a § it will be interpreted as a channel name and if it starts with
+            a \# it will be interpreted as a keyword channel. Otherwise this field will be ignored.
+          schema:
+            type: string 
+            example: ['#sanremo1312', '@feltri', '§canalebello67']
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
+  /auth/login:
+    post:
+      tags:
+        - Login
+      description: App Login Endpoint
+      operationId: login
+      requestBody:
+        description: user's mail and password
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ handle, password ]
+              properties:
+                handle:
+                  type: string
+                  example: UserA
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: gTT33%2?
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                  $ref: "#/components/schemas/LoginResponse"
+        '401':
+          description: "Handle or password were incorrect"
+
+  /auth/login/admin:
+    post:
+      tags:
+        - Login
+      description: Administrator Login Endpoint
+      operationId: loginAdmin
+      requestBody:
+        description: Admin's mail and password
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ handle, password ]
+              properties:
+                handle:
+                  type: string
+                  example: UserA
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: gTT33%2?
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                  $ref: "#/components/schemas/LoginResponse"
+        '401':
+          description: "Handle or password were incorrect"
+
+  /auth/login/smm:
+    post:
+      tags:
+        - Login
+      description: SMM Dashboard Login Endpoint
+      operationId: loginPro
+      requestBody:
+        description: Pro user's mail and password
+        required: True
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ handle, password ]
+              properties:
+                handle:
+                  type: string
+                  example: UserA
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: gTT33%2?
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                  $ref: "#/components/schemas/LoginResponse"
+        '401':
+          description: "Handle or password were incorrect"
+    
+  /auth/refresh:
+    post:
+      tags:
+        - Refresh
+      description: Issue a new token before the current one expires
+      operationId: refreshToken
+      security:
+        - adminAuth: []
+        - userAuth: []
+        - proAuth: []
+      responses:
+        '200':
+          description: "Token rinnovato"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Token"
+        '401':
+          description: "Invalid Token"
+        '500':
+          description: "server-side error"         
+  
+  /channels/:
+    get:
+      tags:
+        - Channel
+      operationId: getChannels
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results. A non-positive value disables pagination.
+          schema:
+            type: integer
+            example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
+        - name: owner
+          in: query
+          description: Filter by owner's Handle. If no channel owned by a user with handle is found it will return an empty array
+          schema:
+            type: string
+            example: owner333
+        - name: publicChannel  
+          in: query
+          description: Only get channels that are public (if the field is true) or private (if it's false)
+          schema:
+            type: boolean
+            example: False
+        - name: name  
+          in: query
+          description: Only get channel whose names contain the given string. Matching is case-insensitive.
+          schema:
+            type: string
+            example: test-channel
+        - name: member 
+          in: query
+          description: Only get channel that the given user is a member of.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: owner 
+          in: query
+          description: Only get channels created by the given user.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: member 
+          in: query
+          description: Only get channels the user is a member of.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: official 
+          in: query
+          description: Only get official/non official channels.
+          schema:
+            type: boolean
+            example: True
+        - name: namesOnly 
+          in: query
+          description: If true the endpoint will only return the channel's names.
+          schema:
+            type: boolean
+            example: True
+      description: Get all channels.
+      responses:
+        '200':
+          description: Valid request
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: '#/components/schemas/Channel'
+                    - type: array
+                      items: 
+                        type: string 
+                        description: The channel names.
+                      example: ['channel1', 'channel2']
+        '401':
+          description: Unauthorized operation
+  
+  /channels/{name}:
+    post:
+      tags:
+        - Channel
+      description: Create a new channel with the given name. Requesting user will be the creator.
+      operationId: createChannel
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: The new channel's data.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                description: 
+                  type: string 
+                  description: The channel's description
+                publicChannel:
+                  type: boolean
+                  example: True 
+                  default: True 
+                  description: Wether to make the channel public or not. 
+                official: 
+                  type: boolean
+                  example: True 
+                  default: False 
+                  description: Wether to make the channel official or not. Only admins can create official channels.
+              required: [publicChannel, official]
+      responses:
+        '200':
+          description: Channel Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Channel name already taken.
+    get:
+      tags:
+        - Channel
+      description: Create a new channel with the given name.
+      operationId: getChannel
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      responses:
+        '200':
+          description: Request Successful 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: Channel not found.
+    put:
+      tags:
+        - Channel
+      description: Change channel data, must be the owner.
+      operationId: writeChannel
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The new Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: The data to be changed.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                owner:
+                  type: string
+                  description: The new owner's handle
+                  example: ownerHandle777
+                newName:
+                  type: string
+                  description: The new channel's Name
+                  example: Channel34
+                publicChannel:
+                  type: boolean
+                  description: The new channel's private field, its called like that because javascript.
+                  example: true
+                description:
+                  type: string
+                  description: The channel's description
+                  example: This is a channel about how javascript is a great programming language and not     at all a meme
+      responses:
+        '200':
+          description: Channel Changed Successfully
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.
+    delete:
+      tags:
+        - Channel
+      description: Delete given channel. Must be the creator.
+      operationId: deleteChannel
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: True
+          description: The channel's name.
+          schema:
+            type: string
+            example: awesomeChannel9000
+      responses:
+        '200': 
+          description: Channel Deleted.
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.
+  
+  /messages/channel/{name}/:
+    get:
+      description: Get messages addressed to a given channel. Must have reading permission.
+      tags:
+          - Channel
+      operationId: getChannelMessages
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: True
+          description: The channel's name.
+          schema:
+            type: string
+            example: awesomeChannel9000
+      responses:
+        '200': 
+          description: Request Successful.
+          content:
+            application/json:
+              schema:
+                type: array 
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.
+    delete:
+      description: Remove channel from the dest of all messages.
+      tags:
+          - Channel
+      operationId: deleteChannelMessages
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: True
+          description: The channel's name.
+          schema:
+            type: string
+            example: awesomeChannel9000
+      responses:
+        '200': 
+          description: Request Successful.
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.
+
+  /channels/{name}/available:
+    get:
+      tags:
+        - Channel
+      description: Check wether the given name is available or not.
+      operationId: availableChannel
+      parameters:
+        - name: name
+          required: True
+          in: path
+          schema:
+            type: string
+            example: canIUseThisName99
+      responses:
+        '200':
+          description: Successfully checked, answer is in body
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                    description: true if the name is available, false otherwise.
+                required: [available]
+        '409':
+          description: Did not provide a name
+        '500':
+          description: Internal server error.
+    
+  /public/messages:
+    get:
+      tags:
+        - Message 
+        - Public
+      description: Return messages available to non-logged in users.
+      operationId: publicGetMessages
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results. A non-positive value disables pagination.
+          schema:
+            type: integer
+            default: 1
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each page.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+        - name: popular
+          in: query
+          description: Get only pupular messages within the given timeframe. If used together with unpopular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: unpopular
+          in: query
+          description: Get only unpupular messages within the given timeframe. If used together with popular 
+            it will perform an or.
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: controversial
+          in: query
+          description: Get only controversial messages within the given timeframe. 
+          schema:
+            type: string 
+            enum:
+              - today
+              - week 
+              - month 
+              - year
+              - all
+        - name: risk
+          in: query
+          description: Get only messages at risk of being controversial, popular or unpopular. 
+          schema:
+            type: string 
+            enum:
+              - controversial
+              - popular 
+              - unpopular
+        - name: before
+          in: query
+          description: Get only messages dated before given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: after
+          in: query
+          description: Get only messages dated after given timestamp.
+          schema:
+            type: string 
+            format: date-time
+        - name: dest
+          in: query
+          description: Get only messages addressed to values. If value starts with @ it will be interpreted
+            as a handle, if it starts with a § it will be interpreted as a channel name. Otherwise this field will be ignored.
+            Will only returned messages addressed to ALL valid destinations provided. If one of the given values 
+            has no matching user/channel, it will be ignored.
+          schema:
+            type: string 
+            example: ['@feltri', '§canalebello67']
+        - name: keywords
+          in: query 
+          description: Array of the keywords to look for. For each keyword, leading and trailing withe spaces
+            will be removed and a \# will be added at the start if not already present. This will filter 
+            for messages containing all the keywords. Matching is case-insensitive.
+          schema:
+            type: array 
+            items:
+              type: string 
+            example: ['#keyword1', 'keyword2']
+        - name: mentions
+          in: query 
+          description: Array of the mentions to look for. For each mention, leading and trailing withe spaces
+            will be removed and a @ will be added at the start if not already present. This will filter 
+            for messages containing all the mentions. Matching is case-insensitive.
+          schema:
+            type: array 
+            items:
+              type: string 
+            example: ['@fvPro', 'user12345']
+        - name: text 
+          in: query
+          description: Will only return messages containing the text. Matching is case-insensitive.
+          schema: 
+            type: string 
+            example: lorem ipsum
+      responses:
+        200: 
+          description: Ok 
+          content:
+            application/json:
+              schema: 
+                type: array 
+                items:
+                  $ref: '#/components/schemas/Message'
+
+  /public/channels/:
+    get:
+      tags:
+        - Channel
+        - Public
+      operationId: publicGetChannels
+      parameters:
+        - name: page
+          in: query
+          description: To paginate results. A non-positive value disables pagination.
+          schema:
+            type: integer
+            example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
+        - name: owner
+          in: query
+          description: Filter by owner's Handle. If no channel owned by a user with handle is found it will return an empty array
+          schema:
+            type: string
+            example: owner333
+        - name: name  
+          in: query
+          description: Only get channel whose names contain the given string. Matching is case-insensitive.
+          schema:
+            type: string
+            example: test-channel
+        - name: member 
+          in: query
+          description: Only get channel that the given user is a member of.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: owner 
+          in: query
+          description: Only get channels created by the given user.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: member 
+          in: query
+          description: Only get channels the user is a member of.
+          schema:
+            type: string
+            description: The user's handle
+            example: someHandle333
+        - name: official 
+          in: query
+          description: Only get official/non official channels.
+          schema:
+            type: boolean
+            example: True
+        - name: namesOnly 
+          in: query
+          description: If true the endpoint will only return the channel's names.
+          schema:
+            type: boolean
+            example: True
+      description: Get all official channels.
+      responses:
+        '200':
+          description: Valid request
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: '#/components/schemas/Channel'
+                    - type: array
+                      items: 
+                        type: string 
+                        description: The channel names.
+                      example: ['channel1', 'channel2']
+        '401':
+          description: Unauthorized operation
+        
+  /plans/: 
+    get:
+      tags:
+        - ProPlan 
+        - Public
+      description: Get subscription plans.
+      operationId: getPlans
+      responses:
+        '200':
+          description: Operation Successful.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: '#/components/schemas/ProPlan'
+
+components:
+  schemas:
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/Token'
+        user:
+          $ref: '#/components/schemas/User'
+    Token: 
+      type: string
+      description: The JWT token. Expires in 7 days.
+      format: byte
+      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserHandle'
+        - $ref: '#/components/schemas/UserInfo'
+        - $ref: '#/components/schemas/AdminPriviledges'
+        - $ref: '#/components/schemas/UserChannelsInfo'
+        - type: object
+          properties:
+            charLeft:
+              $ref: '#/components/schemas/CharactersSchema'
+            meta:
+              $ref: '#/components/schemas/UserMetaSchema'
+            blocked:
+              type: boolean
+              description: A blocked user cant write messages
+            lastLoggedin:
+              type: string
+              format: date 
+              description: User last login date-time 
+            subscription:
+              type: object
+              required: [proPlan, expires, autoRenew]
+              properties:
+                expires:
+                  type: string
+                  format: date
+                  description: The expiry date
+                autoRenew:
+                  type: boolean
+                  description: Wether to automatically renew the subscription or not.
+                proPlan: 
+                  $ref: '#/components/schemas/ProPlan'
+          required: [meta, blocked, lastLoggedin]
+    UserPro:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - $ref: '#/components/schemas/SMMData'
+        - type: object
+          required: [subscription]
+          properties:
+            subscription:
+              type: object
+              required: [proPlan, expires, autoRenew]
+              properties:
+                expires:
+                  type: string
+                  format: date
+                  description: The expiry date
+                autoRenew:
+                  type: boolean
+                  description: Wether to automatically renew the subscription or not.
+                proPlan: 
+                  $ref: '#/components/schemas/ProPlan'
+    ProPlan:
+      type: object 
+      properties:
+        name: 
+          type: string 
+          description: The Plan's unique name 
+          example: Montly subscription plan 
+        price:
+          type: number 
+          format: float 
+        period:
+          type: string 
+          enum:
+            - month 
+            - year 
+          description: Pro Plan's Duration
+        extraCharacters:
+          $ref: '#/components/schemas/CharactersSchema'
+          description: The extra characters granted by the plan
+        pro: 
+          type: boolean 
+          description: Wether the plan makes the user a pro user or not. 
+      
+    UserMetaSchema:
+      type: object 
+      properties:
+        created:
+          type: string 
+          format: date
+          description: User's Creation Date
+      required: [created]
+    UserHandle:
+      type: object
+      properties: 
+        handle:
+          type: string
+          description: User's unique handle
+          example: userHandle123
+      required: [handle]
+    UserInfo:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: giovanni@gmail.com
+        username:
+          type: string
+        name:
+          type: string
+        lastName:
+          type: string
+        gender:
+          type: string
+        phone:
+          type: string
+        accountType:
+          type: string
+          enum:
+            - user 
+            - pro
+      required: [email, name, accountType]
+    UserChannelsInfo:
+      type: object 
+      properties: 
+        joinedChannels: 
+          type: array
+          items: 
+            type: string
+          description: Channels names where the user is a member (can read messages).
+        editorChannels: 
+          type: array
+          items: 
+            type: string
+          description: Channels names where the user is an editor (can read and write messages).
+        joinedChannelRequests: 
+          type: array
+          items: 
+            type: string
+          description: Names of channels for which the user has requested to be a member.
+        editorChannelRequests: 
+          type: array
+          items: 
+            type: string
+          description: Names of channels for which the user has requested to be an editor.
+      required: [joinedChannels, editorChannels, joinedChannelRequests, editorChannelRequests]
+    CharactersSchema:
+      type: object 
+      properties:
+        day: 
+          type: integer
+          minimum: 0
+          description: Daily characters
+        week: 
+          type: integer
+          minimum: 0
+          description: Weekly characters
+        month: 
+          type: integer
+          minimum: 0
+          description: Monthly characters
+      required: [day, week, month]
+    AdminPriviledges:
+      type: object
+      properties:
+        admin:
+          type: boolean
+      required: [admin]
+    TokenInfo:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: The JWT token
+          format: byte
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+    SMMData:
+      type: object
+      properties:
+        smm:
+          type: string
+          description: The SMM's handle
+          example: smmHandle4
+        managing:
+          type: array
+          description: The list of users the user is managing as an SMM.
+          items: 
+            type: string
+          example: giovannib5
+    WritableUserData:
+      type: object
+      properties:
+        username: 
+          type: string 
+          description: The new username.
+        email: 
+          type: string 
+          description: The new email.
+        password: 
+          type: string 
+          format: password
+          description: The new password.
+        name: 
+          type: string 
+          description: The new name.
+        lastName: 
+          type: string 
+          description: The new last name.
+        phone: 
+          type: string 
+          description: The new phone number.
+        gender: 
+          type: string 
+          description: The new gender.
+        blocked: 
+          type: boolean
+          description: The blocked status.
+        accountType: 
+          type: string 
+          description: The new account type.
+          enum:
+            - user 
+            - pro
+        charLeft: 
+          type: object 
+          description: The user's character quota, only an admin can set this.
+          properties:
+            day:
+              type: number
+              minimum: 0
+            week:
+              type: number
+              minimum: 0
+            month:
+              type: number
+              minimum: 0
+        addMemberRequests: 
+          type: array
+          items:
+            type: string 
+            description: The channel's name
+          description: Array of channel names to add to the user's joined channel requests.
+        addEditorRequests: 
+          type: array
+          items:
+            type: string 
+            description: The channel's name
+          description: Array of channel names to add to the user's editor channel requests.
+        removeMember: 
+          type: array
+          items:
+            type: string 
+            description: The channel's name
+          description: Array of channel names to remove from the user's joined channels.
+            Channels that are not joined will be ignored. If the user is an editor, 
+            they will also cease being editors.
+        removeEditor: 
+          type: array
+          items:
+            type: string 
+            description: The channel's name
+          description: Array of channel names to remove from the user's editor channels.
+            Channels for which the user is not an editor will be ignored.
+        proPlanName:
+          type: string
+          description: The name of the proplan the user wishes to subscribe to. 
+          example: Monthly subscription plan 
+        autoRenew:
+          type: boolean
+          description: Wether to automatically renew the user's subscription or not
+          example: True
+        deleteSubscription:
+          type: boolean 
+          description: True to delete the user's current subscription.
+  
+    Message:
+      allOf:
+        - $ref: '#/components/schemas/MessageInfo'
+        - $ref: '#/components/schemas/MessageImpressions'
+        - type: object
+          required: [id, meta]
+          properties:
+            id:
+              type: integer
+              format: int64
+              description: The message's numerical id
+            meta:
+              $ref: '#/components/schemas/MessageMeta'
+    MessageImpressions:
+      type: object
+      required: [viewed, reactions]
+      properties:
+        viewed:
+              type: integer
+              description: Number of time the message has been viewed
+              minimum: 0
+        reactions:
+          type: object
+          required: [positive, negative]
+          description: Bookkeeping data on reactions
+          properties:
+            positive:
+              type: object
+              description: Numbers of positive reactions divided by types
+              properties:
+                agree:
+                  type: integer
+                  minimum: 0
+                strongAgree: 
+                  type: integer
+                  minimum: 0
+            negative:
+              type: object
+              description: Numbers of negative reactions divided by types
+              properties:
+                disagree:
+                  type: integer
+                  minimum: 0
+                strongDisagree: 
+                  type: integer
+                  minimum: 0
+    MessageInfo:
+      type: object
+      required: [content, posted, author, dest]
+      properties:
+        content:
+          type: object
+          properties:
+            text: 
+              type: string
+              example: This is an example squeal that contains very interesting info.
+            image:
+              type: string
+              format: binary
+              description: An image
+        posted:
+          type: string
+          description: Message's timestamp
+          format: date-time
+          example: "2021-01-30T08:30:00Z"
+        author:
+          type: string
+          description: The author's handle
+          example: pieraldo196
+        dest:
+          type: array
+          items:
+            type: string
+            description: The handle for single individuals, the channel name for channels
+          example: ['@gianni', '@alberto', '§canalebello']
+    MessageMeta:
+      type: object 
+      properties:
+        created:
+          type: string 
+          format: date 
+          description: Message creation date 
+        lastModified:
+          type: string 
+          format: date 
+          description: Last time the message was modified
+        geo:
+          $ref: '#/components/schemas/GeoSchema'
+        impressions:
+          type: number 
+          description: Number of times the message was viewed.
+          minimum: 0
+    GeoSchema:
+      type: object 
+      properties:
+        type:
+          type: string
+          enum: 
+            - Point
+          default: Point 
+        coordinates:
+          type: array 
+          items: 
+            type: number
+          maxLength: 2
+          minLength: 2
+          example: [45.89, 42.069]
+    Channel:
+      type: object
+      required: [name, created, owner, publicChannel, official]
+      properties:
+        name: 
+          type: string
+          example: AwesomeChannel42
+        created:
+          type: string
+          format: date-time
+          description: Channel's creation timestamp
+          example: "2021-01-30T08:30:00Z"
+        creator:
+          type: string
+          description: Owner's Handle
+          example: channel3Owner
+        description: 
+          type: string
+          description: A brief description of the channel
+          example: This is a channel dedicated to pictures of fluffy kittens
+        members:
+          type: array
+          items:
+            type: string
+            description: Handles of the users with reading permission. The creator is always a member.
+          minLength: 1       
+        editors:
+          type: array
+          items:
+            type: string
+            description: Handles of the users with reading and writing permission. The creator is always an editor.
+          minLength: 1
+        memberRequests:
+          type: array
+          items:
+            type: string
+            description: Handles of the users requesting reading permissions.
+          minLength: 0      
+        editorRequests:
+          type: array
+          items:
+            type: string
+            description: Handles of the users requesting reading and writing permission. 
+              If a user is added to the editors they will also be automatically added to the members.
+          minLength: 0
+        publicChannel:
+          type: boolean
+          default: true 
+          description: If true the channel member/editor and member/editor requests can be viewed by anyone.
+        official:
+          type: boolean 
+          default: false 
+          description: Wether the channel is an official squealer channel or not.
+  securitySchemes:
+    userAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Requires Requires a JWT token generated with user credentials. Even with a correctly formed JWT, a user can only alter their own account.
+    proAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT
+        description: Requires a JWT token generated with pro user credentials.
+    adminAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Requires a JWT token generated with admin credentials.      

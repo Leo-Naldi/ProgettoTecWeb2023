@@ -153,9 +153,6 @@ export const usePostStore = defineStore("post", {
     async fetchUserPosts(handle){
       try {
         const response = await API.user_messages(handle)
-        if (!handle){
-          this.userPosts=this.messageHandler(response.data)
-        }
         return this.messageHandler(response.data)
       } catch (error) {
         console.log("fetch user posts error!!!", error);
