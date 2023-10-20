@@ -160,7 +160,7 @@ class UserContent{
 
     #makeModal(id) {
         let modal = $('<div>', {
-            'class': 'modal fade',
+            'class': 'modal modal-lg fade',
             id: id,
             tabindex: -1,
             'aria-hidden': true,
@@ -193,10 +193,12 @@ class UserContent{
             'aria-label': 'Close'
         })))
 
-        modal_content.append($('<div>', {
+
+        let modal_body = $('<div>', {
             'class': 'modal-body',
-            text: 'TODO'
-        }))
+        })
+
+        modal_content.append(modal_body);
 
         modal_content.append($('<div>', {
             'class': 'modal-footer',
@@ -204,7 +206,100 @@ class UserContent{
             type: 'button',
             text: 'Save',
             'class': 'btn btn-primary',
-        })))
+        })));
+
+        let daily_input = $('<input>', {
+            type: 'number',
+            min: 0,
+            id: 'daily-input',
+            'class': 'form-control',
+        });
+
+        let daily_label = $('<label>', {
+            for: 'daily-input',
+            'class': 'form-label',
+            text: 'Daily Characters'
+        });
+
+        let daily_input_group = $('<div>', {
+            'class': 'input-group mb-3',
+        });
+
+        daily_input_group.append(daily_label);
+        daily_input_group.append(daily_input);
+
+        let weekly_input = $('<input>', {
+            type: 'number',
+            min: 0,
+            id: 'weekly-input',
+            'class': 'form-control',
+        });
+
+        let weekly_label = $('<label>', {
+            for: 'weekly-input',
+            'class': 'form-label',
+            text: 'Weekly Characters'
+        });
+
+        let weekly_input_group = $('<div>', {
+            'class': 'input-group mb-3',
+        });
+
+        weekly_input_group.append(weekly_label);
+        weekly_input_group.append(weekly_input);
+
+        let montly_input = $('<input>', {
+            type: 'number',
+            min: 0,
+            id: 'montly-input',
+            'class': 'form-control',
+        });
+
+        let montly_label = $('<label>', {
+            for: 'montly-input',
+            'class': 'form-label',
+            text: 'Montly Characters'
+        });
+
+        let montly_input_group = $('<div>', {
+            'class': 'input-group mb-3',
+        });
+
+        montly_input_group.append(montly_label);
+        montly_input_group.append(montly_input);
+
+        let form = $(`
+            <form>
+                <div class="mb-3">
+                    <label class="form-label" for="daily-characters">Daily Charachters</label>
+                    <input class="form-control" type="number" min="0" id="daily-characters" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="weekly-characters">Weekly Charachters</label>
+                    <input class="form-control" type="number" min="0" id="weekly-characters" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="monthly-characters">Monthly Characters</label>
+                    <input class="form-control" type="number" min="0" id="monthly-characters" />
+                </div>
+            </form>
+        `);
+
+        //form.append(daily_input);
+        //form.append(weekly_input);
+        //form.append(montly_input);
+
+
+        modal_body.append(form);
+
+        modal.on('show.bs.modal', event => {
+            
+            let user = this.data_table.selected_user
+            $('.modal-title').text(`Edit @${user?.handle}`);
+            $('#daily-characters').attr('value', user?.charLeft.day);
+            $('#weekly-characters').attr('value', user?.charLeft.week);
+            $('#monthly-characters').attr('value', user?.charLeft.month);
+        })
 
         return modal;
     }

@@ -112,9 +112,13 @@ function mountDashboard(){
     let channels = makeChannelsContent();
 
     container.append(header);
-    container.append(users);
-    container.append(messages);
-    container.append(channels);
+
+    let main = $('<main>');
+    container.append(main);
+
+    main.append(users);
+    main.append(messages);
+    main.append(channels);
 
     addTabClickListeners();
 }
