@@ -106,7 +106,7 @@ import { useRouter } from "vue-router";
 import { formatDistance } from "date-fns";
 import { parseISO } from "date-fns";
 import { onMounted, reactive, ref } from "vue";
-import ShowMap from 'src/components/ShowMap.vue'
+import ShowMap from 'src/components/map/ShowMap.vue'
 
 const props = defineProps({
   id: {
@@ -238,7 +238,7 @@ const userLikes = reactive({
 const postReplies = ref([])
 
 const fetchUserData = async (author) => {
-  const data = await userStore.searchUser(author)
+  const data = await userStore.findUser(author)
   userLikes.userLiked = data.liked
   userLikes.userDisliked = data.disliked
   if (userLikes.userLiked.includes(props.id)) {

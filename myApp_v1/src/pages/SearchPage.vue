@@ -10,7 +10,7 @@
       </template>
     </q-input>
 
-    <AlertBox>TODO: here is the map address, you can visualise posts on a map!</AlertBox>
+    <AlertBox>TODO: It seems that your search results contain many geolocations, do you want to view them on a map?</AlertBox>
     <!-- <q-scroll-area class="absolute full-width full-height"> -->
     <!-- <q-separator class="divider" color="grey-2" size="10px" /> -->
     <!-- <div class="column relative" style="height: 35rem"> -->
@@ -31,6 +31,11 @@
             ? { borderBottom: '2px solid #1da1f2' }
             : { borderBottom: '2px solid transparent' },
         ]"><q-icon style="margin: 0 -3px 3px 0" color="grey" name="person" size="xs" />&ensp;User</strong>
+        <strong @click="onActive('mention')" :style="[
+          isActive === 'mention'
+            ? { borderBottom: '2px solid #1da1f2' }
+            : { borderBottom: '2px solid transparent' },
+        ]"><q-icon style="margin: 0 -3px 6px 0" color="grey" name="@" size="xs" />&ensp;Mention</strong>
         <strong @click="onActive('tag')" :style="[
           isActive === 'tag'
             ? { borderBottom: '2px solid #1da1f2' }
@@ -46,12 +51,19 @@
         <p v-if="searchResults.posts.length == 0" style="text-align: center; vertical-align:center">No result</p>
       </div>
       <div v-if="isActive === 'user'">
-        <ShowPost v-for="user in searchResults.users" :key="user._id" v-bind="user" clickable/>
+        <UserEnum :users="searchResults.users" clickable/>
+        <!-- <UserEnum :handle="user.handle" :username="user.username" clickable/> -->
+        <!-- <ShowPost v-for="user in searchResults.users" :key="user._id" v-bind="user" clickable/> -->
         <p v-if="searchResults.users.length == 0" style="text-align: center; vertical-align:center">No result</p>
       </div>
       <div v-if="isActive === 'channel'">
-        <ShowPost v-for="channel in searchResults.channels" :key="channel._id" v-bind="channel" clickable/>
+        <ChannelEnum :channels="searchResults.channels" clickable/>
+        <!-- <ShowPost v-for="channel in searchResults.channels" :key="channel._id" v-bind="channel" clickable/> -->
         <p v-if="searchResults.channels.length == 0" style="text-align: center; vertical-align:center">No result</p>
+      </div>
+      <div v-if="isActive === 'mention'">
+        <ShowPost v-for="tag in searchResults.mentions" :key="tag._id" v-bind="tag" clickable/>
+        <p v-if="searchResults.mentions.length == 0" style="text-align: center; vertical-align:center">No result</p>
       </div>
       <div v-if="isActive === 'tag'">
         <ShowPost v-for="tag in searchResults.tags" :key="tag._id" v-bind="tag" clickable/>
@@ -66,20 +78,27 @@
 import { ref, onMounted, computed, reactive, watchEffect, watch } from "vue";
 import { useRouter } from "vue-router";
 import ShowPost from "src/components/posts/ShowPost.vue";
+import UserEnum from "src/components/UserEnum.vue";
+import ChannelEnum from "src/components/ChannelEnum.vue";
 import AlertBox from "src/components/AlertBox.vue";
 import { usePostStore } from "src/stores/posts";
+import { useUserStore } from "src/stores/user";
+import { useChannelStore } from "src/stores/channels";
 
 const router = useRouter();
 const postStore = usePostStore()
+const userStore = useUserStore()
+const channelStore = useChannelStore()
 
 const isActive = ref("posts");
 // const searchText= ref("")
 const searchText= router.currentRoute.value.params.searchText? ref(router.currentRoute.value.params.searchText) : ref("")
 const searchResults=reactive({
-  posts:"",
-  users:"",
-  channels:"",
-  tags: ""
+  posts:[],
+  users:[],
+  channels:[],
+  tags: [],
+  mentions: []
 })
 
 
@@ -93,6 +112,10 @@ const showFilter =(()=>{
 
 const fetchSearchResults = async (searchText) => {
   searchResults.posts = await postStore.searchPosts(searchText)
+  searchResults.tags = await postStore.searchHashtags("#"+searchText)
+  searchResults.mentions = await postStore.searchMentions(searchText)
+  searchResults.users = await userStore.searchUser(searchText)
+  searchResults.channels = await channelStore.searchChannel(searchText)
 }
 
 const submit=(()=>{
@@ -124,12 +147,6 @@ onMounted(() => {
   fetchSearchResults(paramId)
   console.log("now you're searching for words: ", paramId)
 })
-</script>
-
-<script>
-export default {
-  // name: 'PageName',
-}
 </script>
 
 <style lang="sass" scoped>

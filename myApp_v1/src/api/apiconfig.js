@@ -26,6 +26,14 @@ export default {
   search_channel: (channel_name) => api.get("channels/?name=" + channel_name),    // find channel with name *name*
   search_user: (user_name) => api.get("users/?handle=" + user_name),              // find user with name *name*
   search_messages: (msg_name) => api.get("messages/?text=" + msg_name),           // find messages with text *text*
+  search_keywords: (keywords) => api.get("messages/", {
+    params: {
+      "keywords": keywords
+    }
+  }),
+  search_mentions: (mention) => api.get("messages/?mentions=" + mention),           // find messages with text *text*
+
+
   // TODO: more search API
 
   get_message:(msg_id) =>api.get("messages/"+msg_id),

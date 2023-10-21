@@ -38,12 +38,21 @@ export const useUserStore = defineStore('User', {
         })
         .catch((err) => console.log("fetch all User name error!!!", err));
     },
-    async searchUser(user_name){
+    async findUser(user_name){
       try {
         const response = await API.user(user_name)
         return response.data;
       } catch (error) {
         console.log("search user name error!!!", error);
+        throw error;
+      }
+    },
+    async searchUser(user){
+      try {
+        const response = await API.search_user(user)
+        return response.data
+      } catch (error) {
+        console.log("fetch post con 'text' error!!!", error);
         throw error;
       }
     },

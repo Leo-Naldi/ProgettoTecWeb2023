@@ -15,13 +15,6 @@ export default {
       required: true,
       default: () => [0, 0],
     },
-    positions: {
-      type: Object,
-    },
-    createdAt: {
-      type: [String, Array],
-      default: () => [""],
-    },
     mapId: {
       type: String,
     },
@@ -30,9 +23,9 @@ export default {
     const mapStore = useMapStore()
     onMounted(()=>{
       mapStore.initializeMapAndLocator(props.mapId);
-      mapStore.setCenter(props.myPosition)
-      mapStore.addMarker(props.myPosition)
-      // mapStore.addCustomMarker(props.myPosition, "home")
+      mapStore.setCenter(props.positions[props.positions.length/2])
+      // mapStore.addMarker(props.myPosition)
+      mapStore.addCustomMarker(props.myPosition, "home")
     })
 
     return {
@@ -46,9 +39,10 @@ export default {
 
 .golden-ratio
   width: 100%
-  // height: calc(100vw / 1.618)
   aspect-ratio: 1.618/1
   max-width: calc(90vw - 10px)
-  // max-width: calc(90vw - 10px)
-// style="width:100%;height: calc(100vh - 100px); z-index:1;"
+  // z-index:1
+  // height: calc(100vw / 1.618)
+  // height: calc(100vh - 100px)
+  // max-width: calc(90v - 10px)
 </style>

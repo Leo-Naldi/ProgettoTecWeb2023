@@ -159,7 +159,7 @@ import { useUserStore } from "src/stores/user";
 import { useChannelStore } from "src/stores/channels";
 import { useMapStore } from "src/stores/map";
 import { useImageStore } from "src/stores/image"
-import ShowMap from 'src/components/ShowMap.vue'
+import ShowMap from 'src/components/map/ShowMap.vue'
 import { useAuthStore } from "src/stores/auth";
 import { useGlobalStore } from "src/stores/global";
 

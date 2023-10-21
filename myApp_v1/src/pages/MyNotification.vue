@@ -47,7 +47,7 @@ import { useNotificationsStore } from 'src/stores/notifications';
 import { useGlobalStore } from 'src/stores/global';
 import { computed,ref  } from 'vue';
 import { useRouter } from "vue-router";
-import NotifyList from 'src/components/NotifyList.vue';
+import NotifyList from 'src/components/notify/NotifyList.vue';
 
 /**********************************
  *              common

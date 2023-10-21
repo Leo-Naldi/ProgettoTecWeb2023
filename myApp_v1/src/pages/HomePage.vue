@@ -25,7 +25,7 @@
 import { usePostStore } from 'src/stores/posts.js';
 import { useChannelStore } from 'src/stores/channels.js';
 import { ref, onMounted, computed, } from "vue";
-import  ShowMap  from 'src/components/ShowMap.vue'
+import  ShowMap  from 'src/components/map/ShowMap.vue'
 
 // import { useMapStore } from 'src/stores/map.js'
 // import 'leaflet/dist/leaflet.css'

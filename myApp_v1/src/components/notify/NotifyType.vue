@@ -126,7 +126,6 @@ export default {
             },
           ],
         });
-        console.log("执行了！新消息！")
       },
       show_notifications_reaction(sound, postId) {
         var audio = document.getElementById("audio");

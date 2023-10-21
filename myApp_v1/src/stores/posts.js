@@ -39,7 +39,7 @@ export const usePostStore = defineStore("post", {
         }
         return (
           // '<router-link  @click.stop.prevent to="' +route +'">' + match + "</router-link>"
-          '<a  @click.stop.prevent href="' +route +'">' + match + "</a>"
+          '<a  @click.stop.prevent href="' +route +'">' + match + " </a>"
 
 
         );
@@ -95,7 +95,7 @@ export const usePostStore = defineStore("post", {
             myTweets_list=this.messageHandler(response.data)
 
             this.allPosts = myTweets_list;
-            // this.searchUserMessages()
+            // this.findUserMessages()
           }
         })
         .catch((err) => console.log("fetch all posts error!!!", err));
@@ -130,9 +130,35 @@ export const usePostStore = defineStore("post", {
         throw error;
       }
     },
+    // ?text=...
     async searchPosts(text){
       try {
         const response = await API.search_messages(text)
+        return this.messageHandler(response.data)
+      } catch (error) {
+        console.log("fetch post con 'text' error!!!", error);
+        throw error;
+      }
+    },
+    //  "#daily " -> only "xxx #daily xxx"
+    searchHashtags_filtered(data, tag){
+      return data.filter(obj => obj.content.text.includes(tag));
+    },
+    // ?keywords=...
+    // "#daily" -> "#daily-1", "#XXXdaily", ...
+    async searchHashtags(text){
+      try {
+        const response = await API.search_keywords(text)
+        return this.messageHandler(response.data)
+      } catch (error) {
+        console.log("fetch post con 'text' error!!!", error);
+        throw error;
+      }
+    },
+    // ?mentions=...
+    async searchMentions(text){
+      try {
+        const response = await API.search_mentions(text)
         return this.messageHandler(response.data)
       } catch (error) {
         console.log("fetch post con 'text' error!!!", error);

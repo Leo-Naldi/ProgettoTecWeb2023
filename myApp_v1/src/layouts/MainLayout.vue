@@ -86,7 +86,7 @@ import { usePostStore } from "src/stores/posts";
 import { useSocketStore } from "src/stores/socket";
 import { useNotificationsStore } from 'src/stores/notifications';
 import { useRouter } from "vue-router";
-import NotifyType from "src/components/NotifyType.vue";
+import NotifyType from "src/components/notify/NotifyType.vue";
 import { useGlobalStore } from "src/stores/global";
 
 const authStore = useAuthStore()
@@ -157,7 +157,7 @@ export default defineComponent({
     const rightDrawerOpen = ref(false);
     const $q = useQuasar();
     const notificationStore = useNotificationsStore()
-    const socketStore = useSocketStore();
+    const socketStore = useSocketStore()
     const postStore = usePostStore()
     const mytoken = authStore.getToken()
     const myhandle = authStore.getUserHandle()

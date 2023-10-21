@@ -133,7 +133,7 @@ const fetchUserMessages = async (paramId) => {
 
 
 const fetchUserData = async (paramId) => {
-  const data = await userStore.searchUser(paramId)
+  const data = await userStore.findUser(paramId)
   userDetails.handle=data.handle
   userDetails.userName=data.username
   userDetails.joined_channels=data.joinedChannels
