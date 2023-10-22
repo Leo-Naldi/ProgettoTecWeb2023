@@ -48,7 +48,7 @@ export const useAuthStore = defineStore('auth', {
             my_user["meta"].created=format(new Date(my_user["meta"].created), 'MMMM yyyy');
             this.saveUser(my_user, response.data.token);
             // this.router.push({ path: '/home' });
-            this.router.push({ path: '/all' });
+            this.router.push({ path: '/home' });
           }
           return response;
         })

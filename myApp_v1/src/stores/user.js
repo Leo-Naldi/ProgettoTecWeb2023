@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import API from "src/api/apiconfig";
+import { useAuthStore } from './auth';
 
 export const useUserStore = defineStore('User', {
   state: () => ({
@@ -48,6 +49,8 @@ export const useUserStore = defineStore('User', {
       }
     },
     async searchUser(user){
+      user = user[0]=='#' ? '%23'+user.substring(1): user
+
       try {
         const response = await API.search_user(user)
         return response.data
@@ -56,7 +59,26 @@ export const useUserStore = defineStore('User', {
         throw error;
       }
     },
-
+    async fetchUserCreatedChannels(){
+      try {
+        const user_handle = useAuthStore().getUserHandle()
+        const response = await API.get_created_channels(user_handle)
+        return response.data;
+      } catch (error) {
+        console.log("search user name error!!!", error);
+        throw error;
+      }
+    },
+    async fetchUserJoinedChannels(){
+      try {
+        const user_handle = useAuthStore().getUserHandle()
+        const response = await API.get_joined_channels(user_handle)
+        return response.data;
+      } catch (error) {
+        console.log("search user name error!!!", error);
+        throw error;
+      }
+    },
 
   }
 })

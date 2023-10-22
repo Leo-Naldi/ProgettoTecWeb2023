@@ -11,9 +11,8 @@ export default {
   name: 'ShowMap',
   props: {
     myPosition: {
-      type: [Number, Array],
+      type: Object,
       required: true,
-      default: () => [0, 0],
     },
     mapId: {
       type: String,

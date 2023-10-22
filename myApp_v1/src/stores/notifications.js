@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useGlobalStore } from './global'
 
 export const useNotificationsStore = defineStore('notification', {
   state: () => ({
@@ -52,6 +53,7 @@ export const useNotificationsStore = defineStore('notification', {
       this.m_unread=[]
       this.c_unread=[]
       this.r_unread=[]
+      useGlobalStore().resetUnread()
     }
   }
 })

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <q-item v-for="channel in channels" :key="channel.id" class="q-mb-sm" clickable v-ripple>
+    <q-item v-for="channel in channels" :key="channel.id" class="q-mb-sm" clickable v-ripple @click="goToDetails(channel.name)">
       <q-item-section avatar>
         <q-avatar rounded>
           <!-- <img :src="`https://cdn.quasar.dev/img/${contact.avatar}`"> -->
@@ -20,6 +20,7 @@
 
 <script>
 import ChannelButton from './ChannelButton.vue';
+import { useRouter } from 'vue-router';
 
 export default {
   name: "UserEnum",
@@ -33,7 +34,17 @@ export default {
     },
   },
   setup() {
-    return {};
+    const router=useRouter()
+
+    const goToDetails = ((name) => {
+      router.push({
+        name: "ChannelDetail",
+        params: {
+          channelName: name,
+        },
+      });
+    })
+    return {goToDetails};
   },
 };
 </script>

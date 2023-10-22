@@ -42,6 +42,8 @@ export const useChannelStore = defineStore('channel', {
         .catch((err) => console.log("fetch all channel name error!!!", err));
     },
     async searchChannel(channel_name){
+      channel_name = channel_name[0]=='#' ? '%23'+channel_name.substring(1): channel_name
+
       try {
         const response = await API.search_channel(channel_name)
         return response.data;
@@ -49,7 +51,8 @@ export const useChannelStore = defineStore('channel', {
         console.log("search channel name error!!!", error);
         throw error;
       }
-    }
+    },
+
 
   }
 })

@@ -15,6 +15,7 @@ import FullMap from 'src/components/map/FullMap.vue';
 
 <template>
   <div id="mapContainer" class="full-map"></div>
+  <p>Please insert a words in inputbar to visualize the map!</p>
 </template>
 
 <script>
@@ -85,19 +86,22 @@ export default {
       handler: function (val) {
         // this.mapStore.resetMap()
         // this.mapStore.initializeMapAndLocator("mapContainer");
-        this.fetchSearchResults(val.params.keywords)
+        if (val.params.keywords){
+          this.fetchSearchResults(val.params.keywords)
+        }
       },
       // 深度观察监听
       deep: false,
-      immediate: true,
+      immediate: false,
     }
   },
   async mounted() {
     const paramId = this.router.currentRoute.value.params.keywords;
     this.notificationStore.set_realtime_keyword(paramId)
     // this.mapStore.initializeMapAndLocator("mapContainer");
-
-    await this.fetchSearchResults(paramId)
+    if (paramId){
+      await this.fetchSearchResults(paramId)
+    }
     /* const res = await this.postStore.searchHashtags(paramId)
     let positions=[]
     if (paramId[0] == '#') {

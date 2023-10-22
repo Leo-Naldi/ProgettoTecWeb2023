@@ -25,12 +25,14 @@ export default {
 
   search_channel: (channel_name) => api.get("channels/?name=" + channel_name),    // find channel with name *name*
   search_user: (user_name) => api.get("users/?handle=" + user_name),              // find user with name *name*
-  search_messages: (msg_name) => api.get("messages/?text=" + msg_name),           // find messages with text *text*
-  search_keywords: (keywords) => api.get("messages/", {
+  search_messages: (msg_name) => api.get("messages/?text=" + msg_name),
+  search_keywords: (msg_name) => api.get("messages/?keywords=" + msg_name),           // find messages with text *text*
+           // find messages with text *text*
+/*   search_keywords: (keywords) => api.get("messages/", {
     params: {
       "keywords": keywords
     }
-  }),
+  }), */
   search_mentions: (mention) => api.get("messages/?mentions=" + mention),           // find messages with text *text*
 
 
@@ -42,6 +44,8 @@ export default {
   user_messages: (user_handle) => api.get("users/" + user_handle + "/messages"),  // get user messages by handle
 
   channel_messages: (channel_name) => api.get("messages/channel/"+channel_name),
+  get_created_channels : (handle) => api.get("channels/"+handle+"/created"),
+  get_joined_channels: (handle) => api.get("users/"+handle+"/joined"),
 
   like_messages: (msg_id) => api.post("messages/up/"+msg_id),
   dislike_messages: (msg_id) => api.post("messages/down/"+msg_id),

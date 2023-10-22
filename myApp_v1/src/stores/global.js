@@ -17,6 +17,9 @@ export const useGlobalStore = defineStore('global', {
     },
     decreaseUnread(){
       this.unreadCnt--;
+    },
+    resetUnread(){
+      this.unreadCnt=0
     }
   }
 })

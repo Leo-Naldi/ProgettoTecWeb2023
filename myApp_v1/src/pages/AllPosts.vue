@@ -1,7 +1,7 @@
 <template>
   <!-- <q-page padding> -->
   <q-page class="relative-position">
-    <q-list separator>
+    <q-list>
       <ShowPost style="border-radius:12px; margin: 0.4rem 0.2rem 0.3rem 0.2rem" v-show="!post.hide"
         v-for="post in post_list" :key="post.id" v-bind="post" clickable />
     </q-list>

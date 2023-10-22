@@ -102,6 +102,8 @@ export const usePostStore = defineStore("post", {
     },
     // fetch one posts
     async fetchPost(id){
+      id = id[0]=='#' ? '%23'+id.substring(1): id
+
       try {
         const response = await API.message(id)
         return this.messageHandler([response.data])
@@ -147,6 +149,8 @@ export const usePostStore = defineStore("post", {
     // ?keywords=...
     // "#daily" -> "#daily-1", "#XXXdaily", ...
     async searchHashtags(text){
+      text = text[0]=='#' ? '%23'+text.substring(1): text
+
       try {
         const response = await API.search_keywords(text)
         return this.messageHandler(response.data)
@@ -157,6 +161,8 @@ export const usePostStore = defineStore("post", {
     },
     // ?mentions=...
     async searchMentions(text){
+      text = text[0]=='#' ? '%23'+text.substring(1): text
+
       try {
         const response = await API.search_mentions(text)
         return this.messageHandler(response.data)

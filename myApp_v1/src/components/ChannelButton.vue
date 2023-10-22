@@ -63,10 +63,12 @@ function followChannel(){
   color: #1da1f2
   background-color: #ffffff
   // line-height: 18px
-  font-size: 15px
+  font-size: 90%
+  // font-size: 15px
   font-weight: 700
   border: 2px solid #1da1f2
-  box-sizing: content-box
+  box-sizing: border-box
+  // box-sizing: content-box
   border-radius: 59px
   width: 77px
   height: 30px
