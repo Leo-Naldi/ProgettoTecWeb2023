@@ -53,6 +53,10 @@ export const useMapStore = defineStore("map", {
       var marker = L.marker(center)
       this.markers.addLayer(marker)
     },
+    addMarkerWithPopUp(center, popup){
+      var marker = L.marker(center).bindPopup(popup)
+      this.markers.addLayer(marker)
+    },
     // add custom icon (from material-icons)
     addCustomMarker(latlng, iconName) {
       const iconUrl = `https://fonts.gstatic.com/s/i/materialicons/${iconName}/v15/24px.svg`;
@@ -65,8 +69,10 @@ export const useMapStore = defineStore("map", {
       this.markers.addLayer(marker)
       // L.marker(latlng, { icon: customIcon }).addTo(this.map);
     },
-    addLayer(){
+    addLayerMarker(){
       this.map.addLayer(this.markers)
+    },
+    addLayerLine(){
       this.map.addLayer(this.lines)
     },
     addMarkers(positions) {
@@ -77,13 +83,25 @@ export const useMapStore = defineStore("map", {
       }
       this.map.fitBounds(bounds);
     },
+    addMarkersWithPopUp(positions, popups){
+      const bounds = L.latLngBounds();
+      for (var i in positions) {
+        this.addMarkerWithPopUp(positions[i], popups[i]);
+        bounds.extend(positions[i]);
+      }
+      this.map.fitBounds(bounds);
+    },
     removeAllMarkers(){
-      if (this.map!=null){
+      // if (this.map!=null){
       this.map.removeLayer(this.markers);
       this.map.removeLayer(this.lines);
+      // }
+    },
+    resetMap(){
+      if (this.map!=null){
+        this.map.remove()
       }
     },
-    // TODO:add a line
     addPolyline(positions){
       var line = L.polyline(positions, {
         color: "#4285F4",

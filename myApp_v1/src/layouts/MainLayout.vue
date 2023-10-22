@@ -72,7 +72,7 @@
       <router-view />
     </q-page-container>
 
-    <NotifyType ref="audio"></NotifyType>
+    <!-- <NotifyType ref="audio"></NotifyType> -->
   </q-layout>
 </template>
 
@@ -91,7 +91,7 @@ import { useGlobalStore } from "src/stores/global";
 
 const authStore = useAuthStore()
 const globalStore = useGlobalStore()
-const audio = ref();
+// const audio = ref();
 
 const linksList = [
   {
@@ -142,7 +142,7 @@ export default defineComponent({
 
   components: {
     EssentialLink,
-    NotifyType
+    // NotifyType
 },
   data() {
     return {
@@ -156,19 +156,19 @@ export default defineComponent({
     const leftDrawerOpen = ref(false);
     const rightDrawerOpen = ref(false);
     const $q = useQuasar();
-    const notificationStore = useNotificationsStore()
-    const socketStore = useSocketStore()
-    const postStore = usePostStore()
-    const mytoken = authStore.getToken()
-    const myhandle = authStore.getUserHandle()
-    socketStore.setSocket(myhandle, mytoken);
-    const mysocket = socketStore.getSocket;
-    const  userPost= ref([])
-    let timerId =null
+    // const notificationStore = useNotificationsStore()
+    // const socketStore = useSocketStore()
+    // const postStore = usePostStore()
+    // const mytoken = authStore.getToken()
+    // const myhandle = authStore.getUserHandle()
+    // socketStore.setSocket(myhandle, mytoken);
+    // const mysocket = socketStore.getSocket;
+    // const  userPost= ref([])
+    // let timerId =null
 
-    const fetchUserData = async () => {
-      userPost.value = await postStore.fetchUserPosts(myhandle);
-    };
+    // const fetchUserData = async () => {
+    //   userPost.value = await postStore.fetchUserPosts(myhandle);
+    // };
 
 
 
@@ -179,63 +179,63 @@ export default defineComponent({
       return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
     }))
 
-    onMounted(() => {
-      fetchUserData();
-      /*
-        notify with socket, if not clicked then the notifications will save to store
-        3 type of notify:
-          - message send to me ("dest" include my "handle")
-          - reply to my post ("answering" include my post's id)
-          - reaction to my post
-      */
-      mysocket.on("message:created", (message) => {
-        if (message.answering && userPost.value.some(obj => obj._id === message.answering) && message.dest && message.dest.includes("@"+myhandle)){
-          notificationStore.set_c_unread(message)
-          var new_MsgRe_sound ="/src/assets/newMsgRe.mp3"
-          audio.value.show_notifications_ReMsg(new_MsgRe_sound, message.answering, message.id);
-        }
-        else if (message.answering && userPost.value.some(obj => obj._id === message.answering)) {     // if has replies to my messages
-          notificationStore.set_c_unread(message)
-          var new_reply_sound ="/src/assets/newReply.mp3"
-          audio.value.show_notifications_reply(new_reply_sound, message.answering)
-        }
-        else if( message.dest && message.dest.includes("@"+myhandle)){                       // if has message send to me
-          notificationStore.set_m_unread(message)
-          var new_message_sound ="/src/assets/newMessage.mp3"
-          audio.value.show_notifications_message(new_message_sound, message.id);
-        }
-        globalStore.incrementUnread()
-      });
+    // onMounted(() => {
+    //   fetchUserData();
+    //   /*
+    //     notify with socket, if not clicked then the notifications will save to store
+    //     3 type of notify:
+    //       - message send to me ("dest" include my "handle")
+    //       - reply to my post ("answering" include my post's id)
+    //       - reaction to my post
+    //   */
+    //   mysocket.on("message:created", (message) => {
+    //     if (message.answering && userPost.value.some(obj => obj._id === message.answering) && message.dest && message.dest.includes("@"+myhandle)){
+    //       notificationStore.set_c_unread(message)
+    //       var new_MsgRe_sound ="/src/assets/newMsgRe.mp3"
+    //       audio.value.show_notifications_ReMsg(new_MsgRe_sound, message.answering, message.id);
+    //     }
+    //     else if (message.answering && userPost.value.some(obj => obj._id === message.answering)) {     // if has replies to my messages
+    //       notificationStore.set_c_unread(message)
+    //       var new_reply_sound ="/src/assets/newReply.mp3"
+    //       audio.value.show_notifications_reply(new_reply_sound, message.answering)
+    //     }
+    //     else if( message.dest && message.dest.includes("@"+myhandle)){                       // if has message send to me
+    //       notificationStore.set_m_unread(message)
+    //       var new_message_sound ="/src/assets/newMessage.mp3"
+    //       audio.value.show_notifications_message(new_message_sound, message.id);
+    //     }
+    //     globalStore.incrementUnread()
+    //   });
 
-      mysocket.on("reaction:recived", (message) => {
-        const foundObj = userPost.value.find(obj => obj.id === message.id);
-        if (foundObj!=undefined) {
-          notificationStore.set_r_unread(foundObj)
-        }
-        globalStore.incrementUnread()
-      });
+    //   mysocket.on("reaction:recived", (message) => {
+    //     const foundObj = userPost.value.find(obj => obj.id === message.id);
+    //     if (foundObj!=undefined) {
+    //       notificationStore.set_r_unread(foundObj)
+    //     }
+    //     globalStore.incrementUnread()
+    //   });
 
-      /* every 30s check if there're unread messages, if clicked, jump to notification page */
-      timerId = setInterval(() => {
-        let sum = notificationStore.getUnread
+    //   /* every 30s check if there're unread messages, if clicked, jump to notification page */
+    //   timerId = setInterval(() => {
+    //     let sum = notificationStore.getUnread
 
-        if (sum!= 0) {
-          const notify_sound ="/src/assets/Notify.mp3"
-          audio.value.show_notifications(notify_sound);
-        }
-      }, 30000); /* 1000 = 1s */
-    }),
-    onUnmounted(() => {
-      clearInterval(timerId);
-    });
+    //     if (sum!= 0) {
+    //       const notify_sound ="/src/assets/Notify.mp3"
+    //       audio.value.show_notifications(notify_sound);
+    //     }
+    //   }, 30000); /* 1000 = 1s */
+    // }),
+    // onUnmounted(() => {
+    //   clearInterval(timerId);
+    // });
     return {
       essentialLinks: linksList,
       leftDrawerOpen,
       rightDrawerOpen,
       miniState,
       miniStateR,
-      userPost,
-      audio,
+      // userPost,
+      // audio,
       globalStore,
       has_read: false,
       toggleLeftDrawer() {

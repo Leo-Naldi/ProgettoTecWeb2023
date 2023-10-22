@@ -23,9 +23,11 @@ export default {
     const mapStore = useMapStore()
     onMounted(()=>{
       mapStore.initializeMapAndLocator(props.mapId);
-      mapStore.setCenter(props.positions[props.positions.length/2])
-      // mapStore.addMarker(props.myPosition)
-      mapStore.addCustomMarker(props.myPosition, "home")
+      mapStore.setCenter(props.myPosition)
+      // mapStore.setCenter(props.positions[props.positions.length/2])
+      mapStore.addMarker(props.myPosition)
+      // mapStore.addCustomMarker(props.myPosition, "home")
+      mapStore.addLayerMarker()
     })
 
     return {
