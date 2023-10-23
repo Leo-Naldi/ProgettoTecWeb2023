@@ -308,7 +308,12 @@ class MessageService {
     }
 
     /**
-     * Generic Read operation for messages
+     * Generic Read operation for messages. A non logged-in user can only read official
+     * messages. A logged-in user can read:
+     *    - Public messages
+     *    - Their own messages
+     *    - Messages addressed to them
+     *    - Messages to a channel they joined
      * 
      * @param {Object} param0 The request values
      * @returns A message object array
@@ -345,22 +350,11 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getChannelMessages({ reqUser, name }){
-        const ch = await Channel.findOne({ name: name }).populate('members');
-        
-        if (!ch) return Service.rejectResponse({ message: `No channel named ${name}` })
-
-        if (!ch.members.find(u => reqUser._id.equals(u._id))) {
-            return Service.rejectResponse({ 
-                message: `Cannot messages to §${name} since you are not a member.`
-            })
-        }
-
-
+    static async getChannelMessages({ reqUser, name, reqChannel }){
         
         const query = MessageService.#populateMessageQuery(
                 Message.find({
-                    destChannel: ch._id,
+                    destChannel: reqChannel._id,
                 }));
         
         let res = await query;
@@ -415,20 +409,19 @@ class MessageService {
      * @returns The message object if possible
      */
     static async getMessage({ reqUser, id }) {
-        const message = await MessageService.#populateMessageQuery(Message.findById(id));
+        const message = await MessageService.#populateMessageQuery(
+            Message.findOne({
+                _id: id,
+                $or: [
+                    { author: reqUser._id },
+                    { destUser: reqUser._id },
+                    { publicMessage: true },
+                    { destChannel: { $in: reqUser.joinedChannels } },
+                ]
+            })
+        );
 
-        if (!message) return Service.rejectResponse({ message: `No message with id ${id}` });
-        
-        if (!message.publicMessage) {
-
-            if ((message.author.handle !== reqUser.handle) 
-                && (!message.destUser.some(u => reqUser._id.equals(u._id)))
-                && (!message.destChannel.some(
-                    c => reqUser.joinedChannels.some(ch => ch._id.equals(c._id))))
-                )
-                
-                return Service.rejectResponse({ message: `Cant read message ${id}` });
-        }
+        if (!message) return Service.rejectResponse({ message: `Cannot read ${id}` });
 
         await Message.updateOne({ _id: message._id }, { $inc: { 'meta.impressions': 1 } });
 
@@ -502,8 +495,6 @@ class MessageService {
      */
     static async postUserMessage({ reqUser, handle, content, meta, dest=[], publicMessage=true,
         answering=null, socket=null }) {
-            
-        if (!handle) return Service.rejectResponse({ message: 'Need to provide a valid handle' });
 
         let user = reqUser;
 
@@ -1098,6 +1089,57 @@ class MessageService {
 
         return Service.successResponse();
     };
+
+
+    static async #getReactedMessages({ reqUser, handle, type, page, results_per_page }) {
+        let user = reqUser;
+        if (user.handle !== handle) {
+            user = await User.findOne({ handle });
+
+            if (!user) {
+                return Service.rejectResponse({ message: `No user named @${handle}` });
+            }
+        }
+
+        let reactions = await Reaction.find({
+            user: user._id,
+            type: type,
+        }).populate({
+            path: 'message',
+            match: {
+                $or: [
+                    { author: reqUser._id },
+                    { destUser: reqUser._id },
+                    { publicMessage: true },
+                    { destChannel: { $in: reqUser.joinedChannels } },
+                ]
+            }
+        })
+
+        reactions = reactions.filter(r => r.message !== null);
+
+        let query = MessageService.#populateMessageQuery(Message.find({
+            _id: { $in: reactions.map(r => r.message._id) },
+        })).sort('-meta.created');
+
+        if (page > 0) {
+            query.skip((page-1) * results_per_page).limit(results_per_page);
+        }
+
+        let messages = await query;
+
+        return Service.successResponse(MessageService._makeMessageObjectArr(messages));
+    }
+
+    static async getLikedMessages({ reqUser, handle, page=1, results_per_page=config.results_per_page }) {
+        
+        return await MessageService.#getReactedMessages({ reqUser, handle, page, results_per_page, type: 'positive' })
+    }
+
+    static async getDislikedMessages({ reqUser, handle, page = 1, results_per_page = config.results_per_page }) {
+
+        return await MessageService.#getReactedMessages({ reqUser, handle, page, results_per_page, type: 'negative' })
+    }
 }
 
 module.exports = MessageService;

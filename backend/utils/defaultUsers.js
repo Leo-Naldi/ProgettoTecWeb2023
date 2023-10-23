@@ -183,6 +183,24 @@ function makeTestData() {
     let u = test_env.users[test_user_indexes[i]];
     u.joinedChannels.addToSet(test_env.channels[channel_indexes[i]]._id);
 
+    // get liked messages
+    i = 23
+
+    test_env.addRandomMessages({
+        authorIndex: creator_indexes[i],
+        allTime: 3
+    });
+
+    _.last(test_env.messages, 3).map(m => {
+        m.publicMessage = true;
+    })
+
+    let ind = [1, 2, 3]
+    ind.map(j => {
+        test_env.addReactionFromUser(test_env.messages.length - j, test_user_indexes[i], 'positive');
+        test_env.addReactionFromUser(test_env.messages.length - j, test_user_indexes[i], 'negative');
+    })
+
 }
 
 

@@ -184,4 +184,16 @@ DebugRouter.get('/channel/creator/:handle', async (req, res) => {
     return res.status(200).json(channels);
 })
 
+DebugRouter.get('/:handle/reacted', async (req, res) => {
+    let user = await User.findOne({ handle: req.params.handle });
+    if (!user) res.sendStatus(409);
+
+    let reactions = await Reaction.find({ user: user._id });
+
+    return res.status(200).json({
+        positive: reactions.filter(r => r.type === 'positive').map(r => r.message),
+        negative: reactions.filter(r => r.type === 'negative').map(r => r.message),
+    })
+});
+
 module.exports = DebugRouter;

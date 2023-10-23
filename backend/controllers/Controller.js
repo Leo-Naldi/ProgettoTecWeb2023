@@ -83,6 +83,7 @@ class Controller {
 
         if (request.user) requestParams.reqUser = request.user;
         if (request.smm) requestParams.reqSmm = request.smm;
+        if (request.channel) requestParams.reqChannel = request.channel;
 
         if (requestParams.after) requestParams.after = new Date(Date.parse(requestParams.after));
         if (requestParams.before) requestParams.before = new Date(Date.parse(requestParams.before));

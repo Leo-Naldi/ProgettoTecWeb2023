@@ -1329,6 +1329,53 @@ paths:
         '409':
           description: Invalid handle
 
+  /messages/user/{handle}/up: 
+    get:
+      tags:
+        - Message
+        - User
+      description: Get all the messages a specific user liked.
+      operationId: getLikedMessages
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: handle
+          in: path
+          description: The user's handle
+          required: True
+          schema: 
+            type: string
+            example: userHandle123
+        - name: page
+          in: query
+          description: To paginate results. A non-positive value disables pagination.
+          schema:
+            type: number
+            example: 4
+            default: 1
+        - name: results_per_page
+          in: query 
+          description: The number of results to be returned 
+          schema: 
+            type: number
+            minimum: 1
+            example: 50
+            default: 100
+      responses:
+        '200':
+          description: Operation Successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid handle
+
   /auth/login:
     post:
       tags:

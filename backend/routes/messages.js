@@ -3,7 +3,7 @@ const express = require('express');
 const Controller = require('../controllers/Controller');
 const MessageServices = require('../services/MessageServices');
 const User = require('../models/User');
-const { getAuthMiddleware, checkOwnUserOrSMM, checkNameCreator } = require('../middleware/auth');
+const { getAuthMiddleware, checkOwnUserOrSMM, checkNameCreator, checkNameMember } = require('../middleware/auth');
 const { logger } = require('../config/logging');
 const Message = require('../models/Message');
 const Reaction = require('../models/Reactions');
@@ -23,7 +23,7 @@ MessageRouter.get('/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
 })
 
 // formerly '/:name'
-MessageRouter.get('/channel/:name', getAuthMiddleware('basicAuth'), async (req, res) => {
+MessageRouter.get('/channel/:name', getAuthMiddleware('basicAuth'), checkNameMember, async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.getChannelMessages);
 })
@@ -48,8 +48,19 @@ MessageRouter.post('/user/:handle', getAuthMiddleware('basicAuth'), checkOwnUser
 MessageRouter.get('/user/:handle', getAuthMiddleware('basicAuth'),
     async (req, res) => {
 
-        //logger.info('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa')
         await Controller.handleRequest(req, res, MessageServices.getUserMessages);
+});
+
+MessageRouter.get('/user/:handle/up', getAuthMiddleware('basicAuth'), 
+    async (req, res) => {
+
+        await Controller.handleRequest(req, res, MessageServices.getLikedMessages);
+});
+
+MessageRouter.get('/user/:handle/down', getAuthMiddleware('basicAuth'),
+    async (req, res) => {
+
+        await Controller.handleRequest(req, res, MessageServices.getDislikedMessages);
     });
 
 //delete post of a user
@@ -118,5 +129,7 @@ MessageRouter.delete('/down/:id', getAuthMiddleware('basicAuth'),
         await Controller.handleRequest(req, res, MessageServices.deleteNegativeReaction);
     }
 );
+
+
 
 module.exports = MessageRouter;
