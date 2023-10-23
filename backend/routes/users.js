@@ -13,7 +13,7 @@ const UserRouter = express.Router();
 // TODO add some form of liked messages filter
 
 UserRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
-    await Controller.handleRequest(req, res, UserService.getUsers);
+    await Controller.handleRequest(req, res, UserService.getUsersByPopularity);
 })
 
 UserRouter.get('/:handle', getAuthMiddleware('basicAuth'),

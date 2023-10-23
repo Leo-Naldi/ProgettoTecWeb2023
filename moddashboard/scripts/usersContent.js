@@ -164,7 +164,8 @@ class UserContent{
             id: id,
             tabindex: -1,
             'aria-hidden': true,
-            role: 'dialog'
+            role: 'dialog',
+            'aria-labeledby': 'modal-title',
         })
 
         
@@ -182,10 +183,11 @@ class UserContent{
         dialog.append(modal_content);
 
         modal_content.append($('<div>', {
-            'class': 'modal-header'  
+            'class': 'modal-header', 
         }).append($('<h1>', {
             'text': 'Edit @'+ this.data_table?.selected_user?.handle,
-            'class': 'modal-title fs-5'
+            'class': 'modal-title fs-5',
+            'id': 'modal-title'
         })).append($('<button>', {
             'type': 'button',
             'class': 'btn-close',
@@ -200,95 +202,33 @@ class UserContent{
 
         modal_content.append(modal_body);
 
-        modal_content.append($('<div>', {
-            'class': 'modal-footer',
-        }).append($('<button>', {
-            type: 'button',
-            text: 'Save',
-            'class': 'btn btn-primary',
-        })));
-
-        let daily_input = $('<input>', {
-            type: 'number',
-            min: 0,
-            id: 'daily-input',
-            'class': 'form-control',
-        });
-
-        let daily_label = $('<label>', {
-            for: 'daily-input',
-            'class': 'form-label',
-            text: 'Daily Characters'
-        });
-
-        let daily_input_group = $('<div>', {
-            'class': 'input-group mb-3',
-        });
-
-        daily_input_group.append(daily_label);
-        daily_input_group.append(daily_input);
-
-        let weekly_input = $('<input>', {
-            type: 'number',
-            min: 0,
-            id: 'weekly-input',
-            'class': 'form-control',
-        });
-
-        let weekly_label = $('<label>', {
-            for: 'weekly-input',
-            'class': 'form-label',
-            text: 'Weekly Characters'
-        });
-
-        let weekly_input_group = $('<div>', {
-            'class': 'input-group mb-3',
-        });
-
-        weekly_input_group.append(weekly_label);
-        weekly_input_group.append(weekly_input);
-
-        let montly_input = $('<input>', {
-            type: 'number',
-            min: 0,
-            id: 'montly-input',
-            'class': 'form-control',
-        });
-
-        let montly_label = $('<label>', {
-            for: 'montly-input',
-            'class': 'form-label',
-            text: 'Montly Characters'
-        });
-
-        let montly_input_group = $('<div>', {
-            'class': 'input-group mb-3',
-        });
-
-        montly_input_group.append(montly_label);
-        montly_input_group.append(montly_input);
-
         let form = $(`
             <form>
                 <div class="mb-3">
                     <label class="form-label" for="daily-characters">Daily Charachters</label>
-                    <input class="form-control" type="number" min="0" id="daily-characters" />
+                    <input name="day" class="form-control" type="number" min="0" id="daily-characters" />
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="weekly-characters">Weekly Charachters</label>
-                    <input class="form-control" type="number" min="0" id="weekly-characters" />
+                    <input name="week" class="form-control" type="number" min="0" id="weekly-characters" />
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="monthly-characters">Monthly Characters</label>
-                    <input class="form-control" type="number" min="0" id="monthly-characters" />
+                    <input name="month" class="form-control" type="number" min="0" id="monthly-characters" />
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <label class="form-check-label" for="blocked-switch">Blocked</label>
+                    <input name="blocked" value="true" class="form-check-input" type="checkbox" role="switch" id="blocked-switch">
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <label class="form-check-label" for="admin-switch">Admin</label>
+                    <input name="admin" value="true" class="form-check-input" type="checkbox" role="switch" id="admin-switch">
+                </div>
+                <div class="d-flex flex-row-reverse">
+                    <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         `);
-
-        //form.append(daily_input);
-        //form.append(weekly_input);
-        //form.append(montly_input);
-
 
         modal_body.append(form);
 
@@ -299,6 +239,54 @@ class UserContent{
             $('#daily-characters').attr('value', user?.charLeft.day);
             $('#weekly-characters').attr('value', user?.charLeft.week);
             $('#monthly-characters').attr('value', user?.charLeft.month);
+            $('#blocked-switch').attr('value', (user.blocked) ? 'on' : 'off');
+            $('#admin-switch').attr('value', (user.admin) ? 'on': 'off');
+        });
+
+        modal.on('hidden.bs.modal', event => {
+            form.trigger('reset')
+        })
+
+        let dt = this.data_table;
+        form.on('submit', function (event) {
+
+            let user = dt.selected_user;
+            event.preventDefault();
+            let body = $(this).serializeArray().reduce((acc, cur) => {
+                acc[cur.name] = cur.value;
+                return acc;
+            }, {});
+            //console.log(body)
+
+            // satanism
+            body.blocked = !!body.blocked;
+            body.admin = !!body.admin;
+            
+            if (body.blocked == user.blocked) {
+                delete body.blocked;
+            }
+
+            if (body.admin == user.admin) {
+                delete body.admin;
+            }
+
+            body.charLeft = {}
+            console.log(JSON.stringify(user));
+            ['day', 'week', 'month'].map(prop => {
+                if (body[prop] != user.charLeft[prop]) {
+                    body.charLeft[prop] = parseInt(body[prop]);
+                }
+            })
+            
+            delete body.day; delete body.week; delete body.month;
+
+            console.log(body);
+
+            authorizedRequest({
+                endpoint: '/users/' + user.handle,
+                method: 'post',
+                body: body,
+            });
         })
 
         return modal;
