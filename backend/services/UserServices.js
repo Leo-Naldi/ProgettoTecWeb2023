@@ -75,6 +75,23 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
+    static #makeGetResBody({ user_docs, page, results_per_page }) {
+        
+        let res = {}
+
+        if (page > 0) {
+            res.results = user_docs
+                .slice((page - 1) * results_per_page, page * results_per_page)
+                .map(u => UserService.makeUserObject(u));
+            res.pages = Math.ceil(user_docs.length / results_per_page);
+        } else {
+            res.results = user_docs.map(u => UserService.makeUserObject(u));
+            res.pages = 1;
+        } 
+        
+        return res;
+    }
+
     static async getUsers({ handle, admin, accountType, handleOnly=false, page = 1, 
         results_per_page=config.results_per_page,
      } = { page: 1, results_per_page: config.results_per_page }){
@@ -99,13 +116,13 @@ class UserService {
 
             if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-            if (page > 0)
-                query.skip((page - 1) * results_per_page)
-                    .limit(results_per_page);
-
             users = await query
 
-                return Service.successResponse(UserService.makeUserObjectArr(users));
+            return Service.successResponse(UserService.#makeGetResBody({
+                user_docs: users,
+                page: page,
+                results_per_page: results_per_page,
+            }));
         }
 
     }
