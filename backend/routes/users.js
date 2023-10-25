@@ -156,6 +156,6 @@ UserRouter.get('/:handle/joined', getAuthMiddleware('basicAuth', { session: fals
 
 UserRouter.get('/:handle/editor', getAuthMiddleware('basicAuth', { session: false }), async (req, res) => {
     await Controller.handleRequest(req, res, ChannelServices.getEditorChannels);
-})
+});
 
 module.exports = UserRouter;
