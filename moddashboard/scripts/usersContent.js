@@ -248,6 +248,7 @@ class UserContent{
         })
 
         let dt = this.data_table;
+        let user_cont = this;
         form.on('submit', function (event) {
 
             let user = dt.selected_user;
@@ -287,6 +288,12 @@ class UserContent{
                 method: 'post',
                 body: body,
             });
+
+            modal.modal('hide');
+            dt.mount({
+                results_per_page: 25,
+            });
+            user_cont.edit_button?.attr('disabled', true);
         })
 
         return modal;
