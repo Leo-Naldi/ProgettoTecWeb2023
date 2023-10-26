@@ -81,89 +81,6 @@ paths:
                     - $ref: '#/components/schemas/UserPro'
         '401':
           description: Unauthorized operation
-
-  /users/:
-    get:
-      tags:
-        - User
-      description: Get users.
-      operationId: getUsers
-      parameters:
-        - name: page
-          in: query
-          description: To paginate results. A non-positive number disables pagination.
-          schema:
-            type: integer
-            default: 1
-        - name: results_per_page
-          in: query
-          description: Number of results to return in each page.
-          schema:
-            type: integer
-            default: 100
-            minimum: 1
-        - name: handle
-          in: query
-          description: Only return users whose handle contains the given string. Matching is case-insensitive.
-          required: False
-          schema: 
-            type: string
-            minLength: 3
-            example: user
-        - name: admin
-          in: query
-          description: Only return admin or non-admin users.
-          required: False
-          schema: 
-            type: boolean
-            example: False
-        - name: accountType
-          in: query
-          description: Only return pro or non-pro accounts.
-          required: False
-          schema: 
-            type: string
-            enum: 
-              - user 
-              - pro 
-            example: pro
-        - name: handleOnly
-          in: query
-          description: Return an array of handles instead of user objects.
-          required: False
-          schema: 
-            type: boolean
-            example: False
-            default: False
-      responses:
-        '200':
-          description: User Created, the JWT token is in the body.
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - anyOf:
-                    - $ref: '#/components/schemas/User'   
-                    - $ref: '#/components/schemas/UserPro'   
-                  - $ref: '#/components/schemas/TokenInfo'   
-        '401':
-          description: Unauthorized operation
-        '409':
-          description: Invalid handle or email
-          content:
-            application/json:
-                schema:
-                  type: object
-                  properties:
-                    invalid: 
-                      type: array
-                      description: A list of data that was invalid
-                      items:
-                        type: string
-                        enum:
-                          - handle
-                          - email
-                      minItems: 1
   
   /users/{handle}:
     put:
@@ -526,9 +443,19 @@ paths:
             example: userHandle123
         - name: page
           in: query
-          description: To paginate results. A non-positive number disables pagination.
+          description: Paginate results. A non-positive value disables pagination.
           schema:
             type: integer
+            default: 1
+            example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
         - name: popular
           in: query
           description: Get only pupular messages, value determines the timeframe. If used together with unpopular 
@@ -592,7 +519,13 @@ paths:
             a \# it will be interpreted as a keyword channel. Otherwise this field will be ignored.
           schema:
             type: string 
-            example: ['#sanremo1312', '@feltri', '§canalebello67']
+            example: ['@feltri', '§canalebello67']
+        - name: answering
+          in: query 
+          description: Will only return messages answering to the given message's ignored.
+          schema: 
+            type: string 
+            example: 653a84466bd663444681acfc
       responses:
         '200':
           description: User found
@@ -1218,6 +1151,24 @@ paths:
           schema: 
             type: string 
             example: lorem ipsum
+        - name: answering
+          in: query 
+          description: Will only return messages answering to the given message's ignored.
+          schema: 
+            type: string 
+            example: 653a84466bd663444681acfc
+        - name: publicMessage 
+          in: query 
+          description: Only return public/private messages. 
+          schema:
+            type: boolean 
+            example: true
+        - name: official 
+          in: query 
+          description: Only return officiale messages. 
+          schema:
+            type: boolean 
+            example: true
       responses:
         200: 
           description: Ok 
@@ -1755,6 +1706,21 @@ paths:
           schema:
             type: string
             example: awesomeChannel9000
+        - name: page
+          in: query
+          description: Paginate results. A non-positive value disables pagination.
+          schema:
+            type: integer
+            default: 1
+            example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
       responses:
         '200': 
           description: Request Successful.

@@ -1,5 +1,3 @@
-const { default: mongoose } = require("mongoose");
-
 const config = require('../config/index')
 const User = require("../models/User");
 const makeToken = require("../utils/makeToken");

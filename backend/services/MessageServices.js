@@ -233,12 +233,6 @@ class MessageService {
             query.sort('-meta.created')
         }
 
-        if (results_per_page <= 0) results_per_page = config.results_per_page;
-
-        if (page > 0)
-            query.skip((page - 1) * results_per_page)
-            .limit(results_per_page);
-
         let r = MessageService.#populateMessageQuery(query);
 
         return r;
@@ -307,6 +301,26 @@ class MessageService {
             { $inc: { 'meta.impressions': 1 } });
     }
 
+    static #makeGetResBody({ message_docs, page, results_per_page, deleteAuthor=false }) {
+
+        let res = {}
+
+        if (page > 0) {
+            res.results = message_docs
+                .slice((page - 1) * results_per_page, page * results_per_page)
+                .map(m => MessageService.#makeMessageObject(m, deleteAuthor));
+            
+                res.pages = Math.ceil(message_docs.length / results_per_page);
+        } else {
+            res.results = message_docs.map(m => MessageService.#makeMessageObject(m, deleteAuthor));
+            res.pages = 1;
+        }
+
+        res.results.map(m => m.meta.impressions += 1)
+
+        return res;
+    }
+
     /**
      * Generic Read operation for messages. A non logged-in user can only read official
      * messages. A logged-in user can read:
@@ -320,28 +334,32 @@ class MessageService {
      */
     static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
         before, after, dest, publicMessage, answering, text='',
-        mentions = [], keywords = [], results_per_page=config.results_per_page,
+        mentions = [], keywords = [], results_per_page=config.results_per_page, official=null,
     }={ page: 1, reqUser: null }) {
-
-        //logger.info(`Answering: ${answering}`)        
+        
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
 
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
             before, after, dest, page, reqUser, publicMessage, answering,
-            text, mentions, keywords, results_per_page,
+            text, mentions, keywords, results_per_page, official,
         })
 
         let res = await query;
 
-        await MessageService.#updateImpressions(res, reqUser);
+        let updates;
+        if (page > 0)
+            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
+        else
+            updates = res;
 
-        res = res.map(m => {
-            m.meta.impressions += 1;
-            return m;
-        })
+        await MessageService.#updateImpressions(updates, reqUser);
 
-
-        return Service.successResponse(MessageService._makeMessageObjectArr(res));
+        return Service.successResponse(MessageService.#makeGetResBody({
+            message_docs: res,
+            page: page,
+            results_per_page: results_per_page,
+        }));
     }
 
     /**
@@ -350,23 +368,31 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getChannelMessages({ reqUser, name, reqChannel }){
+    static async getChannelMessages({ reqUser, name, reqChannel,
+        page=1, results_per_page=config.results_per_page }){
         
         const query = MessageService.#populateMessageQuery(
                 Message.find({
                     destChannel: reqChannel._id,
                 }));
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
         
         let res = await query;
 
-        await MessageService.#updateImpressions(res, reqUser);
+        let updates;
+        if (page > 0)
+            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
+        else
+            updates = res;
 
-        res = res.map(m => {
-            m.meta.impressions += 1;
-            return m;
-        }) 
+        await MessageService.#updateImpressions(updates, reqUser);
 
-        return Service.successResponse(MessageService._makeMessageObjectArr(res));
+        return Service.successResponse(MessageService.#makeGetResBody({
+            message_docs: res,
+            page: page,
+            results_per_page: results_per_page,
+        }));
     }
 
     /**
@@ -390,14 +416,19 @@ class MessageService {
 
         let res = await messagesQuery;
 
-        await MessageService.#updateImpressions(res, reqUser);
+        let updates;
+        if (page > 0)
+            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
+        else
+            updates = res;
 
-        res = res.map(m => {
-            m.meta.impressions += 1;
-            return m;
-        })
+        await MessageService.#updateImpressions(updates, reqUser);
 
-        return Service.successResponse(MessageService._makeMessageObjectArr(res));
+        return Service.successResponse(MessageService.#makeGetResBody({
+            message_docs: res,
+            page: page,
+            results_per_page: results_per_page,
+        }));
     }
 
     /**
@@ -1122,13 +1153,23 @@ class MessageService {
             _id: { $in: reactions.map(r => r.message._id) },
         })).sort('-meta.created');
 
-        if (page > 0) {
-            query.skip((page-1) * results_per_page).limit(results_per_page);
-        }
+        let res = await query;
 
-        let messages = await query;
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        return Service.successResponse(MessageService._makeMessageObjectArr(messages));
+        let updates;
+        if (page > 0)
+            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
+        else 
+            updates = res;
+
+        await MessageService.#updateImpressions(updates, reqUser);
+
+        return Service.successResponse(MessageService.#makeGetResBody({
+            message_docs: res,
+            page: page,
+            results_per_page: results_per_page,
+        }));
     }
 
     static async getLikedMessages({ reqUser, handle, page=1, results_per_page=config.results_per_page }) {
