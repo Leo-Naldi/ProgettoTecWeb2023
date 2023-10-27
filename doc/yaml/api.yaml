@@ -74,11 +74,20 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  anyOf:
-                    - $ref: '#/components/schemas/User'
-                    - $ref: '#/components/schemas/UserPro'
+                type: object 
+                properties:
+                  results: 
+                    type: array
+                    description: Found results.
+                    items:
+                      anyOf:
+                        - $ref: '#/components/schemas/User'
+                        - $ref: '#/components/schemas/UserPro'
+                  pages: 
+                    type: integer
+                    minimum: 1
+                    description: Number of available pages with the given search settings.
+                    
         '401':
           description: Unauthorized operation
   
@@ -1787,7 +1796,103 @@ paths:
           description: Did not provide a name
         '500':
           description: Internal server error.
-    
+
+  /channel/{name}/members: 
+    post: 
+      tags:
+        - Channel
+        - User
+      description: Add and remove members.
+      operationId: writeChannelMembers
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: The data to be changed.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                addMembers:
+                  type: array
+                  description: Array of users's handles to be added as members.
+                  items:
+                    type: string 
+                    example: handle1123
+                removeMembers:
+                  type: array
+                  description: Array of handles to remove from members. 
+                    Users who are also editors will be removed from the editors as well.
+                  items:
+                    type: string 
+                    example: handle1123
+      responses:
+        '200': 
+          description: Operation successful.
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.
+
+  /channel/{name}/editors: 
+    post: 
+      tags:
+        - Channel
+        - User
+      description: Add and remove editors.
+      operationId: writeChannelEditors
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: The data to be changed.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                addEditors:
+                  type: array
+                  description: Array of users's handles to be added as editors. Users who are 
+                    not members will also be added to the members list.
+                  items:
+                    type: string 
+                    example: handle1123
+                removeEditors:
+                  type: array
+                  description: Array of handles to remove from the editor list. 
+                  items:
+                    type: string 
+                    example: handle1123
+      responses:
+        '200': 
+          description: Operation successful.
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.
+
   /public/messages:
     get:
       tags:
