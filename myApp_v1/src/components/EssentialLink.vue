@@ -42,7 +42,7 @@ export default defineComponent({
     },
     unread_cnt: {
       type: Number,
-      default: 0
+      default: -1
     }
   },
   setup() {

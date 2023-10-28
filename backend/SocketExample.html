@@ -51,6 +51,7 @@
                                 Authorization: `Bearer ${res.token}`
                             },
                         });
+                        console.log(socket)
                         socket.onAny(add_li_node);
 
                         if (soc) {

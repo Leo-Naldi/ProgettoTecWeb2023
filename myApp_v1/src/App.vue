@@ -4,7 +4,7 @@
 </template>
 
 <script>
-import { defineComponent,ref,onMounted,onUnmounted } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, watch,computed } from 'vue'
 import { usePostStore } from "src/stores/posts.js";
 import { useChannelStore } from "src/stores/channels.js";
 import { useAuthStore } from './stores/auth';
@@ -17,100 +17,185 @@ import { useGlobalStore } from "src/stores/global";
 
 export default defineComponent({
   name: 'App',
-  data() {
-    return {
-      postStore: usePostStore(),
-      authStore: useAuthStore(),
-      channelStore: useChannelStore(),
-    };
-  },
   components: {
     NotifyType
   },
-  created() {
-    this.postStore.fetchPosts()
-      this.channelStore.fetchAutoCompleteChannels()
-      this.channelStore.fetchAllChannelName()
-/*     if (LocalStorage.getItem('user')) {
-      this.postStore.fetchPosts()
-      this.channelStore.fetchAutoCompleteChannels()
-      this.channelStore.fetchAllChannelName()
-    } */
+  data() {
+    return {
+      postStore: usePostStore(),
+      // authStore: useAuthStore(),
+      channelStore: useChannelStore(),
+      // isLoggedin:useAuthStore().getLoggedState
+      // notificationStore: useNotificationsStore()
+    };
   },
-  setup(){
+  methods:{
+    async  fetchUserPosts() {
+    },
+    async fetchOfficialPosts(paramId) {
+      await this.postStore.fetchOfficialPosts()
+    },
+    async  fetchAllPosts() {
+      await this.postStore.fetchPosts()
+    },
+    async  fetchLogin() {
+      await this.postStore.fetchUserPosts()
+      await this.postStore.fetchPosts()
+      this.socketStore.startLoggedInSocket()
+    },
+
+  },
+  watch:{
+    isLoggedin(newV){
+      if(newV==true){
+        // this.socketStore.setSocket2()
+        this.postStore.fetchUserPosts()
+        this.postStore.fetchPosts()
+        const userPost = this.postStore.getUserPosts
+        this.socketStore.startLoggedInSocket(userPost)
+        // console.log("true: ",this.socketStore.getSocket)
+
+        // if(this.postStore.getUserPosts==null){
+        //   this.postStore.fetchUserPosts()
+        // }
+      }
+      else{
+        this.socketStore.startNoLoginSocket()
+        // console.log("false: ",this.socketStore.getSocket)
+      }
+    },
+  },
+  computed:{
+    isLoggedin(){
+      return this.authStore.getLoggedState
+    }
+  },
+  setup() {
     const globalStore = useGlobalStore()
     const audio = ref()
     const notificationStore = useNotificationsStore()
-    const authStore = useAuthStore()
     const socketStore = useSocketStore()
     const postStore = usePostStore()
-    const mytoken = authStore.getToken()
-    const myhandle = authStore.getUserHandle()
-    socketStore.setSocket(myhandle, mytoken);
-    const mysocket = socketStore.getSocket;
-    const  userPost= ref([])
-    let timerId =null
+    const authStore = useAuthStore()
 
-    const fetchUserData = async () => {
-      userPost.value = await postStore.fetchUserPosts(myhandle);
-    };
+    const userPost = ref([])
+    const timerId = ref(null)
 
-    onMounted(() => {
-      fetchUserData();
-      /*
-        notify with socket, if not clicked then the notifications will save to store
-        3 type of notify:
-          - message send to me ("dest" include my "handle")
-          - reply to my post ("answering" include my post's id)
-          - reaction to my post
-      */
-      mysocket.on("message:created", (message) => {
-        if (message.answering && userPost.value.some(obj => obj._id === message.answering) && message.dest && message.dest.includes("@"+myhandle)){
-          notificationStore.set_c_unread(message)
-          var new_MsgRe_sound ="/src/assets/newMsgRe.mp3"
-          audio.value.show_notifications_ReMsg(new_MsgRe_sound, message.answering, message.id);
+    watch(
+      () => notificationStore.getPlayNew.cnt,
+      (oldV, newV) => {
+        if (oldV != newV) {
+          console.log("display notify!")
+          var new_message_sound = "/src/assets/newMessage.mp3";
+          audio.value.show_notifications_message(new_message_sound, notificationStore.getPlayNew.id);
         }
-        else if (message.answering && userPost.value.some(obj => obj._id === message.answering)) {     // if has replies to my messages
-          notificationStore.set_c_unread(message)
-          var new_reply_sound ="/src/assets/newReply.mp3"
-          audio.value.show_notifications_reply(new_reply_sound, message.answering)
-        }
-        else if( message.dest && message.dest.includes("@"+myhandle)){                       // if has message send to me
-          notificationStore.set_m_unread(message)
-          var new_message_sound ="/src/assets/newMessage.mp3"
-          audio.value.show_notifications_message(new_message_sound, message.id);
-        }
-        globalStore.incrementUnread()
-      });
+      },
+      {
+        deep: true,
+      }
+    )
+/*     watch(
+      () => notificationStore.getPlayRe.cnt,
+      (oldV, newV) => {
+        if (oldV != newV) {
+          console.log("display notify!")
 
-      mysocket.on("reaction:recived", (message) => {
-        const foundObj = userPost.value.find(obj => obj.id === message.id);
-        if (foundObj!=undefined) {
-          notificationStore.set_r_unread(foundObj)
+          var new_reply_sound = "/src/assets/newReply.mp3";
+          audio.value.show_notifications_reply(
+            new_reply_sound,
+            notificationStore.getPlayNewRe.answering
+          );
         }
-        globalStore.incrementUnread()
-      });
+      },
+      {
+        deep: true,
+      }
+    ) */
+    watch(
+      () => notificationStore.getPlayNewRe.cnt,
+      (oldV, newV) => {
+        if (oldV != newV) {
+          console.log("display notify!")
+          var new_MsgRe_sound = "/src/assets/newMsgRe.mp3";
+              audio.value.show_notifications_ReMsg(
+                new_MsgRe_sound,
+                notificationStore.getPlayNewRe.answering,
+                notificationStore.getPlayNewRe.id
+              );
+        }
+      },
+      {
+        deep: true,
+      }
+    )
 
-      /* every 30s check if there're unread messages, if clicked, jump to notification page */
-      timerId = setInterval(() => {
-        let sum = notificationStore.getUnread
+    watch(
+      () => notificationStore.getPlayReac.cnt,
+      (newV) => {
+        if (newV ==true) {
+          console.log("display notify!")
+          var new_MsgRe_sound = "/src/assets/newMsgRe.mp3";
+              audio.value.show_notifications_reaction(
+                new_MsgRe_sound,
+                notificationStore.getPlayReac.id
+              );
+        }
+      },
+      {
+        deep: true,
+      }
+    )
+    onMounted(()=>{
+      const tmpTimer = setInterval(() => {
+        let sum = notificationStore.getUnread;
 
-        if (sum!= 0) {
-          const notify_sound ="/src/assets/Notify.mp3"
+        if (sum != 0) {
+          notificationStore.set_playAll();
+          var notify_sound = "/src/assets/Notify.mp3";
           audio.value.show_notifications(notify_sound);
         }
-      }, 30000); /* 1000 = 1s */
-    }),
-    onUnmounted(() => {
-      clearInterval(timerId);
-    });
+      }, 5000); /* 1000 = 1s */
+      globalStore.setTimerId(tmpTimer);
+    })
+
+      onUnmounted(() => {
+        if(globalStore.getTimerId!=null){
+          clearInterval(globalStore.timerId)
+          globalStore.resetTimerId()
+        }
+      });
 
     return {
       userPost,
       audio,
-      globalStore,
+      authStore,
+      socketStore,
+      timerId
     };
+  },
+  mounted(){
+    if (this.authStore.getLocalStorageData == null && this.socketStore.getSocket==null) {
+      this.fetchOfficialPosts()
+      this.socketStore.startNoLoginSocket()
+
+    }
+    else if(this.authStore.getLocalStorageData != null && this.socketStore.getSocket==null){
+      this.fetchLogin()
+      // const userPost = this.postStore.getUserPosts
+      // this.socketStore.startLoggedInSocket(userPost)
+
+      // console.log("there's localstorage -> socket ",socketStore)
+    }
+    /* every 30s check if there're unread messages, if clicked, jump to notification page */
+
   }
+  /* watch(){
+    ()=>this.authStore.getLoggedState,
+    (newV, oldV)=>{
+      console.log("new value is: ", newV)
+      console.log("old value is: ", oldV)
+    }
+  } */
 })
 
 

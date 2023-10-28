@@ -1,23 +1,36 @@
 <template>
-  <div style="align-items:center; ">
-    <q-item v-for="user in users" :key="user.id" class="q-mb-sm" clickable v-ripple>
-      <q-item-section avatar>
-        <q-avatar>
-          <!-- <img :src="`https://cdn.quasar.dev/img/${contact.avatar}`"> -->
-          <img src="https://cdn.quasar.dev/img/avatar2.jpg" />
-          <!-- {{ user.handle[0] }} -->
-        </q-avatar>
-      </q-item-section>
+  <!-- <q-dialog v-model="show4e">
+    <q-card>
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">See Members</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
 
-      <q-item-section>
-        <q-item-label>{{ user.handle }}</q-item-label>
-        <q-item-label caption lines="1">{{ user.username }}</q-item-label>
-      </q-item-section>
-      <!--     <q-item-section side>
+
+      <q-card-section> -->
+        <div style="align-items:center;  width: 40vh;">
+          <q-item v-for="user in users" :key="user.id" class="q-mb-sm" @click="gotoUserDetail(user.handle)" clickable v-ripple>
+            <q-item-section avatar>
+              <q-avatar>
+                <!-- <img :src="`https://cdn.quasar.dev/img/${contact.avatar}`"> -->
+                <img src="https://cdn.quasar.dev/img/avatar2.jpg" />
+                <!-- {{ user.handle[0] }} -->
+              </q-avatar>
+            </q-item-section>
+
+            <q-item-section>
+              <q-item-label>{{ user.handle }}</q-item-label>
+              <q-item-label caption lines="1">{{ user.username }}</q-item-label>
+            </q-item-section>
+            <!--     <q-item-section side>
         <q-btn class="follow-button" @click.stop.prevent>Follow</q-btn>
       </q-item-section> -->
-    </q-item>
-  </div>
+          </q-item>
+        </div>
+      <!-- </q-card-section>
+    </q-card>
+  </q-dialog> -->
 </template>
 
 <script>
@@ -37,6 +50,21 @@ export default {
     //   type: String,
     //   required:true
     // }
+  },
+  data() {
+    return {
+      show4e: true
+    }
+  },
+  methods:{
+    gotoUserDetail(userHandle){
+  this.$router.push({
+    name: "userDetail",
+    params: {
+      userId: userHandle,
+    },
+  });
+}
   },
   setup() {
     return {};

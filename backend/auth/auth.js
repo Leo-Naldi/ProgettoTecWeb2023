@@ -47,6 +47,7 @@ passport.use('basicAuth',
             
             user.lastLoggedin = new Date();
 
+            // logger.error("not user???"+user)
             return done(null, await user.save());
         }
     )

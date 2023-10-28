@@ -1,33 +1,43 @@
 
 const routes = [
   {
-    path: '',
+    path: '/login',
     component: () => import('layouts/PublicLayout.vue'),
     redirect: { name: 'Login' },
     meta: { public: true },
     children: [
-      { path: 'login', name: 'Login', component: () => import('pages/public/LoginPage.vue') },
+      { path: '', name: 'Login', component: () => import('pages/public/LoginPage.vue') },
       { path: 'register', name: 'Register', component: () => import('pages/public/RegisterPage.vue') },
       { path: 'forgot-password', name: 'ForgotPassword', component: () => import('pages/public/ForgotPasswordPage.vue') },
     ],
   },
   {
-    path: '/Map',
+    path: '/map',
     component: () => import('layouts/MapLayout.vue'),
     redirect: { name: 'Map' },
     // meta: { public: false },
     children: [
-      { path: '/map/:keywords', name: 'MapFull', alias: '/map', component: () => import('pages/FullMap.vue') },
+      { path: '', name: 'MapFullDefault', component: () => import('pages/FullMap.vue') },
+      { path: '/map/:keywords', name: 'MapFull', component: () => import('pages/FullMap.vue') },
     ],
   },
   {
-    path: '/Home',
+    path: '/public',
+    component: () => import('layouts/NoLoginLayout.vue'),
+    // meta: { public: false },
+    children: [
+      { path: '', name: 'NoLogin', component: () => import('pages/AllPostPublic.vue') },
+      { path: '/test', name: 'test', component: () => import('pages/HomePage.vue') },
+
+    ],
+  },
+  {
+    path: '/home',
     component: () => import('layouts/MainLayout.vue'),
     redirect: { name: 'Home' },
     // meta: { public: false },
     children: [
       { path: '', name: 'Home', meta: { keepAlive: true }, component: () => import('pages/AllPosts.vue') },
-      { path: '/test', name: 'test', component: () => import('pages/HomePage.vue') },
       { path: '/channel/details/:channelName', name: 'ChannelDetail', component: () => import('pages/ChannelDetails.vue') },
       { path: "/user/details/:userId", name: "userDetail", component: () => import("pages/UserDetails.vue") },
       { path: "/search/:searchText", name: "searchPage", alias: '/search', component: () => import("pages/SearchPage.vue") },

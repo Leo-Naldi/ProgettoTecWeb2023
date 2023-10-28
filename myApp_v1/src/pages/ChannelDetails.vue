@@ -20,13 +20,22 @@
     <div class="center-container">
       <channel-button channel_name="$route.params.channelName" style="box-sizing: content-box; font-size:15px" />
     </div>
-    <div style="display:flex; align-items:center; justify-content:space-between">
+    <p>editors: {{ channelDetails.editors }}</p>
+
+    <div clickable class="cursor-pointer" style="display:flex; align-items:center; justify-content:space-between; ">
       <div class="q-pa-md q-gutter-sm" style="height: 80px">
-        <q-avatar v-for="n in 5" :key="n" size="40px" class="overlapping" :style="`left: ${n * 25}px`">
+        <q-avatar v-for="n in channelDetails.members_name.length" :key="n" size="40px" class="overlapping" :style="`left: ${n * 25}px`">
           <img :src="`https://cdn.quasar.dev/img/avatar${n + 1}.jpg`">
         </q-avatar>
-        <div style="margin-left: 12rem; margin-top: 1rem;"><a>{{ channelDetails.members }}</a>&nbsp; members</div>
-
+        <div style="margin-left: 12rem; margin-top: 1rem;">
+          <a>{{ channelDetails.members_name.length }}</a
+            >&nbsp; members</div>
+            <q-popup-proxy>
+              <div class="flex flex-center" style="width: 400px;position:absolute;">
+                <!-- <UserEnum :users="channelDetails.members"></UserEnum> -->
+<ShowDialog :component="`<UserEnum :users='channelDetails.members'/>`" :users="channelDetails.members"></ShowDialog>
+              </div>
+              </q-popup-proxy>
       </div>
     <div style="order:2">
       <q-btn flat icon="settings"
@@ -61,22 +70,45 @@
 <script setup>
 import ChannelButton from 'src/components/ChannelButton.vue';
 import { useChannelStore } from 'src/stores/channels.js';
+import { useUserStore } from 'src/stores/user';
+import UserEnum from 'src/components/UserEnum.vue';
 import { usePostStore } from 'src/stores/posts';
 import { ref, onMounted, reactive } from "vue";
 import ShowPost from "src/components/posts/ShowPost.vue";
+import ShowDialog from "src/components/ShowDialog.vue";
 import { useRouter } from "vue-router";
 
 
 const channelStore = useChannelStore()
 const postStore = usePostStore()
+const userStore = useUserStore()
 const router = useRouter();
 
 
-
+/*
+  {
+    "_id": "653aa3156fbf53734f38674e",
+    "name": "daily_news",
+    "description": "i'm going to take a short digest of the world news everyday",
+    "creator": "fv",
+    "publicChannel": true,
+    "official": false,
+    "created": "2023-10-26T17:34:13.530Z",
+    "members": [],
+    "editors": [],
+    "memberRequests": [],
+    "editorRequests": [],
+    "id": "653aa3156fbf53734f38674e"
+  }
+*/
 const channelDetails = reactive({
   description: NaN,
   creator: NaN,
-  members: 0,
+  members_name:[],
+  members:[],
+  editors:[],
+  member_requests:[],
+  editor_requests:[],
   messages: [],
 })
 
@@ -86,7 +118,15 @@ const fetchChannelData = async (channelId) => {
   if(data.length>0){
   channelDetails.description = data[0].description
   channelDetails.creator = data[0].creator
-  channelDetails.members = data[0].members.length
+  channelDetails.members_name = data[0].members
+
+  channelDetails.editors = data[0].editors
+  channelDetails.member_requests = data[0].member_requests
+  channelDetails.editor_requests = data[0].editor_requests
+  // const data2= await fetchMembers(data[0].members)
+  const data2 = await userStore.getUserArr(data[0].members)
+
+  channelDetails.members=data2
   }
 }
 
@@ -95,6 +135,14 @@ const fetchChannelMessages = async (channelId) => {
   channelDetails.messages = data
 }
 
+const fetchMembers = async (arr_members) => {
+  const data = await userStore.getUserArr(arr_members)
+  // channelDetails.members = data
+}
+
+const showFilter=()=>{
+  console.log("channel settings")
+}
 
 onMounted(() => {
   const paramId = router.currentRoute.value.params.channelName;

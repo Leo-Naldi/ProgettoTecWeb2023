@@ -37,13 +37,26 @@ export default route(function (/* { store, ssrContext } */) {
   Router.beforeEach((to, from, next) => {
     // switch only when token exists
     // // console.log(from);
-    let token = localStorage.getItem("token");
+    const hasLoggedin = localStorage.getItem("token")
+    // console.log("has login: ", hasLoggedin);
+    // console.log("path: ", to.path);
+    if(to.path === "/login" || to.path ==="/register" || to.path ==="/forgot-password" || to.path==="/public" || to.path==="/test"){
+      next()
+    }
+    else if (hasLoggedin==null && to.path==="/"){
+      next({name: 'NoLogin'})
+    }
+    else if (hasLoggedin!=null && to.path==="/"){
+      next({name: 'Home'})
+    }
+    else if(hasLoggedin!=null){
+      next()
+    }
+    // TODO: localStorage 不为空
     // //console.log(token);
-    if (token || to.path === "/login" || to.path ==="/register" || to.path ==="/forgot-password" ) {
-      next();
       // console.log(token);
-    } else {
-      alert("you must be a user to modify your user data!");
+    else {
+      alert("you must be a user to modify your user data!"+to.path);
       next("/login");
     }
   });

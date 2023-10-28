@@ -48,6 +48,19 @@ export const useUserStore = defineStore('User', {
         throw error;
       }
     },
+    async getUserArr(arr_user){
+      try{
+        const promises  = arr_user.map(handle=> API.user(handle))
+        const responses = await Promise.all(promises)
+        const new_arr = responses.map(obj=>{return obj.data})
+
+        return new_arr
+      }
+      catch(error){
+        console.log("search user name error!!!", error);
+        throw error;
+      }
+    },
     async searchUser(user){
       user = user[0]=='#' ? '%23'+user.substring(1): user
 

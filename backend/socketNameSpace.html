@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Socket Communication</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <button id="buttonUser">Button User</button>
+    <button id="buttonPublic">Button Public</button>
+    <button id="login">Button Login</button>
+    
+  </div>
+
+  <script type="module">
+    import { io } from "https://cdn.socket.io/4.4.1/socket.io.esm.min.js";
+
+    const buttonUser = document.getElementById("buttonUser");
+    const buttonPublic = document.getElementById("buttonPublic");
+    const buttonLogin = document.getElementById("login");
+
+
+    buttonUser.addEventListener("click", () => {
+      var socket = io("http://localhost:8000/user-io/fv", {
+        extraHeaders: {
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJmdiIsImFjY291bnRUeXBlIjoidXNlciIsImFkbWluIjpmYWxzZSwiaWF0IjoxNjk4MzI3NDgzLCJleHAiOjE2OTg5MzIyODN9.Me-9vZxyu23RQzDTZht2hdGl4aCIWWu331vkWYjkwPw",
+        }
+      })
+      console.log(socket)
+    });
+    buttonPublic.addEventListener("click", () => {
+      var socket = io("http://localhost:8000/public-io/");
+      console.log(socket)
+    });
+    buttonLogin.addEventListener("click", () => {
+      fetch(`http://localhost:8000/auth/login/`, {
+                        method: "post",
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            handle: "fv",
+                            password: "12345678",
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        var socket = io("http://localhost:8000/user-io/fv", {
+                            extraHeaders: {
+                                Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJmdiIsImFjY291bnRUeXBlIjoidXNlciIsImFkbWluIjpmYWxzZSwiaWF0IjoxNjk4MzI3NDgzLCJleHAiOjE2OTg5MzIyODN9.Me-9vZxyu23RQzDTZht2hdGl4aCIWWu331vkWYjkwPw"
+                            },
+                        });
+                        console.log(socket)
+
+                    })
+    });
+
+
+
+  </script>
+</body>
+
+</html>
