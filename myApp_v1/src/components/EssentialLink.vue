@@ -12,10 +12,12 @@
     <q-menu style="border-radius: 12px" v-if="icon == 'more_horiz'">
       <q-list>
         <q-item v-for="(item, i) in moreList" :key="i" v-close-popup clickable class="flex items-center">
+          <router-link :to="{ path: item.address }">
           <q-icon :name="item.icon" class="q-mr-sm" />
-          <q-item-section @click="gotoPage(item)">{{
+          <q-item-section>{{
             item.lable
           }}</q-item-section>
+          </router-link>
         </q-item>
       </q-list>
     </q-menu>
@@ -51,22 +53,22 @@ export default defineComponent({
         {
           lable: "Topics",
           icon: "assistant_photo",
-          address: "",
+          address: "/user/settings",
         },
         {
           lable: "Twitter for Professionals",
           icon: "rocket_launch",
-          address: "",
+          address: "/user/settings",
         },
         {
           lable: "Analytics",
           icon: "equalizer",
-          address: "",
+          address: "/user/settings",
         },
         {
           lable: "Settings",
           icon: "verified_user",
-          address: "Settings",
+          address: "/user/settings",
         },
       ]),
     }
@@ -95,4 +97,11 @@ export default defineComponent({
   background-color: red
 
 
+</style>
+
+<style scoped>
+.router-link-active, a{
+    text-decoration: none;
+  color:black;
+  }
 </style>

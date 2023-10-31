@@ -129,7 +129,7 @@ class UserService {
     }
 
     static async createUser({ handle, email, password,
-            username, name, lastName, phone, gender, urlAvatar,
+            username, name, lastName, phone, gender, urlAvatar, description,
             blocked=false, accountType='user',
             meta }) {
         
@@ -138,7 +138,7 @@ class UserService {
         // Filter out undefined params that don't have a default
         // not sure if needed but oh well
         let extra = Object.entries({
-            username, name, lastName, phone, gender, urlAvatar, meta,
+            username, name, lastName, description, phone, gender, urlAvatar, meta, 
         }).reduce((a, [k, v]) => {
             if (v !== undefined) {
                 a[k] = v;
@@ -204,7 +204,7 @@ class UserService {
     }
 
     static async writeUser({ handle, username,
-        email, password, name, lastName, 
+        email, password, name, lastName, description,
         phone, gender, blocked, charLeft, addMemberRequest, 
         addEditorRequest, removeMember, removeEditor, socket
     }) {
@@ -212,7 +212,7 @@ class UserService {
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
         const newVals = {
-            email, password, name, lastName, 
+            email, password, name, lastName, description,
             phone, gender, username,
         }
         let user = await User.findOne({ handle: handle }).populate('smm', 'handle _id');
@@ -457,10 +457,12 @@ class UserService {
 
         if (email) {
             checkEmail = await User.findOne({ email: email });
+            console.log("checkEmail", checkEmail)
             results.email = checkEmail ? false: true;
         }
         if (handle) {
             checkHandle = await User.findOne({ handle: handle });
+            console.log("checkHandle", checkHandle)
             results.handle = checkHandle ? false : true;
         }
         

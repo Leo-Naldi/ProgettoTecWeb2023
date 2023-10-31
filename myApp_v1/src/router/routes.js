@@ -43,7 +43,8 @@ const routes = [
       { path: "/search/:searchText", name: "searchPage", alias: '/search', component: () => import("pages/SearchPage.vue") },
       { path: "/post/details/:postId", name: "PostDetail", component: () => import("pages/PostDetails.vue") },
       { path: "/notifications", name: "notificationPage", component: () => import("pages/MyNotification.vue") },
-      { path: "/channel/user", name: "myChannelPage", component: () => import("pages/MyChannel.vue") }
+      { path: "/channel/user", name: "myChannelPage", component: () => import("pages/MyChannel.vue") },
+      { path: "/user/settings", name: "settingsPage", component: () => import("pages/SettingsPage.vue") }
 
       // {path: '/all', name: 'All',component: () => import('pages/AllPosts.vue')},
     ]

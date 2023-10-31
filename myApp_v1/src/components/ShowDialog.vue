@@ -4,7 +4,6 @@
     <q-dialog v-model="showModal">
       <q-card>
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Close icon</div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
@@ -13,7 +12,9 @@
 
         </div> -->
         <q-card-section>
-          <slot></slot>
+          <!-- <slot></slot> -->
+          <ModifyPassword v-if="modifyPassword===true"/>
+          <ChoosePlan v-if="choosePlan==true"></ChoosePlan>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -26,12 +27,26 @@
 </template>
 
 <script>
+import ModifyPassword from './ModifyPassword.vue';
+import ChoosePlan from './ChoosePlan.vue'
+
 export default {
   props: {
     component: {
       type: Object,
-      required: true,
     },
+    modifyPassword:{
+      type: Boolean,
+      default:false
+    },
+    choosePlan:{
+      type: Boolean,
+      default: false
+    }
+  },
+  components:{
+    ModifyPassword,
+    ChoosePlan,
   },
   data() {
     return {

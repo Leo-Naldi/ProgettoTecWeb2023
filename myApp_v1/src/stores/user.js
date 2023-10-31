@@ -1,22 +1,24 @@
-import { defineStore } from 'pinia'
+import { defineStore } from "pinia";
 import API from "src/api/apiconfig";
-import { useAuthStore } from './auth';
+import { useAuthStore } from "./auth";
+import { useNotificationsStore } from "./notifications";
+import { toRaw } from "vue";
 
-export const useUserStore = defineStore('User', {
+export const useUserStore = defineStore("User", {
   state: () => ({
     allUser: [],
     autoComplateAllUser: [],
-
-
+    user: "",
   }),
 
   getters: {
-    getUsers:(state) => state.allUser,
-    getAutoComplateAllUser: (state)=> state.autoComplateAllUser,
+    getUser: (state) => state.getUser,
+    getUsers: (state) => state.allUser,
+    getAutoComplateAllUser: (state) => state.autoComplateAllUser,
   },
 
   actions: {
-    async fetchAutoCompleteUsers(){
+    async fetchAutoCompleteUsers() {
       return await API.all_users()
         .then((response) => {
           if (response.status === 200) {
@@ -30,70 +32,154 @@ export const useUserStore = defineStore('User', {
         })
         .catch((err) => console.log("fetch all Users error!!!", err));
     },
-    async fetchAllUserName(){
+    async fetchAllUserName() {
       return await API.all_users_name()
         .then((response) => {
           if (response.status === 200) {
-            this.allUser = response.data
+            this.allUser = response.data;
           }
         })
         .catch((err) => console.log("fetch all User name error!!!", err));
     },
-    async findUser(user_name){
+    async findUser(user_name) {
       try {
-        const response = await API.user(user_name)
+        const response = await API.user(user_name);
         return response.data;
       } catch (error) {
         console.log("search user name error!!!", error);
         throw error;
       }
     },
-    async getUserArr(arr_user){
-      try{
-        const promises  = arr_user.map(handle=> API.user(handle))
-        const responses = await Promise.all(promises)
-        const new_arr = responses.map(obj=>{return obj.data})
+    async getUserArr(arr_user) {
+      try {
+        const promises = arr_user.map((handle) => API.user(handle));
+        const responses = await Promise.all(promises);
+        const new_arr = responses.map((obj) => {
+          return obj.data;
+        });
 
-        return new_arr
-      }
-      catch(error){
+        return new_arr;
+      } catch (error) {
         console.log("search user name error!!!", error);
         throw error;
       }
     },
-    async searchUser(user){
-      user = user[0]=='#' ? '%23'+user.substring(1): user
+    async searchUser(user) {
+      user = user[0] == "#" ? "%23" + user.substring(1) : user;
 
       try {
-        const response = await API.search_user(user)
-        return response.data
+        const response = await API.search_user(user);
+        return response.data;
       } catch (error) {
         console.log("fetch post con 'text' error!!!", error);
         throw error;
       }
     },
-    async fetchUserCreatedChannels(){
+    async fetchUserCreatedChannels() {
       try {
-        const user_handle = useAuthStore().getUserHandle()
-        const response = await API.get_created_channels(user_handle)
+        const user_handle = useAuthStore().getUserHandle();
+        const response = await API.get_created_channels(user_handle);
         return response.data;
       } catch (error) {
         console.log("search user name error!!!", error);
         throw error;
       }
     },
-    async fetchUserJoinedChannels(){
+    async fetchUserJoinedChannels() {
       try {
-        const user_handle = useAuthStore().getUserHandle()
-        const response = await API.get_joined_channels(user_handle)
+        const user_handle = useAuthStore().getUserHandle();
+        const response = await API.get_joined_channels(user_handle);
         return response.data;
       } catch (error) {
         console.log("search user name error!!!", error);
         throw error;
       }
     },
-
-  }
-})
-
-
+    async resetPassword(pass) {
+      const user_handle = useAuthStore().getUserHandle();
+      if (user_handle) {
+        if (pass!=null){
+        return await API.write_user(user_handle, pass)
+          .then((response) => {
+            if (response.status === 200) {
+              console.log(JSON.parse(JSON.stringify(pass)).password)
+              useNotificationsStore().showPositive(
+                "You've changed password to "+ JSON.parse(JSON.stringify(pass)).password+" successfully!"
+              );
+            }
+          })
+          .catch((err) => {
+            console.log("fetch all User name error!!!", err);
+            useNotificationsStore().showNegative(
+              "Change password failed! Please try it latter!"
+            );
+          });
+        }
+        else{
+          const my_pass={
+            password: "111111",
+          }
+          return await API.write_user(user_handle, my_pass)
+          .then((response) => {
+            if (response.status === 200) {
+              useNotificationsStore().showPositive(
+                "You reset your password to 111111 (six '1')!"
+              );
+            }
+          })
+          .catch((err) => {
+            console.log("fetch all User name error!!!", err);
+            useNotificationsStore().showNegative(
+              "Change password failed! Please try it latter!"
+            );
+          });
+        }
+      } else {
+        return null;
+      }
+    },
+    async modifyEmail(email){
+      const user_handle = useAuthStore().getUserHandle();
+      if (user_handle) {
+        return await API.write_user(user_handle, email)
+          .then((response) => {
+            if (response.status === 200) {
+              console.log(JSON.parse(JSON.stringify(email)).email)
+              useNotificationsStore().showPositive(
+                "You've changed email to "+ JSON.parse(JSON.stringify(email)).email+" successfully!"
+              );
+            }
+          })
+          .catch((err) => {
+            console.log("fetch all User name error!!!", err);
+            useNotificationsStore().showNegative(
+              "Change email failed! Please try it latter!"
+            );
+          });
+      } else {
+        return null;
+      }
+    },
+    async modifyUser(userJson){
+      const user_handle = useAuthStore().getUserHandle();
+      if (user_handle) {
+        return await API.write_user(user_handle, userJson)
+          .then((response) => {
+            if (response.status === 200) {
+              useNotificationsStore().showPositive(
+                "You've modified your data successfully!"
+              );
+            }
+          })
+          .catch((err) => {
+            console.log("fetch all User name error!!!", err);
+            useNotificationsStore().showNegative(
+              "Modify your data failed! Please try it again!"
+            );
+          });
+      } else {
+        return null;
+      }
+    }
+  },
+});

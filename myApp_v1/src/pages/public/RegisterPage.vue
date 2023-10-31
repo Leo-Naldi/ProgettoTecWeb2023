@@ -6,13 +6,13 @@
       </template>
     </MyInput>
 
-    <MyInput v-model="user.email" label="Email" :rules="[v => required(v, 'Email'), v => email(v)]" class="q-pt-md">
+    <MyInput v-model="user.submitData.email" label="Email" :rules="[v => required(v, 'Email'), v => email(v)]" class="q-pt-md">
       <template v-slot:before>
         <q-icon name="mail" class="on-left" />
       </template>
     </MyInput>
 
-    <MyInput v-model="user.password" label="Password" :rules="[v => required(v, 'Password')]" class="q-pt-md"
+    <MyInput v-model="user.submitData.password" label="Password" :rules="[v => required(v, 'Password')]" class="q-pt-md"
       :type="visibility ? 'text' : 'password'">
       <template v-slot:before>
         <q-icon name="lock" class="on-left" />
@@ -36,7 +36,7 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref,reactive } from 'vue';
 import useValidation from 'src/util/validation.js';
 import { useAuthStore } from 'src/stores/auth.js';
 
@@ -49,13 +49,13 @@ export default defineComponent({
 
     const form = ref(null);
 
-    const user = ref({ name: undefined, email: undefined, password: undefined });
+    const user = reactive({ name: undefined, submitData:{email: undefined, password: undefined }});
     const visibility = ref(false);
 
     const onSubmit = function () {
       form.value.validate().then((success) => {
         if (success) {
-          register(user.value);
+          register(user);
         }
       });
     };

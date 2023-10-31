@@ -6,9 +6,10 @@ export default {
   hashtagPath: (hashtag) => "#/search/"+hashtag,
 
   login: (credentials) => api.post("auth/login", credentials),
-  // register: (data) => api.post('/register', data),
+  register: (handle,data) => api.put('/users/'+handle, data),
   // forgotPassword: (email) => api.post('/forgot-password', email),
   // logout: () => api.get('/logout'),
+  delete_account: (handle)=>api.delete("users/"+handle),
 
 
   all_messages: () => api.get("messages/"),
@@ -43,7 +44,7 @@ export default {
 
   user: (user_handle) => api.get("users/" + user_handle),                         // get user by handle
   user_messages: (user_handle) => api.get("users/" + user_handle + "/messages"),  // get user messages by handle
-  write_user: (handle) =>api.post("users/"+handle),
+  write_user: (handle, data) =>api.post("users/"+handle, data),
 
 
   channel_messages: (channel_name) => api.get("messages/channel/"+channel_name),

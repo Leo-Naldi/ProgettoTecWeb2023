@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { useGlobalStore } from './global'
+import { useQuasar } from 'quasar'
+import { Notify } from 'quasar'
 
 export const useNotificationsStore = defineStore('notification', {
   state: () => ({
@@ -114,6 +116,20 @@ export const useNotificationsStore = defineStore('notification', {
       this.c_unread=[]
       this.r_unread=[]
       useGlobalStore().resetUnread()
-    }
+    },
+    showPositive (msg) {
+      Notify.create({
+        position:'top',
+        type: 'positive',
+        message: msg
+      })
+    },
+    showNegative (msg) {
+      Notify.create({
+        position:'top',
+        type: 'negative',
+        message: msg
+      })
+    },
   }
 })

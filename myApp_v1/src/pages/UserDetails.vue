@@ -27,7 +27,7 @@
             <span class="text-grey-7">@{{ userDetails.handle }}</span>
           </q-item-label>
           <q-item-label>
-            <span class="text-grey-7 text-caption">Hi guys! I am {{ userDetails.userName }} and nice to meet u! </span>
+            <span class="text-grey-7 text-caption">{{userDetails.description==''? 'Hi guys! nice to meet u!' : userDetails.description}}</span>
           </q-item-label>
           <q-item-label class="text-subtitle1 flex">
             <strong>{{ userDetails.joined_channels.length }}
@@ -136,6 +136,7 @@ const fetchUserData = async (paramId) => {
   const data = await userStore.findUser(paramId)
   userDetails.handle=data.handle
   userDetails.userName=data.username
+  userDetails.description=data.description
   userDetails.joined_channels=data.joinedChannels
   userDetails.co_edited_channels=data.editorChannels
   userDetails.liked=data.liked
