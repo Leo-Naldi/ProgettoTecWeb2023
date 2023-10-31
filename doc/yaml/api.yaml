@@ -345,11 +345,11 @@ paths:
         500: 
           description: Internal server error
 
-  /users/registration/:
+  /public/registration/:
     get:
       tags:
         - User 
-        - Login
+        - Public
       description: Check wether email or handle are available.
       parameters:
         - name: email
