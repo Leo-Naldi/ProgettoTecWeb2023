@@ -8,6 +8,7 @@ const fs = require("fs");
 
 const Controller = require("../controllers/Controller");
 const ImageService = require("../services/ImageService");
+const { logger } = require("../config/logging");
 
 const ImageRouter = express.Router();
 
@@ -25,17 +26,16 @@ ImageRouter.post("/upload/:handle", (req, res) => {
   console.log(form.uploadDir);
 
   form.parse(req, (_, fields, files) => {
-    console.log("\n-----------");
-    console.log("Fields", fields);
-    console.log("Received:", Object.keys(files));
-    console.log("file returened: ", files);
-    console.log();
+    logger.info("\n-----------");
+    logger.debug("Fields", fields);
+    logger.debug("Received:", Object.keys(files));
+    logger.debug("file returened: ", files);
     var j_filename = Object.keys(files);
     const j_filepath = files[j_filename].filepath;
     const oldFilename = files[j_filename].newFilename;
     const j_original_filename = files[j_filename].originalFilename;
-    console.log("file path: ", j_filepath);
-    console.log("original filename: ", j_original_filename);
+    logger.info("file path: ", j_filepath);
+    logger.info("original filename: ", j_original_filename);
 
     fs.rename(
       j_filepath,
@@ -43,9 +43,9 @@ ImageRouter.post("/upload/:handle", (req, res) => {
         .fullPath,
       (err) => {
         if (err) {
-          console.log(err);
+          logger.error(err);
         } else {
-          console.log(
+          logger.info(
             `saved as:${
               ImageService.generateImgName(
                 j_original_filename,
@@ -63,5 +63,17 @@ ImageRouter.post("/upload/:handle", (req, res) => {
     );
   });
 });
+
+ImageRouter.get('/:handle/:name', (req, res) => {
+  let file = path.resolve(`./files/${req.params.handle}/${req.params.name}`);
+
+  //logger.debug(file);
+
+  if (fs.existsSync(file)){
+    res.sendFile(file)
+  } else{ 
+    res.sendStatus(409);
+  }
+})
 
 module.exports = ImageRouter;

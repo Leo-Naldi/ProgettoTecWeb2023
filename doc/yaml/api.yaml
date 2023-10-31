@@ -345,74 +345,25 @@ paths:
         500: 
           description: Internal server error
 
-  /users/{handle}/grantAdmin:
-    post: 
-      tags:
-        - Admin
-      description: "Make the user an admin account"
-      operationId: grantAdmin
-      parameters:
-        - name: handle
-          in: path
-          required: True
-          schema:
-            type: string
-      security:
-        - adminAuth: []
-      responses:
-        200:
-          description: "Permission Granted"
-        400:
-          description: "Handle not found"
-        500:
-          description: "Internal Server Error"
-  
-  /users/{handle}/revokeAdmin:
-    post: 
-      tags:
-        - Admin
-      description: "Revoke admin priviledges from an account"
-      operationId: revokeAdmin,
-      parameters:
-        - name: handle
-          in: path
-          required: True
-          schema:
-            type: string
-      security:
-        - adminAuth: []
-      responses:
-        200:
-          description: "Permission Revoked"
-        400:
-          description: "Handle not found"
-        500:
-          description: "Internal Server Error"
-
   /users/registration/:
     get:
       tags:
         - User 
         - Login
-      description: make sure the handle and email ara avalible when making registrations
-      requestBody:
-        description: email and/or handle to be checked
-        required: True
-        content:
-          application/json:
-            schema:
-              type: object 
-              properties:
-                handle: 
-                  type: string
-                  minLength: 3
-                  description: The handle whose availability is to be checked
-                  example: handle167
-                email: 
-                  type: string
-                  format: email
-                  description: The email whose availability is to be checked
-                  example: email@gmail.com
+      description: Check wether email or handle are available.
+      parameters:
+        - name: email
+          in: query 
+          required: false
+          schema:
+            type: string 
+            example: mail@mail.com 
+        - name: handle 
+          in: query 
+          required: false
+          schema:
+            type: string 
+            example: someHandle 
       responses:
         200:
           description: "Ok"
@@ -427,8 +378,8 @@ paths:
                   handle:
                     type: boolean
                     description: "true if the the given handle is available. will only be present if an handle was provided"
-        400:
-          description: "Input malformato"
+        409:
+          description: Did not provide neither an email nor a handle.
         500:
           description: "Internal server error"
 
@@ -2361,6 +2312,7 @@ components:
             month:
               type: number
               minimum: 0
+        
         addMemberRequests: 
           type: array
           items:
@@ -2399,6 +2351,10 @@ components:
         deleteSubscription:
           type: boolean 
           description: True to delete the user's current subscription.
+        admin: 
+          type: boolean 
+          description: Wether a user is an admin or not. Can only be changed by an admin
+          example: true
   
     Message:
       allOf:

@@ -6,11 +6,10 @@ const UserService = require('../services/UserServices');
 const MessageServices = require('../services/MessageServices');
 const { getAuthMiddleware, checkOwnUserOrSMM, checkOwnUser, checkOwnUserOrAdmin } = require('../middleware/auth');
 const ChannelServices = require('../services/ChannelServices');
+const { logger } = require('../config/logging');
 
 
 const UserRouter = express.Router();
-
-// TODO add some form of liked messages filter
 
 UserRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
     await Controller.handleRequest(req, res, UserService.getUsers);
@@ -39,7 +38,8 @@ UserRouter.post('/:handle', getAuthMiddleware('basicAuth'), checkOwnUserOrAdmin,
         };
 
         if ((requestParams.hasOwnProperty('charLeft')) || 
-            (requestParams.hasOwnProperty('blocked'))) {
+            (requestParams.hasOwnProperty('blocked')) ||
+            (requestParams.hasOwnProperty('admin'))) {
             if (!req.user.admin) {
                 return res.status(401).json({ message: 'Can only be changed by an admin' });
             }
@@ -78,31 +78,17 @@ UserRouter.post('/:handle/smm', getAuthMiddleware('proAuth'), checkOwnUser,
     }
 );
 
-UserRouter.delete('/:handle/managed', getAuthMiddleware('proAuth'), checkOwnUser,
+UserRouter.delete('/:handle/managed/', getAuthMiddleware('proAuth'), checkOwnUser,
     async (req, res) => {
 
         await Controller.handleRequest(req, res, UserService.removeManaged);
     }
 );
 
-UserRouter.get('/:handle/managed', getAuthMiddleware('proAuth'), checkOwnUser,
+UserRouter.get('/:handle/managed/', getAuthMiddleware('proAuth'), checkOwnUser,
     async (req, res) => {
 
         await Controller.handleRequest(req, res, UserService.getManaged);
-    }
-);
-
-UserRouter.post('/:handle/grantAdmin', getAuthMiddleware('adminAuth'), 
-    async (req, res) => {
-
-        await Controller.handleRequest(req, res, UserService.grantAdmin);
-    }
-);
-
-UserRouter.post('/:handle/revokeAdmin', getAuthMiddleware('adminAuth'),
-    async (req, res) => {
-
-        await Controller.handleRequest(req, res, UserService.revokeAdmin);
     }
 );
 
@@ -111,15 +97,13 @@ UserRouter.get('/:handle/messages/stats', getAuthMiddleware('basicAuth'), checkO
     await Controller.handleRequest(req, res, MessageServices.getMessagesStats);
 })
 
-UserRouter.get('/:handle/messages', getAuthMiddleware('basicAuth'), async (req, res) => {
-    
-    // this way you can see any user's messages
+UserRouter.get('/:handle/messages/', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.getUserMessages);
 })
 
 
-UserRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM, async (req, res) => {
+UserRouter.post('/:handle/messages/', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM, async (req, res) => {
     
     if (req.user.blocked) {
         return res.status(401)
@@ -128,7 +112,7 @@ UserRouter.post('/:handle/messages', getAuthMiddleware('basicAuth'), checkOwnUse
     await Controller.handleRequest(req, res, MessageServices.postUserMessage);
 })
 
-UserRouter.delete('/:handle/messages', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
+UserRouter.delete('/:handle/messages/', getAuthMiddleware('basicAuth'), checkOwnUser, async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.deleteUserMessages);
 })
@@ -143,18 +127,11 @@ UserRouter.post('/:handle/messages/:id', getAuthMiddleware('basicAuth'), checkOw
     await Controller.handleRequest(req, res, MessageServices.postMessage);
 })
 
-UserRouter.get('/registration/',
-    async (req, res) => {
-
-        await Controller.handleRequest(req, res, UserService.checkAvailability);
-    }
-);
-
-UserRouter.get('/:handle/joined', getAuthMiddleware('basicAuth', { session: false }), async (req, res) => {
+UserRouter.get('/:handle/joined/', getAuthMiddleware('basicAuth'), async (req, res) => {
     await Controller.handleRequest(req, res, ChannelServices.getJoinedChannels);
 })
 
-UserRouter.get('/:handle/editor', getAuthMiddleware('basicAuth', { session: false }), async (req, res) => {
+UserRouter.get('/:handle/editor/', getAuthMiddleware('basicAuth'), async (req, res) => {
     await Controller.handleRequest(req, res, ChannelServices.getEditorChannels);
 });
 

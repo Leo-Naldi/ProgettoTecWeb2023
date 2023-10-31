@@ -221,7 +221,7 @@ class UserService {
     static async writeUser({ handle, username,
         email, password, name, lastName, 
         phone, gender, blocked, charLeft, addMemberRequest, 
-        addEditorRequest, removeMember, removeEditor, socket
+        addEditorRequest, removeMember, removeEditor, admin, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -295,6 +295,10 @@ class UserService {
         if ((user.accountType === 'user') && (user.smm)) {
             smm = await User.findOne({ _id: user.smm });
             user.smm = null;
+        }
+
+        if (_.isBoolean(admin)) {
+            user.admin = admin;
         }
 
         let err = null;
