@@ -44,7 +44,9 @@ const routes = [
       { path: "/post/details/:postId", name: "PostDetail", component: () => import("pages/PostDetails.vue") },
       { path: "/notifications", name: "notificationPage", component: () => import("pages/MyNotification.vue") },
       { path: "/channel/user", name: "myChannelPage", component: () => import("pages/MyChannel.vue") },
-      { path: "/user/settings", name: "settingsPage", component: () => import("pages/SettingsPage.vue") }
+      { path: "/user/settings", name: "settingsPage", component: () => import("pages/SettingsPage.vue") },
+      { path: "/members", name: "membersPage", component: () => import("pages/MemberDetails.vue") }
+
 
       // {path: '/all', name: 'All',component: () => import('pages/AllPosts.vue')},
     ]

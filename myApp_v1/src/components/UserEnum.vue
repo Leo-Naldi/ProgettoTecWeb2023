@@ -9,39 +9,61 @@
 
 
       <q-card-section> -->
-        <div style="align-items:center;  width: 40vh;">
-          <q-item v-for="user in users" :key="user.id" class="q-mb-sm" @click="gotoUserDetail(user.handle)" clickable v-ripple>
-            <q-item-section avatar>
-              <q-avatar>
-                <!-- <img :src="`https://cdn.quasar.dev/img/${contact.avatar}`"> -->
-                <img src="https://cdn.quasar.dev/img/avatar2.jpg" />
-                <!-- {{ user.handle[0] }} -->
-              </q-avatar>
-            </q-item-section>
+  <!-- <div> -->
+  <!-- <div style="align-items:center;  "> -->
+    <div style="align-items:center;  ">
+    <q-item v-for="user in users" :key="user.id" class="q-mb-sm" @click="gotoUserDetail(user.handle)" clickable v-ripple>
+      <q-item-section avatar>
+        <q-avatar>
+          <!-- <img :src="`https://cdn.quasar.dev/img/${contact.avatar}`"> -->
+          <img src="https://cdn.quasar.dev/img/avatar2.jpg" />
+          <!-- {{ user.handle[0] }} -->
+        </q-avatar>
+      </q-item-section>
 
-            <q-item-section>
-              <q-item-label>{{ user.handle }}</q-item-label>
+      <q-item-section>
+        <q-item-label>{{ user.handle }} <div v-if="forChannel" class="q-ml-auto rounded-rectangle">
+            <p style="display:inline">Admin</p>
+          </div></q-item-label>
+        <q-item-label caption>{{ user.username }}</q-item-label>
+      </q-item-section>
+      <q-item-section side >
+        <div>
+        <q-btn @click.stop  size="12px" flat dense round icon="house"  />
+        <q-btn @click.stop  size="12px" flat dense round icon="done"  />
+      </div>
+      </q-item-section>
+      <!-- <q-item-label>
+              <p>{{ user.handle }}</p>
+              <span><q-icon name="house"></q-icon></span>
+            </q-item-label>
               <q-item-label caption lines="1">{{ user.username }}</q-item-label>
-            </q-item-section>
-            <!--     <q-item-section side>
+            </q-item-section> -->
+      <!--     <q-item-section side>
         <q-btn class="follow-button" @click.stop.prevent>Follow</q-btn>
       </q-item-section> -->
-          </q-item>
-        </div>
-      <!-- </q-card-section>
+    </q-item>
+  </div>
+  <!-- </q-card-section>
     </q-card>
   </q-dialog> -->
 </template>
 
 <script>
+import { Text } from 'vue';
+
 
 export default {
   name: "UserEnum",
   props: {
     users: {
       type: Array,
-      required: true,
+      required: true
     },
+    forChannel: {
+      type: Boolean,
+      default: false
+    }
     // handle: {
     //   type: String,
     //   required: true,
@@ -54,17 +76,17 @@ export default {
   data() {
     return {
       show4e: true
-    }
+    };
   },
-  methods:{
-    gotoUserDetail(userHandle){
-  this.$router.push({
-    name: "userDetail",
-    params: {
-      userId: userHandle,
-    },
-  });
-}
+  methods: {
+    gotoUserDetail(userHandle) {
+      this.$router.push({
+        name: "userDetail",
+        params: {
+          userId: userHandle
+        }
+      });
+    }
   },
   setup() {
     return {};
@@ -97,3 +119,14 @@ export default {
 .follow-button:focus
   outline: 0
 </style> -->
+
+<style scoped lang="sass">
+
+.rounded-rectangle
+  border-radius: 10px
+  display: inline-block
+  background-color: #1da1f2
+  color: white
+  padding: 0.3rem
+
+</style>

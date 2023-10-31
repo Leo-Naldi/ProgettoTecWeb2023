@@ -13,7 +13,7 @@
         <q-item-label>{{ channel.name }}</q-item-label>
         <q-item-label caption lines="1">{{ channel.description }}</q-item-label>
       </q-item-section>
-      <ChannelButton></ChannelButton>
+      <ChannelButton :channel_name="channel.name"></ChannelButton>
     </q-item>
   </div>
 </template>

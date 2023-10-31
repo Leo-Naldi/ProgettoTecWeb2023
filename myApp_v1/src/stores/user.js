@@ -180,6 +180,76 @@ export const useUserStore = defineStore("User", {
       } else {
         return null;
       }
+    },
+    async requestMember(channel_name){
+      const user_handle = useAuthStore().getUserHandle();
+      const authStore = useAuthStore()
+      const submitData = {"addMemberRequest":[channel_name]}
+      if (user_handle) {
+        return await API.write_user(user_handle, submitData)
+          .then((response) => {
+            if (response.status === 200) {
+              const userData = authStore.getUser()
+              userData.joinChannelRequests.push(channel_name)
+              const newRequestMember = userData.joinChannelRequests
+              authStore.modifyUser('joinChannelRequests', newRequestMember)
+              // console.log("add new request: ",newRequestMember)
+              // console.log("add request: ", authStore.getUser().joinChannelRequests)
+              useNotificationsStore().showPositive(
+                "You've send member request to "+channel_name+"!"
+              );
+            }
+          })
+          .catch((err) => {
+            console.log("fetch all User name error!!!", err);
+            useNotificationsStore().showNegative(
+              "Send member request failed!"
+            );
+          });
+      } else {
+        return null;
+      }
+    },
+    async requestEditor(channel_name){
+      const user_handle = useAuthStore().getUserHandle();
+      const submitData = {"addEditorRequest":[channel_name]}
+      if (user_handle) {
+        return await API.write_user(user_handle, submitData)
+          .then((response) => {
+            if (response.status === 200) {
+
+              useNotificationsStore().showPositive(
+                "You've send editor request to "+channel_name+"!"
+              );
+            }
+          })
+          .catch((err) => {
+            console.log("fetch all User name error!!!", err);
+            useNotificationsStore().showNegative(
+              "Send editor request failed!"
+            );
+          });
+      } else {
+        return null;
+      }
+    },
+    unfollowChannel(channel_name){
+      const authStore = useAuthStore()
+      const userData = authStore.getUser()
+      const oldJoinedChannels = userData.joinedChannels
+      let index = userData.joinedChannels.findIndex((channel) => channel === channel_name);
+      oldJoinedChannels.splice(index, 1)
+      authStore.modifyUser('joinedChannels', oldJoinedChannels)
+      // console.log("unfollow! ", authStore.getUser().joinedChannels)
+    },
+    cancelRequestChannel(channel_name){
+      const authStore = useAuthStore()
+      const userData = authStore.getUser()
+      const oldJoinChannelRequests = userData.joinChannelRequests
+      let index = userData.joinChannelRequests.findIndex((channel) => channel === channel_name);
+      oldJoinChannelRequests.splice(index, 1)
+      authStore.modifyUser('joinChannelRequests', oldJoinChannelRequests)
+      console.log("cancel join request! ", authStore.getUser().joinChannelRequests)
     }
   },
 });

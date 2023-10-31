@@ -21,7 +21,7 @@
       <p>Do you want to create one?</p>
     </div> -->
     <div style="align-self: center; order:2">
-      <q-btn flat icon="add" @click="gotoPage" />
+      <q-btn flat icon="add" @click="createChannel()" />
 
     </div>
   </div>
@@ -65,6 +65,11 @@ const fetchUserChannels = async () => {
   userChannels.userCreated = await userStore.fetchUserCreatedChannels()
   userChannels.userJoined = await userStore.fetchUserJoinedChannels()
 };
+
+function createChannel(){
+  console.log("create channel")
+}
+
 onMounted(() => {
   fetchUserChannels()
 })

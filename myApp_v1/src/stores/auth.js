@@ -31,6 +31,11 @@ export const useAuthStore = defineStore("auth", {
         return null;
       }
     },
+    modifyUser(fieldName, newValue){
+      const data = this.getUser()
+      data[fieldName] = newValue;
+      localStorage.setItem(USER_KEY, JSON.stringify(data));
+    },
     getUserHandle() {
       if (LocalStorage.getItem(USER_KEY)) {
         return JSON.parse(LocalStorage.getItem(USER_KEY)).handle;
@@ -107,6 +112,7 @@ export const useAuthStore = defineStore("auth", {
     },
     async register(data) {
       this.isLoading = true;
+      //TODO: /public/registration registration valido
       return await AUTH.register(data.name, data.submitData)
         .then((response) => {
           if (response.status === 200) {

@@ -284,35 +284,6 @@ export default {
 
 
 
-<!--
-{
-  "user": {
-      "_id": "653ce658c0814f50d273c638",
-      "handle": "user12345678",
-      "username": "user12345678",
-      "email": "mailBuffaqjwrhfwuirhfwiuhrqlfhqoirhfmquwpewqohfmqhmrfq@mail.com",
-      "blocked": false,
-      "accountType": "user",
-      "admin": false,
-      "joinedChannels": [],
-      "joinChannelRequests": ["daily_news"],
-      "editorChannelRequests": ["daily_news","test5","test6"],
-      "editorChannels": [],
-      "meta": {
-          "created": "2023-10-28T10:45:44.448Z"
-      },
-      "charLeft": {
-          "day": 500,
-          "week": 3000,
-          "month": 11000
-      },
-      "lastLoggedin": "2023-10-28T10:45:59.401Z",
-      "managed": [],
-      "id": "653ce658c0814f50d273c638"
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJ1c2VyMTIzNDU2NzgiLCJhY2NvdW50VHlwZSI6InVzZXIiLCJhZG1pbiI6ZmFsc2UsImlhdCI6MTY5ODQ4OTk1OSwiZXhwIjoxNjk5MDk0NzU5fQ.FEzCU2TV204wqBWg3r3rxlAcJJcJCGtYW_m6whimOfY"
-}
--->
 
 <!--
 TODO: plan and payments

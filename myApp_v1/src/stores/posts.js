@@ -16,7 +16,7 @@ export const usePostStore = defineStore("post", {
   },
 
   actions: {
-    hidePost(id, type) {
+    hidePost(id) {
       const res = this.userMessages.find((iter) => iter.id === id);
       if (res) {
         res.hide = true;

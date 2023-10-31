@@ -12,7 +12,7 @@
 
         </div> -->
         <q-card-section>
-          <!-- <slot></slot> -->
+          <slot></slot>
           <ModifyPassword v-if="modifyPassword===true"/>
           <ChoosePlan v-if="choosePlan==true"></ChoosePlan>
         </q-card-section>
