@@ -79,7 +79,25 @@ class ChannelServices{
         return arr.map(c => ChannelServices.#trimChannelObject(c, reqUser));
     }
 
-    // TODO test all the gets
+    static #makeGetResBody({ channel_docs, page, results_per_page, reqUser }) {
+
+        let res = {}
+
+        if (page > 0) {
+            res.results = ChannelServices.#trimChannelArray(channel_docs
+                .slice((page - 1) * results_per_page, page * results_per_page)
+                .map(c => ChannelServices.#makeChannelObject(c)), reqUser);
+
+            res.pages = Math.ceil(channel_docs.length / results_per_page);
+        } else {
+            res.results = ChannelServices.#trimChannelArray(channel_docs
+                .map(c => ChannelServices.#makeChannelObject(c)), reqUser);
+            res.pages = 1;
+        }
+
+        return res;
+    }
+
     // Get all channels created by the user
     static async getUserChannels({ reqUser, handle, publicChannel }){
         let user = reqUser;
@@ -218,11 +236,6 @@ class ChannelServices{
         
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        if (page > 0) {
-            query.skip((page - 1) * results_per_page)
-                .limit(results_per_page);
-        }
-
         if (namesOnly) {
             const res = await query.select('name');
             return Service.successResponse(res.map(c => c.name));
@@ -231,9 +244,12 @@ class ChannelServices{
         const res = await query;
 
         return Service.successResponse(
-            ChannelServices.#trimChannelArray(
-                ChannelServices.#makeChannelObjectArray(res), reqUser
-            )
+                ChannelServices.#makeGetResBody({
+                    channel_docs: res,
+                    results_per_page: results_per_page,
+                    page: page,
+                    reqUser: reqUser,
+                })
         );
 
     }

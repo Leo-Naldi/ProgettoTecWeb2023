@@ -8,7 +8,8 @@ const { logger } = require('../config/logging');
 const TestEnv = require('./DataCreation');
 const Message = require('../models/Message');
 
-const _ = require('underscore')
+const fs = require('fs');
+const _ = require('underscore');
 
 
 const pw = '12345678';
@@ -46,6 +47,29 @@ let image_urls = [
 ]
 
 const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan], image_urls);
+
+function makeMessagesWithImages() {
+    fs.readdirSync('./files').map(h => {
+        let author_index = test_env.uhti(h);
+        
+        if (author_index) {
+            fs.readdirSync(`./files/${h}`, { withFileTypes: true }).map(img => {
+    
+                test_env.addRandomMessages({ 
+                    today: 1,
+                    authorIndex: author_index,
+                });
+
+                test_env.messages.at(-1).content.image = 
+                    `http://localhost:8000/image/${h}/${img.name}`;
+                test_env.messages.at(-1).publicMessage = true;
+                test_env.messages.at(-1).destUser = [];
+                test_env.messages.at(-1).destChannel = [];
+                test_env.messages.at(-1).meta.created = (new dayjs()).toDate();
+            });
+        }
+    })
+}
 
 /**
  * Data used in postman tests at 
@@ -801,7 +825,8 @@ async function makeDefaultUsers() {
 
     // add some messages with images
 
-    makeTestData()
+    makeTestData();
+    makeMessagesWithImages();
 
     await test_env.saveAll();
 

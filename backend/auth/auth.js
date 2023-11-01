@@ -28,7 +28,7 @@ passport.use('basicAuth',
             }
         },
         async function (jwtPayload, done) {
-            
+
             let err = null, user = null;
             
             try {
@@ -47,7 +47,6 @@ passport.use('basicAuth',
             
             user.lastLoggedin = new Date();
 
-            // logger.error("not user???"+user)
             return done(null, await user.save());
         }
     )

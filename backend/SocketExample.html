@@ -27,79 +27,106 @@
         }
         
         let soc = null;
+        let id = null;
 
-        $('#data').on('submit', (event) => {
-            event.preventDefault();
-            
-            switch($('#acc-type').val()) {
-                case 'user':
-                    fetch(`http://localhost:8000/auth/login/`, {
-                        method: "post",
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            handle: $('#handle').val(),
-                            password: $('#password').val(),
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(res => {
-                        // 64ac2760e9fbb645a50c3623
-                        var socket = io(`http://localhost:8000/user-io/${res.user.handle}`, {
-                            extraHeaders: {
-                                Authorization: `Bearer ${res.token}`
+        $(function() {
+
+            soc = io(`http://localhost:8000/public-io/`, { forceNew: true });
+            soc.onAny(add_li_node);
+
+            $('#data').on('submit', (event) => {
+                event.preventDefault();
+
+                switch ($('#acc-type').val()) {
+                    case 'user':
+                        fetch(`http://localhost:8000/auth/login/`, {
+                            method: "post",
+                            headers: {
+                                'Content-Type': 'application/json'
                             },
-                        });
-                        console.log(socket)
-                        socket.onAny(add_li_node);
-
-                        if (soc) {
-
-                            soc.offAny();
-                            soc.disconnect();
-                            soc = null;
-                        }
-
-                        soc = socket
-                    })
-                    break;
-                case 'pro':
-
-                    fetch(`http://localhost:8000/auth/login/smm`, {
-                        method: "post",
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            handle: $('#handle').val(),
-                            password: $('#password').val(),
+                            body: JSON.stringify({
+                                handle: $('#handle').val(),
+                                password: $('#password').val(),
+                            })
                         })
-                    })
-                        .then(res => res.json())
-                        .then(res => {
+                            .then(res => res.json())
+                            .then(res => {
+                                console.log(res.token)
+                                if (soc) {
 
-                            var socketPro = io(`http://localhost:8000/pro-io/${res.user.handle}`, {
-                                extraHeaders: {
-                                    Authorization: `Bearer ${res.token}`
-                                },
-                            });
-                            //socket.onAny(add_li_node);
-                            socketPro.onAny(add_li_node);
+                                    soc.offAny();
+                                    soc.disconnect();
+                                    soc = null;
+                                }
+                                // 64ac2760e9fbb645a50c3623
+                                var socket = io(`http://localhost:8000/user-io/${res.user.handle}`, {
+                                    extraHeaders: {
+                                        Authorization: `Bearer ${res.token}`
+                                    },
+                                    forceNew: true,
+                                });
 
-                            if (soc) {
+                                socket.onAny(add_li_node);
 
-                                soc.offAny();
-                                soc.disconnect();
-                                soc = null;
-                            }
 
-                            soc = socketPro;
+                                soc = socket;
+
+                                if (id) {
+                                    clearInterval(id);
+                                }
+
+                                console.log(`User socket connection: ${soc?.connected}`);
+                                id = setInterval(() => {
+                                    console.log(`User socket connection: ${soc?.connected}`);
+                                }, 5000)
+                            })
+                        break;
+                    case 'pro':
+
+                        fetch(`http://localhost:8000/auth/login/smm`, {
+                            method: "post",
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                handle: $('#handle').val(),
+                                password: $('#password').val(),
+                            })
                         })
+                            .then(res => res.json())
+                            .then(res => {
 
-                    break;
-                case 'admin': 
-                    fetch(`http://localhost:8000/auth/login/admin`, {
+                                var socketPro = io(`http://localhost:8000/pro-io/${res.user.handle}`, {
+                                    extraHeaders: {
+                                        Authorization: `Bearer ${res.token}`
+                                    },
+                                    forceNew: true,
+                                });
+                                
+                                socketPro.onAny(add_li_node);
+
+                                if (soc) {
+
+                                    soc.offAny();
+                                    soc.disconnect();
+                                    soc = null;
+                                }
+
+                                soc = socketPro;
+
+                                if (id) {
+                                    clearInterval(id);
+                                }
+
+                                console.log(`Pro socket connection: ${soc?.connected}`);
+                                id = setInterval(() => {
+                                    console.log(`Pro socket connection: ${soc?.connected}`);
+                                }, 5000)
+                            })
+
+                        break;
+                    case 'admin':
+                        fetch(`http://localhost:8000/auth/login/admin`, {
                             method: "post",
                             headers: {
                                 'Content-Type': 'application/json'
@@ -116,8 +143,8 @@
                                     extraHeaders: {
                                         Authorization: `Bearer ${res.token}`
                                     },
+                                    forceNew: true,
                                 });
-                                //socket.onAny(add_li_node);
                                 socketAdmin.onAny(add_li_node);
 
                                 if (soc) {
@@ -128,12 +155,24 @@
                                 }
 
                                 soc = socketAdmin;
+
+                                if (id) {
+                                    clearInterval(id);
+                                }
+
+                                console.log(`Admin socket connection: ${soc?.connected}`);
+                                id = setInterval(() => {
+                                    console.log(`Admin socket connection: ${soc?.connected}`);
+                                }, 5000)
                             })
-                    break;
-                default:
-                    throw Error("Unknown User Type")
-            }
+                        break;
+                    default:
+                        throw Error("Unknown User Type")
+                }
+            })
         })
+
+        
     </script>
 </head>
 

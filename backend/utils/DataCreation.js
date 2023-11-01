@@ -221,8 +221,9 @@ class TestEnv {
     addMessage({ authorIndex, text,  
             destChannelIndexes = [], destUserIndexes = [],
             reactions= { positive: 0, negative: 0 }, meta = null, answeringIndex=-1,
-            image_index=-1,
         }) {
+
+        let image_index = -1;
         const destUser = destUserIndexes.map(i => this.users[i]._id);
         
         let destChannel = destChannelIndexes.map(i => this.channels[i]);
@@ -400,9 +401,10 @@ class TestEnv {
      */
     addRandomMessages({ authorIndex=-1, 
         allTime = 0, year = 0, month = 0, week = 0, today = 0,
-        answering = false, reaction_function = null, image_prob=0.0
+        answering = false, reaction_function = null,
     }) {
 
+        let image_prob = 0.0;
         let author = (authorIndex >= 0) ? this.users[authorIndex] : this.users[TestEnv.getRandom(0, this.users.length)];
 
         const possible_channels = this.channels.filter(c => 

@@ -1,5 +1,3 @@
-const { default: mongoose } = require("mongoose");
-
 const config = require('../config/index')
 const User = require("../models/User");
 const makeToken = require("../utils/makeToken");
@@ -75,6 +73,23 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
+    static #makeGetResBody({ user_docs, page, results_per_page }) {
+        
+        let res = {}
+
+        if (page > 0) {
+            res.results = user_docs
+                .slice((page - 1) * results_per_page, page * results_per_page)
+                .map(u => UserService.makeUserObject(u));
+            res.pages = Math.ceil(user_docs.length / results_per_page);
+        } else {
+            res.results = user_docs.map(u => UserService.makeUserObject(u));
+            res.pages = 1;
+        } 
+        
+        return res;
+    }
+
     static async getUsers({ handle, admin, accountType, handleOnly=false, page = 1, 
         results_per_page=config.results_per_page,
      } = { page: 1, results_per_page: config.results_per_page }){
@@ -99,13 +114,13 @@ class UserService {
 
             if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-            if (page > 0)
-                query.skip((page - 1) * results_per_page)
-                    .limit(results_per_page);
-
             users = await query
 
-                return Service.successResponse(UserService.makeUserObjectArr(users));
+            return Service.successResponse(UserService.#makeGetResBody({
+                user_docs: users,
+                page: page,
+                results_per_page: results_per_page,
+            }));
         }
 
     }
@@ -129,7 +144,7 @@ class UserService {
     }
 
     static async createUser({ handle, email, password,
-            username, name, lastName, phone, gender, urlAvatar, description,
+            username, name, lastName, phone, gender, urlAvatar,
             blocked=false, accountType='user',
             meta }) {
         
@@ -138,7 +153,7 @@ class UserService {
         // Filter out undefined params that don't have a default
         // not sure if needed but oh well
         let extra = Object.entries({
-            username, name, lastName, description, phone, gender, urlAvatar, meta, 
+            username, name, lastName, phone, gender, urlAvatar, meta,
         }).reduce((a, [k, v]) => {
             if (v !== undefined) {
                 a[k] = v;
@@ -204,15 +219,15 @@ class UserService {
     }
 
     static async writeUser({ handle, username,
-        email, password, name, lastName, description,
+        email, password, name, lastName, 
         phone, gender, blocked, charLeft, addMemberRequest, 
-        addEditorRequest, removeMember, removeEditor, socket
+        addEditorRequest, removeMember, removeEditor, admin, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
         const newVals = {
-            email, password, name, lastName, description,
+            email, password, name, lastName, 
             phone, gender, username,
         }
         let user = await User.findOne({ handle: handle }).populate('smm', 'handle _id');
@@ -280,6 +295,10 @@ class UserService {
         if ((user.accountType === 'user') && (user.smm)) {
             smm = await User.findOne({ _id: user.smm });
             user.smm = null;
+        }
+
+        if (_.isBoolean(admin)) {
+            user.admin = admin;
         }
 
         let err = null;
@@ -457,12 +476,10 @@ class UserService {
 
         if (email) {
             checkEmail = await User.findOne({ email: email });
-            console.log("checkEmail", checkEmail)
             results.email = checkEmail ? false: true;
         }
         if (handle) {
             checkHandle = await User.findOne({ handle: handle });
-            console.log("checkHandle", checkHandle)
             results.handle = checkHandle ? false : true;
         }
         
