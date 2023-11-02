@@ -40,14 +40,11 @@ function parseMessage (message) {
 
 export default function Squeals({ managed }) {
 
-
-    //console.log(managed)
     const messagesPerPage = 25;
 
     const [page, setPage] = useState(1);
     const [messages, setMessages] = useState([]);
     const [fetchingMessages, setFetchingMessages] = useState(true);
-    const [fetchingStats, setFetchingStats] = useState(true);
     const [maxPages, setMaxPages] = useState(null);
 
     const [openImageModal, setOpenImageModal] = useState(false);
@@ -68,29 +65,28 @@ export default function Squeals({ managed }) {
             query: { page: page, results_per_page: messagesPerPage }
         })
             .then(res => res.json())
-            .then(res => res.map(parseMessage))
+            .then(res => ({
+                results: res.results.map(parseMessage),
+                pages: res.pages
+            }))
             .then(res => {
-                setMessages(res);
+                setMessages(res.results);
+                console.log(res.results)
+                if (res.pages !== maxPages) {
+                    setMaxPages(res.pages)
+                }
                 setFetchingMessages(false);
             })
     }
 
     useEffect(() => {
-        if (managed && (!messages.length)) {
+        if (managed) {
             fetchMessages();
         }
-    }, [page]);
+    }, [page, managed]);
 
     useEffect(() => {
-        if (!messages?.length) {
-            setFetchingStats(true);
-            fetchCheckPointData(new dayjs(), new dayjs(userAccount.meta.created), managed, smm.token)
-            .then(res => res.json())
-            .then(res => {
-                setMaxPages(Math.ceil(res.total / messagesPerPage));
-                setFetchingStats(false);
-            })
-            setPage(1);
+        if ((!(messages?.length || fetchingMessages)) && managed) {
             fetchMessages();
         }
     }, [managed])
@@ -135,7 +131,6 @@ export default function Squeals({ managed }) {
 
     const handleCloseImageModal = () => {
         setOpenImageModal(false);
-        //setImageUrl(null);
     }
 
     return (
@@ -187,7 +182,7 @@ export default function Squeals({ managed }) {
     );
 
     function getMessagesTable() {
-        if (fetchingMessages || fetchingStats) {
+        if (fetchingMessages) {
             return (
                 <Fragment>
                     <Spinner />

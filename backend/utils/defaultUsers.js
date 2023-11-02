@@ -26,6 +26,18 @@ const monthly_plan = new Plan({
     pro: true,
 })
 
+const monthly_plan_not_pro = new Plan({
+    name: 'Monthly character plan',
+    price: 1.99,
+    period: 'month',
+    extraCharacters: {
+        day: 300,
+        week: 320 * 7,
+        month: 330 * 31,
+    },
+    pro: false,
+})
+
 const yearly_plan = new Plan({
     name: 'Yearly subscription plan',
     price: 49.99,
@@ -36,7 +48,7 @@ const yearly_plan = new Plan({
         month: 330 * 31,
     },
     pro: true,
-})
+});
 
 let image_urls = [
     'https://picsum.photos/200/300',
@@ -46,7 +58,7 @@ let image_urls = [
     'https://picsum.photos/900/450',
 ]
 
-const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan], image_urls);
+const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan, monthly_plan_not_pro], image_urls);
 
 function makeMessagesWithImages() {
     fs.readdirSync('./files').map(h => {
@@ -138,6 +150,7 @@ function makeTestData() {
 
     // change subscription plan
     i = 9
+    test_env.users[test_pro_user_indexes[i - 1]].smm = test_env.users[test_pro_user_indexes[i]]._id
 
     // remove subscription plan
     i = 10

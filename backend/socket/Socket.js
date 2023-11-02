@@ -63,7 +63,7 @@ class SquealSocket {
             populatedUser.managed.map(u => nms.add(`/user-io/${u.handle}`))
         }
 
-        ebody = populatedUser;
+        ebody.handle = populatedUser.handle;
 
         SquealSocket.emit({
             socket: socket,
@@ -132,7 +132,7 @@ class SquealSocket {
             ebody = populatedMessageObject;
         }
 
-        if (!ebody.id) ebody.id = populatedMessage._id.toString();
+        ebody.id = populatedMessage._id.toString();
 
         SquealSocket.emit({
             socket: socket,
@@ -173,7 +173,7 @@ class SquealSocket {
             ebody = populatedChannelObject;
         }
 
-        if (!ebody.name) ebody = { ...ebody, name: populatedChannelObject.name };
+        ebody.name = populatedChannelObject.name;
 
         SquealSocket.emit({
             socket: socket,

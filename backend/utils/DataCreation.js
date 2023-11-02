@@ -172,7 +172,7 @@ class TestEnv {
         })
 
         if (u.accountType === 'pro') {
-            if (proPlanIndex < 0) proPlanIndex = TestEnv.getRandom(0, this.proPlans.length);
+            if (proPlanIndex < 0) proPlanIndex = TestEnv.getRandom(0, this.proPlans.filter(p => p.pro).length);
             
             if (!subscriptionExpiration) 
                 subscriptionExpiration = (new dayjs()).add(1, this.proPlans[proPlanIndex].period);

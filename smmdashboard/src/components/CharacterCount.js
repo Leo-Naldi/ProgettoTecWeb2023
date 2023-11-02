@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
-import { useSocket } from '../context/SocketContext';
-import { useManagedAccounts, useManagedAccountsDispatch } from '../context/ManagedAccountsContext';
+import { useManagedAccounts } from '../context/ManagedAccountsContext';
 
 
 export default function CharacterCount({ managed }) {
@@ -24,7 +23,8 @@ export default function CharacterCount({ managed }) {
     };
 
     return (
-        <React.Fragment>
+        (user) &&
+        (<React.Fragment>
             <Typography sx={{ mb: 1 }} variant="h5" component="h2">Characters Left</Typography>
             <Grid container  sx={{ ml: 1 }} spacing={2}>
                 <Grid item xs={12}>
@@ -46,6 +46,6 @@ export default function CharacterCount({ managed }) {
                     </Typography>
                 </Grid>
             </Grid>
-        </React.Fragment>
+        </React.Fragment>)
     );
 }

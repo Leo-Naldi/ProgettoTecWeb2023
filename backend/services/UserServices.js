@@ -339,7 +339,9 @@ class UserService {
 
         await user.save();
 
-        user = await UserService.getSecureUserRecord({ handle: handle });
+        //user = await UserService.getSecureUserRecord({ handle: handle });
+
+        let managed = await User.find({ smm: user._id });
 
         await User.updateMany({ smm: user._id }, { smm: null });
 
@@ -347,7 +349,16 @@ class UserService {
             populatedUser: user,
             ebody: UserService.makeUserObject(user),
             socket: socket,
-            old_smm_handle: smm?.handle,
+            old_smm_handle: smm,
+        });
+
+        managed.map(u => {
+            u.smm = null;
+            SquealSocket.userChanged({
+                populatedUser: u,
+                ebody: { smm: null },
+                socket: socket,
+            })
         })
 
         return Service.successResponse(UserService.makeUserObject(user));
@@ -361,6 +372,7 @@ class UserService {
             message: "User with given handle not found",
         });
 
+        let old_type = user.accountType;
         let smm = user.smm?.handle;
         user.smm = user.smm?._id;
 
@@ -399,72 +411,31 @@ class UserService {
 
         user = await UserService.getSecureUserRecord({ handle: handle });
         
-        if (user.accountType === 'user') {
+        if ((user.accountType === 'user') && (old_type === 'pro')) {
             await User.updateMany({ smm: user._id }, { smm: null });
+            
+            User.find({ smm: user._id }).exec().then(function(users) {
+                users.map(u => {
+                    u.smm = null;
+
+                    SquealSocket.userChanged({
+                        populatedUser: u,
+                        ebody: { smm: null },
+                        socket: socket,
+                    });
+                })
+            })
         }
 
         SquealSocket.userChanged({
             populatedUser: user,
             ebody: UserService.makeUserObject(user),
             socket: socket,
-            old_smm_handle: smm?.handle,
+            old_smm_handle: smm,
         })
 
         return Service.successResponse(UserService.makeUserObject(user));
 
-    }
-
-    static async grantAdmin({ handle, socket }) {
-        
-        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
-
-        let user = await User.findOne({ handle: handle });
-
-        if (user) {
-            
-            // If this throws it should be caught by the controller since 
-            // is a 5xx error
-            user.admin = true;
-            await user.save();
-
-            SquealSocket.userChanged({
-                populatedUser: user,
-                ebody: { admin: true },
-                socket: socket,
-            });
-
-            return Service.successResponse()
-
-        } else {
-            Service.rejectResponse({ message: "User not found" });
-        }
-
-    }
-
-    static async revokeAdmin({ handle, socket }) {
-
-        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
-
-        let user = await User.findOne({ handle: handle });
-
-        if (user) {
-
-            // If this throws it should be caught by the controller since 
-            // is a 5xx error
-            user.admin = false;
-            await user.save();
-
-            SquealSocket.userChanged({
-                populatedUser: user,
-                ebody: { admin: false },
-                socket: socket,
-            });
-
-            return Service.successResponse();
-
-        } else {
-            Service.rejectResponse({ message: "User not found" });
-        }
     }
 
     static async checkAvailability({ handle=null, email=null }) {

@@ -43,7 +43,12 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const managedAccounts = useManagedAccounts()
     const managedAccountsDispatch = useManagedAccountsDispatch()
 
+    console.log(`SquealFormModal managed: ${managed}`);
+    
+    
     const managedAccount = managedAccounts.find(u => u.handle === managed);
+    console.log(`SquealFormModal managedAccount: ${!!managedAccount}`);
+    console.log(`Managed handles: ${managedAccounts.map(m => m.handle).join(',')}`)
     const maxLength = Math.min(...Object.values(managedAccount.charLeft));
     
 
@@ -62,32 +67,12 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         setOpen(false);
         setUsedChars(0);
     }
-    
-    const handleSubmit = (e) => {
-        e.preventDefault();
 
-        if (selectedImage) {
-
-            let data = new FormData();
-            data.append('file', selectedImage);
-
-            authorizedRequest({ 
-                endpoint: '/image/upload/' + managed,
-                token: smm.token,
-                method: 'post',
-             }).then(res => {
-                console.log(res.ok);
-                return res.body()
-            }).then(res => {
-                console.log(res)
-            })
-
-            return;
-        }
-
+    const post_squeal = (img_url=null) => {
         let body = {
             content: {
                 text: text,
+                image: img_url,
             },
             dest: destUsers.map(u => '@' + u.handle).concat(destChannels.map(c => '§' + c))
         };
@@ -104,29 +89,71 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         console.log(body);
 
         setPosting(true);
-        postSqueal(body)
-        .then(res => {
-            if (res.ok) {
-                return res.json().then(res => {
-                    
-                    managedAccountsDispatch({
-                        type: 'CHANGE_CHARLEFT',
-                        payload: {
-                            handle: managed,
-                            charLeft: res.charLeft,
-                        }
-                    })
+        const baseUrl = `http://localhost:8000/messages/user/${managed}`;
+        const url = new URL(baseUrl);
 
+        fetch(url.href, {
+            headers: {
+                'Authorization': 'Bearer ' + smm.token,
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: JSON.stringify(body)
+        }).then(res => {
+                if (res.ok) {
+                    return res.json().then(res => {
+
+                        managedAccountsDispatch({
+                            type: 'CHANGE_CHARLEFT',
+                            payload: {
+                                handle: managed,
+                                charLeft: res.charLeft,
+                            }
+                        })
+
+                        setPosting(false);
+                        handleClose();
+                    })
+                } else {
+                    console.log(`Posting Squeal failed with code: ${res.status}`);
+                    setPosting(false);
+                }
+
+            })
+            .catch(err => console.log(err));
+    }
+    
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        setPosting(true);
+        if (selectedImage) {
+            let data = new FormData();
+
+            data.append(selectedImage.name, selectedImage);
+
+            let req = new XMLHttpRequest();
+
+            req.onreadystatechange = () => {
+                if (req.readyState === 4) {
+                    console.log(req.response);
+                    let img_url = `http://localhost:8000/image/${managed}/${req.response}`;
+                    post_squeal(img_url);
                     setPosting(false);
                     handleClose();
-                })
-            } else {
-                console.log(`Posting Squeal failed with code: ${res.status}`);
-                setPosting(false);
+                }
             }
 
-        })
-        .catch(err => console.log(err));
+            req.open('post', 'http://localhost:8000/image/upload/' + managed);
+            req.setRequestHeader('Authorization', `Bearer ${smm.token}`);
+
+            req.send(data);
+            return;
+        }
+
+        post_squeal();
+        setPosting(false);
+        handleClose();
     };
 
     const hadleValueChanged = (e) => {
@@ -190,26 +217,6 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             }
         }).then(res => res.json())
         .then(channels => channels.map(c => c.name))
-    }
-
-    function postSqueal(body) {
-
-        // Define the base URL
-        const baseUrl = `http://localhost:8000/messages/user/${managed}`;
-
-        // Create a new URL object
-        const url = new URL(baseUrl);
-
-        console.log(body)
-
-        return fetch(url.href, {
-            headers: {
-                'Authorization': 'Bearer ' + smm.token,
-                'Content-Type': 'application/json'
-            }, 
-            method: 'POST',
-            body: JSON.stringify(body)
-        })
     }
 
     function getModalContents() {
