@@ -458,6 +458,8 @@ components:
           type: string
         gender:
           type: string
+        description:
+          type: string
         phone:
           type: string
         accountType:
@@ -521,6 +523,9 @@ components:
         gender: 
           type: string 
           description: The new gender.
+        descrption:
+          type: string
+          description: The user description.
         blocked: 
           type: boolean
           description: The blocked status.

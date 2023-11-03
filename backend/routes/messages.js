@@ -11,7 +11,6 @@ const Reaction = require('../models/Reactions');
 
 const MessageRouter = express.Router();
 
-// a logged in user can get all public posts in database 
 MessageRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.getMessages);
@@ -22,8 +21,7 @@ MessageRouter.get('/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
     await Controller.handleRequest(req, res, MessageServices.getMessage);
 })
 
-// formerly '/:name'
-MessageRouter.get('/channel/:name', getAuthMiddleware('basicAuth'), checkNameMember, async (req, res) => {
+MessageRouter.get('/channel/:name/', getAuthMiddleware('basicAuth'), checkNameMember, async (req, res) => {
     
     await Controller.handleRequest(req, res, MessageServices.getChannelMessages);
 })
@@ -33,31 +31,26 @@ MessageRouter.delete('/channel/:name', getAuthMiddleware('basicAuth'), checkName
     await Controller.handleRequest(req, res, MessageServices.deleteChannelMessages);
 })
 
-// Users send messages
-// formerly '/:handle/messages'
-MessageRouter.post('/user/:handle', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM,
+MessageRouter.post('/user/:handle/', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM,
     async (req, res) => {
 
         await Controller.handleRequest(req,res, MessageServices.postUserMessage);
     }
 );
 
-
-// Get all messages for a user
-// formerly '/:handle/messages
-MessageRouter.get('/user/:handle', getAuthMiddleware('basicAuth'),
+MessageRouter.get('/user/:handle/', getAuthMiddleware('basicAuth'),
     async (req, res) => {
 
         await Controller.handleRequest(req, res, MessageServices.getUserMessages);
 });
 
-MessageRouter.get('/user/:handle/up', getAuthMiddleware('basicAuth'), 
+MessageRouter.get('/user/:handle/up/', getAuthMiddleware('basicAuth'), 
     async (req, res) => {
 
         await Controller.handleRequest(req, res, MessageServices.getLikedMessages);
 });
 
-MessageRouter.get('/user/:handle/down', getAuthMiddleware('basicAuth'),
+MessageRouter.get('/user/:handle/down/', getAuthMiddleware('basicAuth'),
     async (req, res) => {
 
         await Controller.handleRequest(req, res, MessageServices.getDislikedMessages);

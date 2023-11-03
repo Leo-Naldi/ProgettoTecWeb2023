@@ -8,7 +8,8 @@ const { logger } = require('../config/logging');
 const TestEnv = require('./DataCreation');
 const Message = require('../models/Message');
 
-const _ = require('underscore')
+const fs = require('fs');
+const _ = require('underscore');
 
 
 const pw = '12345678';
@@ -25,6 +26,18 @@ const monthly_plan = new Plan({
     pro: true,
 })
 
+const monthly_plan_not_pro = new Plan({
+    name: 'Monthly character plan',
+    price: 1.99,
+    period: 'month',
+    extraCharacters: {
+        day: 300,
+        week: 320 * 7,
+        month: 330 * 31,
+    },
+    pro: false,
+})
+
 const yearly_plan = new Plan({
     name: 'Yearly subscription plan',
     price: 49.99,
@@ -35,7 +48,7 @@ const yearly_plan = new Plan({
         month: 330 * 31,
     },
     pro: true,
-})
+});
 
 let image_urls = [
     'https://picsum.photos/200/300',
@@ -45,7 +58,30 @@ let image_urls = [
     'https://picsum.photos/900/450',
 ]
 
-const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan], image_urls);
+const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan, monthly_plan_not_pro], image_urls);
+
+function makeMessagesWithImages() {
+    fs.readdirSync('./files').map(h => {
+        let author_index = test_env.uhti(h);
+        
+        if (author_index) {
+            fs.readdirSync(`./files/${h}`, { withFileTypes: true }).map(img => {
+    
+                test_env.addRandomMessages({ 
+                    today: 1,
+                    authorIndex: author_index,
+                });
+
+                test_env.messages.at(-1).content.image = 
+                    `http://localhost:8000/image/${h}/${img.name}`;
+                test_env.messages.at(-1).publicMessage = true;
+                test_env.messages.at(-1).destUser = [];
+                test_env.messages.at(-1).destChannel = [];
+                test_env.messages.at(-1).meta.created = (new dayjs()).toDate();
+            });
+        }
+    })
+}
 
 /**
  * Data used in postman tests at 
@@ -114,6 +150,7 @@ function makeTestData() {
 
     // change subscription plan
     i = 9
+    test_env.users[test_pro_user_indexes[i - 1]].smm = test_env.users[test_pro_user_indexes[i]]._id
 
     // remove subscription plan
     i = 10
@@ -801,7 +838,8 @@ async function makeDefaultUsers() {
 
     // add some messages with images
 
-    makeTestData()
+    makeTestData();
+    makeMessagesWithImages();
 
     await test_env.saveAll();
 

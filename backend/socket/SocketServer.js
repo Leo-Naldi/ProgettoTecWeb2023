@@ -57,6 +57,11 @@ class SocketServer {
         this.publicNms.on('connection', (socket) => {
             socket.emit("Hello There (public)", { message: "General Kenobi (But public)" })
         })
+
+        this.publicNms.use((socket, next) => {
+            logger.debug(`Attempted socket connection to public namespace`);
+            next();
+        })
     }
 
     // socket io middleware is in the form (socket, next)
@@ -71,7 +76,7 @@ class SocketServer {
     */
     static #getAuthStrat(name) {
         return (req, res, next) => {
-            passport.authenticate(name, function (err, user, info) {
+            passport.authenticate(name, { session: false }, function (err, user, info) {
                 if (err) { 
                     logger.error(err.message || err)
                     return next(err); 

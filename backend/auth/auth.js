@@ -28,7 +28,7 @@ passport.use('basicAuth',
             }
         },
         async function (jwtPayload, done) {
-            
+
             let err = null, user = null;
             
             try {

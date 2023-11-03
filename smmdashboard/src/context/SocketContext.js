@@ -42,25 +42,23 @@ export default function SocketContextProvider({ children }) {
 
     useEffect(() => {
         
-            console.log("BBBBBBBBBBBBBBBBBBBBBBBbbbbbb")
-            socket?.on('user:changed', (user) => {
-                console.log(user.handle)
-                console.log(managedAccounts.some(u => u.handle === user.handle))
+            socket?.on('user:changed', (changes) => {
+                console.log(changes.handle)
+                console.log(managedAccounts.some(u => u.handle === changes.handle))
                 console.log(managedAccounts)
 
-                if (managedAccounts.some(u => u.handle === user.handle)) {
+                if (managedAccounts.some(u => u.handle === changes.handle)) {
 
-                    if (smm.handle !== user.smm) {
-                        // smm is no longer user's manager
+                    if (changes.smm === null) {
                         managedAccountsDispatch({
                             type: 'USER_REMOVED',
-                            handle: user.handle,
+                            handle: changes.handle,
                         });
                     } else {
                         managedAccountsDispatch({
                             type: 'USER_CHANGED',
-                            handle: user.handle,
-                            changes: user
+                            handle: changes.handle,
+                            changes: changes,
                         });
                     }
 

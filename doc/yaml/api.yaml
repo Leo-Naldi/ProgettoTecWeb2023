@@ -74,96 +74,22 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  anyOf:
-                    - $ref: '#/components/schemas/User'
-                    - $ref: '#/components/schemas/UserPro'
+                type: object 
+                properties:
+                  results: 
+                    type: array
+                    description: Found results.
+                    items:
+                      anyOf:
+                        - $ref: '#/components/schemas/User'
+                        - $ref: '#/components/schemas/UserPro'
+                  pages: 
+                    type: integer
+                    minimum: 1
+                    description: Number of available pages with the given search settings.
+                    
         '401':
           description: Unauthorized operation
-
-  /users/:
-    get:
-      tags:
-        - User
-      description: Get users.
-      operationId: getUsers
-      parameters:
-        - name: page
-          in: query
-          description: To paginate results. A non-positive number disables pagination.
-          schema:
-            type: integer
-            default: 1
-        - name: results_per_page
-          in: query
-          description: Number of results to return in each page.
-          schema:
-            type: integer
-            default: 100
-            minimum: 1
-        - name: handle
-          in: query
-          description: Only return users whose handle contains the given string. Matching is case-insensitive.
-          required: False
-          schema: 
-            type: string
-            minLength: 3
-            example: user
-        - name: admin
-          in: query
-          description: Only return admin or non-admin users.
-          required: False
-          schema: 
-            type: boolean
-            example: False
-        - name: accountType
-          in: query
-          description: Only return pro or non-pro accounts.
-          required: False
-          schema: 
-            type: string
-            enum: 
-              - user 
-              - pro 
-            example: pro
-        - name: handleOnly
-          in: query
-          description: Return an array of handles instead of user objects.
-          required: False
-          schema: 
-            type: boolean
-            example: False
-            default: False
-      responses:
-        '200':
-          description: User Created, the JWT token is in the body.
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - anyOf:
-                    - $ref: '#/components/schemas/User'   
-                    - $ref: '#/components/schemas/UserPro'   
-                  - $ref: '#/components/schemas/TokenInfo'   
-        '401':
-          description: Unauthorized operation
-        '409':
-          description: Invalid handle or email
-          content:
-            application/json:
-                schema:
-                  type: object
-                  properties:
-                    invalid: 
-                      type: array
-                      description: A list of data that was invalid
-                      items:
-                        type: string
-                        enum:
-                          - handle
-                          - email
-                      minItems: 1
   
   /users/{handle}:
     put:
@@ -419,74 +345,25 @@ paths:
         500: 
           description: Internal server error
 
-  /users/{handle}/grantAdmin:
-    post: 
-      tags:
-        - Admin
-      description: "Make the user an admin account"
-      operationId: grantAdmin
-      parameters:
-        - name: handle
-          in: path
-          required: True
-          schema:
-            type: string
-      security:
-        - adminAuth: []
-      responses:
-        200:
-          description: "Permission Granted"
-        400:
-          description: "Handle not found"
-        500:
-          description: "Internal Server Error"
-  
-  /users/{handle}/revokeAdmin:
-    post: 
-      tags:
-        - Admin
-      description: "Revoke admin priviledges from an account"
-      operationId: revokeAdmin,
-      parameters:
-        - name: handle
-          in: path
-          required: True
-          schema:
-            type: string
-      security:
-        - adminAuth: []
-      responses:
-        200:
-          description: "Permission Revoked"
-        400:
-          description: "Handle not found"
-        500:
-          description: "Internal Server Error"
-
-  /users/registration/:
+  /public/registration/:
     get:
       tags:
         - User 
-        - Login
-      description: make sure the handle and email ara avalible when making registrations
-      requestBody:
-        description: email and/or handle to be checked
-        required: True
-        content:
-          application/json:
-            schema:
-              type: object 
-              properties:
-                handle: 
-                  type: string
-                  minLength: 3
-                  description: The handle whose availability is to be checked
-                  example: handle167
-                email: 
-                  type: string
-                  format: email
-                  description: The email whose availability is to be checked
-                  example: email@gmail.com
+        - Public
+      description: Check wether email or handle are available.
+      parameters:
+        - name: email
+          in: query 
+          required: false
+          schema:
+            type: string 
+            example: mail@mail.com 
+        - name: handle 
+          in: query 
+          required: false
+          schema:
+            type: string 
+            example: someHandle 
       responses:
         200:
           description: "Ok"
@@ -501,8 +378,8 @@ paths:
                   handle:
                     type: boolean
                     description: "true if the the given handle is available. will only be present if an handle was provided"
-        400:
-          description: "Input malformato"
+        409:
+          description: Did not provide neither an email nor a handle.
         500:
           description: "Internal server error"
 
@@ -526,9 +403,19 @@ paths:
             example: userHandle123
         - name: page
           in: query
-          description: To paginate results. A non-positive number disables pagination.
+          description: Paginate results. A non-positive value disables pagination.
           schema:
             type: integer
+            default: 1
+            example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
         - name: popular
           in: query
           description: Get only pupular messages, value determines the timeframe. If used together with unpopular 
@@ -592,7 +479,13 @@ paths:
             a \# it will be interpreted as a keyword channel. Otherwise this field will be ignored.
           schema:
             type: string 
-            example: ['#sanremo1312', '@feltri', '§canalebello67']
+            example: ['@feltri', '§canalebello67']
+        - name: answering
+          in: query 
+          description: Will only return messages answering to the given message's ignored.
+          schema: 
+            type: string 
+            example: 653a84466bd663444681acfc
       responses:
         '200':
           description: User found
@@ -1218,6 +1111,24 @@ paths:
           schema: 
             type: string 
             example: lorem ipsum
+        - name: answering
+          in: query 
+          description: Will only return messages answering to the given message's ignored.
+          schema: 
+            type: string 
+            example: 653a84466bd663444681acfc
+        - name: publicMessage 
+          in: query 
+          description: Only return public/private messages. 
+          schema:
+            type: boolean 
+            example: true
+        - name: official 
+          in: query 
+          description: Only return officiale messages. 
+          schema:
+            type: boolean 
+            example: true
       responses:
         200: 
           description: Ok 
@@ -1755,6 +1666,21 @@ paths:
           schema:
             type: string
             example: awesomeChannel9000
+        - name: page
+          in: query
+          description: Paginate results. A non-positive value disables pagination.
+          schema:
+            type: integer
+            default: 1
+            example: 3
+        - name: results_per_page
+          in: query
+          description: Number of results to return in each query.
+          schema:
+            type: integer
+            default: 100 
+            minimum: 1
+            example: 50
       responses:
         '200': 
           description: Request Successful.
@@ -1821,7 +1747,115 @@ paths:
           description: Did not provide a name
         '500':
           description: Internal server error.
-    
+
+  /channel/{name}/members: 
+    post: 
+      tags:
+        - Channel
+        - User
+      description: Add and remove members.
+      operationId: writeChannelMembers
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: The data to be changed.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                addMembers:
+                  type: array
+                  description: Array of users's handles to be added as members.
+                  items:
+                    type: string 
+                    example: handle1123
+                removeMembers:
+                  type: array
+                  description: Array of handles to remove from members. 
+                    Users who are also editors will be removed from the editors as well.
+                  items:
+                    type: string 
+                    example: handle1123
+                removeRequests:
+                  type: array
+                  description: Array of handles to remove from member requests.
+                  items:
+                    type: string 
+                    example: handle1123
+      responses:
+        '200': 
+          description: Operation successful.
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.
+
+  /channel/{name}/editors: 
+    post: 
+      tags:
+        - Channel
+        - User
+      description: Add and remove editors.
+      operationId: writeChannelEditors
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: The data to be changed.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                addEditors:
+                  type: array
+                  description: Array of users's handles to be added as editors. Users who are 
+                    not members will also be added to the members list.
+                  items:
+                    type: string 
+                    example: handle1123
+                removeEditors:
+                  type: array
+                  description: Array of handles to remove from the editor list. 
+                  items:
+                    type: string 
+                    example: handle1123
+                removeRequests:
+                  type: array
+                  description: Array of handles to remove from editor requests.
+                  items:
+                    type: string 
+                    example: handle1123
+      responses:
+        '200': 
+          description: Operation successful.
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.
+
   /public/messages:
     get:
       tags:
@@ -2167,6 +2201,8 @@ components:
           type: string
         gender:
           type: string
+        description:
+          type: string
         phone:
           type: string
         accountType:
@@ -2265,6 +2301,9 @@ components:
         phone: 
           type: string 
           description: The new phone number.
+        description:
+          type: string
+          description: The new user description.
         gender: 
           type: string 
           description: The new gender.
@@ -2290,6 +2329,7 @@ components:
             month:
               type: number
               minimum: 0
+        
         addMemberRequests: 
           type: array
           items:
@@ -2328,6 +2368,10 @@ components:
         deleteSubscription:
           type: boolean 
           description: True to delete the user's current subscription.
+        admin: 
+          type: boolean 
+          description: Wether a user is an admin or not. Can only be changed by an admin
+          example: true
   
     Message:
       allOf:

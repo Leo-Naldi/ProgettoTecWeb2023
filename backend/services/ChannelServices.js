@@ -79,7 +79,25 @@ class ChannelServices{
         return arr.map(c => ChannelServices.#trimChannelObject(c, reqUser));
     }
 
-    // TODO test all the gets
+    static #makeGetResBody({ channel_docs, page, results_per_page, reqUser }) {
+
+        let res = {}
+
+        if (page > 0) {
+            res.results = ChannelServices.#trimChannelArray(channel_docs
+                .slice((page - 1) * results_per_page, page * results_per_page)
+                .map(c => ChannelServices.#makeChannelObject(c)), reqUser);
+
+            res.pages = Math.ceil(channel_docs.length / results_per_page);
+        } else {
+            res.results = ChannelServices.#trimChannelArray(channel_docs
+                .map(c => ChannelServices.#makeChannelObject(c)), reqUser);
+            res.pages = 1;
+        }
+
+        return res;
+    }
+
     // Get all channels created by the user
     static async getUserChannels({ reqUser, handle, publicChannel }){
         let user = reqUser;
@@ -218,11 +236,6 @@ class ChannelServices{
         
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        if (page > 0) {
-            query.skip((page - 1) * results_per_page)
-                .limit(results_per_page);
-        }
-
         if (namesOnly) {
             const res = await query.select('name');
             return Service.successResponse(res.map(c => c.name));
@@ -231,9 +244,12 @@ class ChannelServices{
         const res = await query;
 
         return Service.successResponse(
-            ChannelServices.#trimChannelArray(
-                ChannelServices.#makeChannelObjectArray(res), reqUser
-            )
+                ChannelServices.#makeGetResBody({
+                    channel_docs: res,
+                    results_per_page: results_per_page,
+                    page: page,
+                    reqUser: reqUser,
+                })
         );
 
     }
@@ -386,7 +402,7 @@ class ChannelServices{
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
-    static async writeMembers({ name, addMembers, removeMembers, socket }) {
+    static async writeMembers({ name, addMembers, removeRequests, removeMembers, socket }) {
         
         let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
         
@@ -403,10 +419,24 @@ class ChannelServices{
             //logger.debug(addMembers)
 
             await Promise.all(users.map(async u => {
-                logger.debug(u.joinChannelRequests)
                 if (u.joinChannelRequests.some(cid => channel._id.equals(cid))) {
 
                     u.joinedChannels.addToSet(channel._id);
+                    u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
+
+                    return u.save();
+                }
+            }));
+        }
+
+        if (removeRequests?.length) {
+            let users = await User.find().where('handle').in(removeRequests);
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(async u => {
+                if (u.joinChannelRequests.some(cid => channel._id.equals(cid))) {
+
                     u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
 
                     return u.save();
@@ -450,7 +480,7 @@ class ChannelServices{
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
-    static async writeEditors({ name, channel = null, addEditors, removeEditors, socket }) {
+    static async writeEditors({ name, channel = null, addEditors, removeRequests, removeEditors, socket }) {
         if (channel === null) {
             channel = await Channel.findOne({ name: name })
                 .populate('creator', 'handle _id')
@@ -476,6 +506,21 @@ class ChannelServices{
                     
                     u.joinedChannels.addToSet(channel._id);
                     u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid));
+
+                    return u.save();
+                }
+            }));
+        }
+
+        if (removeRequests?.length) {
+            let users = await User.find().where('handle').in(removeRequests);
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(async u => {
+                if (u.editorChannelRequests.some(cid => channel._id.equals(cid))) {
+
+                    u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid))
 
                     return u.save();
                 }

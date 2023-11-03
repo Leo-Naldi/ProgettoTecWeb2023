@@ -19,7 +19,7 @@ ChannelRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
 })
 
 // Get all channels created by a user
-ChannelRouter.get('/:handle/created', getAuthMiddleware('basicAuth'), async(req, res) =>{
+ChannelRouter.get('/:handle/created/', getAuthMiddleware('basicAuth'), async(req, res) =>{
     await Controller.handleRequest(req, res, ChannelServices.getUserChannels);
 })
 
@@ -68,12 +68,12 @@ ChannelRouter.delete('/:name', getAuthMiddleware('basicAuth'), checkNameCreator,
     await Controller.handleRequest(req, res, ChannelServices.deleteChannel);
 })
 
-ChannelRouter.post('/:name/members', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+ChannelRouter.post('/:name/members/', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.writeMembers);
 })
 
-ChannelRouter.post('/:name/editors', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+ChannelRouter.post('/:name/editors/', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.writeEditors);
 })

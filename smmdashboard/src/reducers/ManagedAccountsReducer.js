@@ -10,9 +10,10 @@ export default function managedAccountsReducer(state, action) {
             let res = [...state];
             const i = state.findIndex(u => u.handle === action.payload.handle)
 
-            console.log(i)
             if (i >= 0)
-            res[i].charLeft = action.payload.charLeft;
+                res[i].charLeft = action.payload.charLeft;
+            else 
+                throw Error(`No user with handle ${action.payload.handle}`)
 
             return res;
         }
@@ -23,9 +24,11 @@ export default function managedAccountsReducer(state, action) {
 
             let res = [...state];
             const i = state.findIndex(u => u.handle === action.handle)
-            console.log(i)
+
             if (i >= 0)
                 res[i] = { ...res[i], ...action.changes };
+            else
+                throw Error(`No user with handle ${action.payload.handle}`)
 
             return res;
         }
