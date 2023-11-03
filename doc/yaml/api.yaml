@@ -2201,6 +2201,8 @@ components:
           type: string
         gender:
           type: string
+        description:
+          type: string
         phone:
           type: string
         accountType:
@@ -2299,6 +2301,9 @@ components:
         phone: 
           type: string 
           description: The new phone number.
+        description:
+          type: string
+          description: The new user description.
         gender: 
           type: string 
           description: The new gender.

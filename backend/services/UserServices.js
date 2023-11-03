@@ -143,7 +143,7 @@ class UserService {
         return Service.successResponse(UserService.makeUserObject(user));        
     }
 
-    static async createUser({ handle, email, password,
+    static async createUser({ handle, email, description, password,
             username, name, lastName, phone, gender, urlAvatar,
             blocked=false, accountType='user',
             meta }) {
@@ -153,7 +153,7 @@ class UserService {
         // Filter out undefined params that don't have a default
         // not sure if needed but oh well
         let extra = Object.entries({
-            username, name, lastName, phone, gender, urlAvatar, meta,
+            username, name, lastName, phone, description, gender, urlAvatar, meta,
         }).reduce((a, [k, v]) => {
             if (v !== undefined) {
                 a[k] = v;
@@ -220,14 +220,14 @@ class UserService {
 
     static async writeUser({ handle, username,
         email, password, name, lastName, 
-        phone, gender, blocked, charLeft, addMemberRequest, 
+        phone, gender, description,  blocked, charLeft, addMemberRequest, 
         addEditorRequest, removeMember, removeEditor, admin, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
         const newVals = {
-            email, password, name, lastName, 
+            email, password, name, lastName,  description,
             phone, gender, username,
         }
         let user = await User.findOne({ handle: handle }).populate('smm', 'handle _id');
