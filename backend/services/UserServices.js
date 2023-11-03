@@ -456,6 +456,22 @@ class UserService {
         
         return Service.successResponse(results);
     }
+    
+    static async checkMailValidation({ email=null }) {
+        
+        if (!email) return Service.rejectResponse({ message: "Must provide email" })
+
+        let checkEmail;
+        let results = new Object();
+
+        if (email) {
+            checkEmail = await User.findOne({ email: email });
+            results.email = checkEmail ? true: false;
+            results.user=checkEmail
+        }
+        
+        return Service.successResponse(results);
+    }
 
     static async changeSmm({ handle, operation, smm, socket }){
 
