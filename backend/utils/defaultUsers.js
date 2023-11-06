@@ -236,8 +236,19 @@ function makeTestData() {
     ind.map(j => {
         test_env.addReactionFromUser(test_env.messages.length - j, test_user_indexes[i], 'positive');
         test_env.addReactionFromUser(test_env.messages.length - j, test_user_indexes[i], 'negative');
-    })
+    });
 
+    //remove member requests
+    i = 24
+    channel = test_env.channels[channel_indexes[i]]
+    test_env.users[test_user_indexes[i]].joinChannelRequests.addToSet(channel._id);
+    test_env.users[test_pro_user_indexes[i]].joinChannelRequests.addToSet(channel._id);
+
+    //remove editor requests
+    i = 25
+    channel = test_env.channels[channel_indexes[i]]
+    test_env.users[test_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
+    test_env.users[test_pro_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
 }
 
 
