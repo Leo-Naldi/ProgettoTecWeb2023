@@ -95,10 +95,10 @@
    folder: folder,
    log_level: process.env.LOG_LEVEL,
    /* i've tested this part with my google mail account and it works */
-   mail_user: '', // your mail for send mail to user
-   mail_password: ' ', // your mail account password
-   mail_service: '', // nodemailer default supported mail: [Well-known services – Nodemailer](https://community.nodemailer.com/2-0-0-beta/setup-smtp/well-known-services/)
-   mail_host: '', // if not listed in mail_service
+   mail_user: process.env.MAIL_USER, // your mail for send mail to user
+   mail_password: process.env.MAIL_PASSWORD, // your mail account password
+   mail_service: process.env.MAIL_SERVICE, // nodemailer default supported mail: [Well-known services – Nodemailer](https://community.nodemailer.com/2-0-0-beta/setup-smtp/well-known-services/)
+   mail_host: process.env.MAIL_HOST, // if not listed in mail_service
  };
  
  module.exports = config;

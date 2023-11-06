@@ -44,13 +44,13 @@ class MailService {
         // attachments: attachments,
       });
 
-    await VerificationCode.deleteMany({ mail: verification_destination })
+    await VerificationCode.deleteMany({ mail: email })
     
-    const verificationCode_ = new VerificationCode({ mail: verification_destination, verification_code: verification_code });
+    const verificationCode_ = new VerificationCode({ mail: email, verification_code: verification_code });
     await verificationCode_.save();
 
     setTimeout(async ()=>{   
-        await VerificationCode.deleteMany({ mail: verification_destination })
+        await VerificationCode.deleteMany({ mail: email })
     },1000*60*5) //1 min, 1000=1s
 
     

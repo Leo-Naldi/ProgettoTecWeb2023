@@ -18,6 +18,10 @@ PORT=8000  # Or whatever port you want to listen to
 DB_HOST=127.0.0.1  # Locally installed db
 DB_PORT=27017  # Default mongo port
 DB_NAME=TecWebDB  # Will eventually be changed to a proper name
+MAIL_USER= '' # your mail used for send mail to user
+MAIL_PASSWORD= '' # your mail account password
+MAIL_SERVICE= '' # nodemailer default supported mail: [Well-known services – Nodemailer](https://community.nodemailer.com/2-0-0-beta/setup-smtp/well-known-services/)
+MAIL_HOST= '' # if not listed in mail_service
 ```
 
 To check wether mongo is running you can do:

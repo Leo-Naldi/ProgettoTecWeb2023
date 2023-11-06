@@ -75,6 +75,10 @@ class ExpressServer {
         logger.info('Crons Started');
         logger.info(`Server Secret is: ${config.secrect}`)
         logger.info(`Fame Threshold is: ${config.fame_threshold}`)
+        logger.info(`mail user is: ${config.mail_user}`)
+        logger.info(`mail pass is: ${config.mail_password}`)
+        logger.info(`mail service is: ${config.mail_service}`)
+    
     }
 }
 

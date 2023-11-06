@@ -402,91 +402,8 @@ class ChannelServices{
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
-    static async writeMembers({ name, addMembers, removeRequests, removeMembers, socket }) {
-        
+    static async addChannelMembers({ name, members, socket }) {
         let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
-        
-        if (!channel) {
-            return Service.rejectResponse({ 
-                message: `No channel named: ${name}`
-            });
-        }
-
-        if (addMembers?.length) {
-
-            let users = await User.find().where('handle').in(addMembers);
-
-            //logger.debug(addMembers)
-
-            await Promise.all(users.map(async u => {
-                if (u.joinChannelRequests.some(cid => channel._id.equals(cid))) {
-
-                    u.joinedChannels.addToSet(channel._id);
-                    u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
-
-                    return u.save();
-                }
-            }));
-        }
-
-        if (removeRequests?.length) {
-            let users = await User.find().where('handle').in(removeRequests);
-
-            //logger.debug(addMembers)
-
-            await Promise.all(users.map(async u => {
-                if (u.joinChannelRequests.some(cid => channel._id.equals(cid))) {
-
-                    u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
-
-                    return u.save();
-                }
-            }));
-        }
-
-        if (removeMembers?.length) {
-
-            let users = await User.find().where('handle').in(removeMembers);
-            await Promise.all(users.map(async u => {
-
-                u.joinedChannels = u.joinedChannels.filter(cid => !channel._id.equals(cid));
-                u.editorChannels = u.editorChannels.filter(cid => !channel._id.equals(cid));
-
-                return u.save();
-            }));
-        }
-
-        let err = null;
-        try {
-            channel = await channel.save();
-        } catch (e) {
-            err = e;
-        }
-
-        if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
-
-        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
-        let channel_object = ChannelServices.#makeChannelObject(channel);
-
-        SquealSocket.channelChanged({ 
-            populatedChannelObject: channel,
-            ebody: {
-                members: channel_object.members,
-                memberRequests: channel_object.memberRequests,
-            },
-            socket: socket
-        });
-
-        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
-    }
-
-    static async writeEditors({ name, channel = null, addEditors, removeRequests, removeEditors, socket }) {
-        if (channel === null) {
-            channel = await Channel.findOne({ name: name })
-                .populate('creator', 'handle _id')
-                .populate('members', 'handle _id')
-                .populate('memberRequests', 'handle _id')
-        }
 
         if (!channel) {
             return Service.rejectResponse({
@@ -494,45 +411,19 @@ class ChannelServices{
             });
         }
 
-        if (addEditors?.length) {
+        if (members?.length) {
 
-            let users = await User.find().where('handle').in(addEditors);
-            await Promise.all(users.map(u => {
-                
-                if (u.editorChannelRequests.find(cid => channel._id.equals(cid))) {
-
-                    u.editorChannels.addToSet(channel._id);
-                    u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid));
-                    
-                    u.joinedChannels.addToSet(channel._id);
-                    u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid));
-
-                    return u.save();
-                }
-            }));
-        }
-
-        if (removeRequests?.length) {
-            let users = await User.find().where('handle').in(removeRequests);
+            let users = await User.find({
+                handle: { $in: members },
+                joinChannelRequests: channel._id,
+            });
 
             //logger.debug(addMembers)
 
-            await Promise.all(users.map(async u => {
-                if (u.editorChannelRequests.some(cid => channel._id.equals(cid))) {
-
-                    u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid))
-
-                    return u.save();
-                }
-            }));
-        }
-
-        if (removeEditors?.length) {
-
-            let users = await User.find().where('handle').in(removeEditors);
-            await Promise.all(users.map(async u => {
-
-                u.editorChannels = u.editorChannels.filter(cid => !channel._id.equals(cid));
+            await Promise.all(users.map(u => {
+                
+                u.joinedChannels.addToSet(channel._id);
+                u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
 
                 return u.save();
             }));
@@ -553,8 +444,260 @@ class ChannelServices{
         SquealSocket.channelChanged({
             populatedChannelObject: channel,
             ebody: {
-                members: channel_object.editors,
-                memberRequests: channel_object.editorRequests,
+                members: channel_object.members,
+            },
+            socket: socket
+        });
+
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
+    }
+
+    static async deleteChannelMembers({ name, members, socket }) {
+        let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
+
+        if (!channel) {
+            return Service.rejectResponse({
+                message: `No channel named: ${name}`
+            });
+        }
+
+        if (members?.length) {
+
+            let users = await User.find({
+                handle: { $in: members },
+                joinedChannels: channel._id,
+            });
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(u => {
+
+                u.joinedChannels = u.joinedChannels.filter(cid => !channel._id.equals(cid));
+                u.editorChannels = u.editorChannels.filter(cid => !channel._id.equals(cid));
+
+                return u.save();
+                
+            }));
+        }
+
+        let err = null;
+        try {
+            channel = await channel.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
+
+        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
+        let channel_object = ChannelServices.#makeChannelObject(channel);
+
+        SquealSocket.channelChanged({
+            populatedChannelObject: channel,
+            ebody: {
+                members: channel_object.members,
+            },
+            socket: socket
+        });
+
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
+    }
+
+    static async deleteChannelMemberRequests({ name, handles, socket }) {
+        let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
+
+        if (!channel) {
+            return Service.rejectResponse({
+                message: `No channel named: ${name}`
+            });
+        }
+
+        if (handles?.length) {
+
+            let users = await User.find({
+                handle: { $in: handles },
+                joinChannelRequests: channel._id,
+            });
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(u => {
+
+                u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid));
+
+                return u.save();
+
+            }));
+        }
+
+        let err = null;
+        try {
+            channel = await channel.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
+
+        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
+        let channel_object = ChannelServices.#makeChannelObject(channel);
+
+        SquealSocket.channelChanged({
+            populatedChannelObject: channel,
+            ebody: {
+                members: channel_object.members,
+            },
+            socket: socket
+        });
+
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
+    }
+
+    static async addChannelEditors({ name, editors, socket }) {
+        let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
+
+        if (!channel) {
+            return Service.rejectResponse({
+                message: `No channel named: ${name}`
+            });
+        }
+
+        if (editors?.length) {
+
+            let users = await User.find({
+                handle: { $in: editors },
+                editorChannelRequests: channel._id,
+            });
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(u => {
+
+                u.joinedChannels.addToSet(channel._id);
+                u.editorChannels.addToSet(channel._id);
+                u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
+                u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid))
+
+                return u.save();
+            }));
+        }
+
+        let err = null;
+        try {
+            channel = await channel.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
+
+        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
+        let channel_object = ChannelServices.#makeChannelObject(channel);
+
+        SquealSocket.channelChanged({
+            populatedChannelObject: channel,
+            ebody: {
+                members: channel_object.members,
+            },
+            socket: socket
+        });
+
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
+    }
+
+    static async deleteChannelEditors({ name, editors, socket }) {
+        let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
+
+        if (!channel) {
+            return Service.rejectResponse({
+                message: `No channel named: ${name}`
+            });
+        }
+
+        if (editors?.length) {
+
+            let users = await User.find({
+                handle: { $in: editors },
+                editorChannels: channel._id,
+            });
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(u => {
+
+                u.editorChannels = u.editorChannels.filter(cid => !channel._id.equals(cid));
+
+                return u.save();
+
+            }));
+        }
+
+        let err = null;
+        try {
+            channel = await channel.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
+
+        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
+        let channel_object = ChannelServices.#makeChannelObject(channel);
+
+        SquealSocket.channelChanged({
+            populatedChannelObject: channel,
+            ebody: {
+                members: channel_object.members,
+            },
+            socket: socket
+        });
+
+        return Service.successResponse(ChannelServices.#makeChannelObject(channel));
+    }
+
+    static async deleteChannelEditorRequests({ name, handles, socket }) {
+        let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
+
+        if (!channel) {
+            return Service.rejectResponse({
+                message: `No channel named: ${name}`
+            });
+        }
+
+        if (handles?.length) {
+
+            let users = await User.find({
+                handle: { $in: handles },
+                editorChannelRequests: channel._id,
+            });
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(u => {
+
+                u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid));
+
+                return u.save();
+
+            }));
+        }
+
+        let err = null;
+        try {
+            channel = await channel.save();
+        } catch (e) {
+            err = e;
+        }
+
+        if (err) return Service.rejectResponse(err.message ? { message: err.message } : err);
+
+        channel = await ChannelServices.getPopulatedChannelQuery({ name: name });
+        let channel_object = ChannelServices.#makeChannelObject(channel);
+
+        SquealSocket.channelChanged({
+            populatedChannelObject: channel,
+            ebody: {
+                members: channel_object.members,
             },
             socket: socket
         });
