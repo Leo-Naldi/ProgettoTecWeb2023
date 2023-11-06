@@ -23,6 +23,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from 'src/stores/auth';
 import { useUserStore } from 'src/stores/user';
+import { useChannelStore } from 'src/stores/channels';
 
 export default {
   // name: 'ComponentName',
@@ -34,11 +35,15 @@ export default {
       type: Number,
       default: -1
     },
+    channelName:{
+      type: String
+    }
   },
   data() {
     return {
       authStore: useAuthStore(),
-      userStore: useUserStore()
+      userStore: useUserStore(),
+      channelStore: useChannelStore()
     }
   },
   methods: {
@@ -46,12 +51,21 @@ export default {
       console.log("props data is:" , this.$props.confirmData)
       switch(this.$props.confirmData){
         case 1:
-          this.userStore.resetPassword()
+          const user_handle = this.userStore.getUserHandle();
+          this.userStore.resetPassword(user_handle, "111111")
           console.log("reset!")
           break;
         case 2:
           this.authStore.deleteAccount()
           console.log("delete!")
+          break;
+        case 3:
+          this.channelStore.deleteChannel(this.$props.channelName)
+          console.log("delete channel!")
+          break;
+        case 4:
+          const res = this.channelStore.deleteChannelMessages(this.$props.channelName)
+          console.log("delete channel messages returned with res: "+res)
           break;
         default:
           console.log("no submit")

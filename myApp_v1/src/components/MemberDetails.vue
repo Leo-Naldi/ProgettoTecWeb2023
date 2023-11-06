@@ -10,18 +10,18 @@
       <!-- <q-separator /> -->
 
       <q-tab-panels v-model="tab" animated>
-        <q-tab-panel name="members">
-          <UserEnum :users=users :for-channel="true" />
-          <UserEnum :users=users :for-channel="true" />
-          <UserEnum :users=users :for-channel="true" />
-          <UserEnum :users=users :for-channel="true" />
+        <q-tab-panel name="members" >
+          <UserEnum :users=members :channel_name=channel_name :forAdmin=forAdmin :admin_member="true" />
+          <!-- <UserEnum :users=users :forAdmin=forAdmin  />
+          <UserEnum :users=users :forAdmin=forAdmin  />
+          <UserEnum :users=users :forAdmin=forAdmin  /> -->
         </q-tab-panel>
 
         <q-tab-panel name="editors">
-          <UserEnum :users=users :for-channel="true" />
-          <UserEnum :users=users :for-channel="true" />
-          <UserEnum :users=users :for-channel="true" />
-          <UserEnum :users=users :for-channel="true" />
+          <UserEnum :users=editors :channel_name=channel_name :forAdmin=forAdmin :admin_editor="true"  />
+          <!-- <UserEnum :users=users :forAdmin=forAdmin  />
+          <UserEnum :users=users :forAdmin=forAdmin  />
+          <UserEnum :users=users :forAdmin=forAdmin  /> -->
         </q-tab-panel>
       </q-tab-panels>
     </div>
@@ -37,9 +37,21 @@ export default {
     UserEnum
   },
   props:{
-    users: {
+    members: {
       type: Array,
       required: true
+    },
+    editors:{
+      type: Array,
+      required: true
+    },
+    channel_name: {
+      type: String,
+      default: ""
+    },
+    forAdmin: {
+      type: Boolean,
+      default: false
     },
   },
   setup() {

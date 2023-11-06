@@ -1788,6 +1788,12 @@ paths:
                   items:
                     type: string 
                     example: handle1123
+                removeRequests:
+                  type: array
+                  description: Array of handles to remove from member requests.
+                  items:
+                    type: string 
+                    example: handle1123
       responses:
         '200': 
           description: Operation successful.
@@ -1833,6 +1839,12 @@ paths:
                 removeEditors:
                   type: array
                   description: Array of handles to remove from the editor list. 
+                  items:
+                    type: string 
+                    example: handle1123
+                removeRequests:
+                  type: array
+                  description: Array of handles to remove from editor requests.
                   items:
                     type: string 
                     example: handle1123
@@ -2189,6 +2201,8 @@ components:
           type: string
         gender:
           type: string
+        description:
+          type: string
         phone:
           type: string
         accountType:
@@ -2287,6 +2301,9 @@ components:
         phone: 
           type: string 
           description: The new phone number.
+        description:
+          type: string
+          description: The new user description.
         gender: 
           type: string 
           description: The new gender.

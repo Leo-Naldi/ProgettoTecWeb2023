@@ -11,23 +11,33 @@
       <q-btn flat icon="add" @click="gotoPage" />
     </div>
   </div> -->
+  <!-- <q-btn flat icon="add" @click="createChannel()" /> -->
+
   <div style="display: flex;
+  justify-content: right;
+  align-items: flex-end;">
+  <div style="align-self: right;">
+      <q-btn flat round size="md" icon="group_add" @click="createChannel()" />
+    </div>
+    </div>
+
+  <!-- <div style="display: flex;
   justify-content: space-between;
   align-items: flex-end;">
     <div style="order:1">
       <p class="q-mt-none text-weight-bold text-h6 q-pl-lg q-pt-lg"> see your channels! </p>
     </div>
-    <!-- <div style="align-self: center; order:2">
+    <div style="align-self: center; order:2">
       <p>Do you want to create one?</p>
-    </div> -->
+    </div>
     <div style="align-self: center; order:2">
       <q-btn flat icon="add" @click="createChannel()" />
 
     </div>
-  </div>
+  </div> -->
 
 
-  <q-separator color="grey-2" size="4px" />
+  <!-- <q-separator color="grey-2" size="4px" /> -->
 
   <p class="q-mt-none text-weight-bold text-h5 q-pl-lg q-pt-lg">
     Your Created Channels

@@ -1,8 +1,7 @@
 <template>
   <q-page padding>
     <!-- content -->
-    Home
-    <br>
+    <p>获取用户hanle 从 store 和 localStorage: {{testStoreUser  }}</p>
     <!-- {{ all_posts }} -->
     <!-- <p>all channel：{{ all_channels }}</p> -->
     <!-- <p>{{ value }}</p> -->
@@ -22,6 +21,14 @@
   </q-page>
 </template>
 
+
+<script setup>
+import { useUserStore } from 'src/stores/user';
+import { computed } from 'vue';
+
+const userStore = useUserStore()
+const testStoreUser =computed(()=>userStore.getUser)
+</script>
 
 
 <!-- <script setup>
@@ -62,36 +69,38 @@ onMounted(()=>{
 </script>
  -->
 
- <script>
-import {io} from "socket.io-client";
-import { useAuthStore } from "src/stores/auth";
-import {useSocketStore} from "src/stores/socket";
+<!-- // <script>
+// import {io} from "socket.io-client";
+// import { useAuthStore } from "src/stores/auth";
+// import { useUserStore } from "src/stores/user";
+// import {useSocketStore} from "src/stores/socket";
 
-export default {
-  name: 'HomePage',
-  data(){
-    return{
-      mysocket: null,
-      authStore: useAuthStore(),
-      socketStore: useSocketStore()
-    }
-  },
-  methods:{
-    setMySocket(){
-      this.mysocket=io("http://localhost:8000/user-io/fv", {
-                            extraHeaders: {
-                                Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJmdiIsImFjY291bnRUeXBlIjoidXNlciIsImFkbWluIjpmYWxzZSwiaWF0IjoxNjk4MzI3NDgzLCJleHAiOjE2OTg5MzIyODN9.Me-9vZxyu23RQzDTZht2hdGl4aCIWWu331vkWYjkwPw",
-                            }
-                            })
+// export default {
+//   name: 'HomePage',
+//   data(){
+//     return{
+//       mysocket: null,
+//       authStore: useAuthStore(),
+//       userStore: useUserStore(),
+//       socketStore: useSocketStore()
+//     }
+//   },
+  // methods:{
+    // setMySocket(){
+    //   this.mysocket=io("http://localhost:8000/user-io/fv", {
+    //                         extraHeaders: {
+    //                             Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJmdiIsImFjY291bnRUeXBlIjoidXNlciIsImFkbWluIjpmYWxzZSwiaWF0IjoxNjk4MzI3NDgzLCJleHAiOjE2OTg5MzIyODN9.Me-9vZxyu23RQzDTZht2hdGl4aCIWWu331vkWYjkwPw",
+    //                         }
+    //                         })
       // io("http://localhost:8000/user-io/fv")
-    }
-  },
-  mounted(){
+    // }
+  // },
+  // mounted(){
     // this.setMySocket()
     // console.log(this.mysocket)
-    this.socketStore.setSocket("fv", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJmdiIsImFjY291bnRUeXBlIjoidXNlciIsImFkbWluIjpmYWxzZSwiaWF0IjoxNjk4MzI3NDgzLCJleHAiOjE2OTg5MzIyODN9.Me-9vZxyu23RQzDTZht2hdGl4aCIWWu331vkWYjkwPw")
-    console.log(this.socketStore.getSocket)
-    this.authStore.login({"handle":"fv", "password":"12345678"})
-  }
-}
-</script>
+    // this.socketStore.setSocket("fv", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJmdiIsImFjY291bnRUeXBlIjoidXNlciIsImFkbWluIjpmYWxzZSwiaWF0IjoxNjk4MzI3NDgzLCJleHAiOjE2OTg5MzIyODN9.Me-9vZxyu23RQzDTZht2hdGl4aCIWWu331vkWYjkwPw")
+    // console.log(this.socketStore.getSocket)
+    // this.authStore.login({"handle":"fv", "password":"12345678"})
+  // }
+// }
+// </script> -->

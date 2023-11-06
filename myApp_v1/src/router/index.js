@@ -40,7 +40,7 @@ export default route(function (/* { store, ssrContext } */) {
     const hasLoggedin = localStorage.getItem("token")
     // console.log("has login: ", hasLoggedin);
     // console.log("path: ", to.path);
-    if(to.path === "/login" || to.name ==="Register" || to.name ==="ForgotPassword" || to.path==="/public" || to.path==="/test"){
+    if(to.path === "/login" || to.name ==="Register" || to.name ==="ForgotPassword" || to.name==="VerifyCode" || to.name==='ModifyPassword' || to.path==="/public" || to.path==="/test"){
       next()
     }
     else if (hasLoggedin==null && to.path==="/"){

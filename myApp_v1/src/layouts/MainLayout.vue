@@ -82,6 +82,7 @@ import EssentialLink from "components/EssentialLink.vue";
 import { useQuasar } from "quasar";
 import { LocalStorage } from "quasar";
 import { useAuthStore } from 'src/stores/auth.js';
+import { useUserStore } from "src/stores/user";
 import { usePostStore } from "src/stores/posts";
 import { useSocketStore } from "src/stores/socket";
 import { useNotificationsStore } from 'src/stores/notifications';
@@ -90,10 +91,44 @@ import NotifyType from "src/components/notify/NotifyType.vue";
 import { useGlobalStore } from "src/stores/global";
 
 const authStore = useAuthStore()
+const userStore = useUserStore()
 const globalStore = useGlobalStore()
 // const audio = ref();
+// const userHandle = userStore.getUser
 
-const linksList = [
+
+
+
+export default defineComponent({
+  name: "MainLayout",
+
+  components: {
+    EssentialLink,
+    // NotifyType
+},
+  data() {
+    return {
+      token: LocalStorage.getItem("token"),
+      user: LocalStorage.getItem("user"),
+      searchText: "",
+      router: useRouter(),
+      // userHandle: userStore.getUser
+    };
+  },
+  setup() {
+    const leftDrawerOpen = ref(false);
+    const rightDrawerOpen = ref(false);
+    const $q = useQuasar();
+
+    const userHandle2 = computed(()=>userStore.getUser).value
+
+    const miniState = ref(computed(() => {
+      return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
+    }));
+    const miniStateR = ref(computed(() => {
+      return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
+    }))
+    const linksList= [
   {
     title: "home",
     icon: "home",
@@ -122,47 +157,14 @@ const linksList = [
   {
     title: "User",
     icon: "person",
-    link: "/user/details/" + authStore.getUserHandle(),
+    link: "/user/details/" + userHandle2,
   },
-  /*   {
-      title: "Quasar",
-      caption: "Community Quasar projects",
-      icon: "favorite",
-      link: "https://awesome.quasar.dev",
-    }, */
+
   {
     title: "more",
     icon: "more_horiz",
   },
-];
-
-
-export default defineComponent({
-  name: "MainLayout",
-
-  components: {
-    EssentialLink,
-    // NotifyType
-},
-  data() {
-    return {
-      token: LocalStorage.getItem("token"),
-      user: LocalStorage.getItem("user"),
-      searchText: "",
-      router: useRouter(),
-    };
-  },
-  setup() {
-    const leftDrawerOpen = ref(false);
-    const rightDrawerOpen = ref(false);
-    const $q = useQuasar();
-
-    const miniState = ref(computed(() => {
-      return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
-    }));
-    const miniStateR = ref(computed(() => {
-      return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
-    }))
+]
 
     return {
       essentialLinks: linksList,

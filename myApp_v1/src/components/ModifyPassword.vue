@@ -1,7 +1,7 @@
 <template>
   <div class="demo form-bg">
     <q-card class="form-card" flat>
-      <q-card-section>
+      <q-card-section v-if="!isForget">
         <div class="text-h6" align="center">Change your password</div>
       </q-card-section>
 
@@ -69,6 +69,12 @@ import { api } from "boot/axios";
 import { Notify } from "quasar";
 
 export default {
+  props:{
+    isForget:{
+      type: Boolean,
+      default:false
+    }
+  },
   data() {
     return {
       store: useUserStore(),
@@ -110,7 +116,8 @@ export default {
     },
     changePassword() {
       this.submitForm.password=this.form.newPassword
-      this.store.resetPassword(this.submitForm)
+      const user_handle = this.store.getUserHandle();
+      this.store.resetPassword(user_handle, this.submitForm)
     },
     isValidPassword() {
       return new Promise((resolve, reject) => {

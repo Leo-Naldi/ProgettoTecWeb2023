@@ -132,8 +132,8 @@ const fetchSearchResults = async (searchText) => {
   searchResults.mentions = await postStore.searchMentions(searchText)
   searchResults.users = await userStore.searchUser(searchText)
   searchResults.channels = await channelStore.searchChannel(searchText)
-  console.log("在找：", searchText)
-  console.log("找到的频道是：", searchResults.channels)
+  // // console.log("searchPage,searching: ", searchText)
+  // console.log("searchPage, searchChannelRes: ", searchResults.channels)
 }
 
 const submit = (() => {

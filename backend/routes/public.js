@@ -32,5 +32,10 @@ PublicRouter.get('/registration', async (req, res) => {
     await Controller.handleRequest(req, res, UserService.checkAvailability);
 });
 
+PublicRouter.get('/forget-password', async (req, res) => {
+
+    await Controller.handleRequest(req, res, UserService.checkMailValidation);
+});
+
 
 module.exports = PublicRouter;

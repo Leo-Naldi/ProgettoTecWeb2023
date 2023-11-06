@@ -23,7 +23,7 @@ import ChannelButton from './ChannelButton.vue';
 import { useRouter } from 'vue-router';
 
 export default {
-  name: "UserEnum",
+  name: "ChannelEnum",
   components:{
     ChannelButton
   },

@@ -12,7 +12,7 @@
   <!-- <div> -->
   <!-- <div style="align-items:center;  "> -->
     <div style="align-items:center;  ">
-    <q-item v-for="user in users" :key="user.id" class="q-mb-sm" @click="gotoUserDetail(user.handle)" clickable v-ripple>
+    <q-item v-for="user in users" :key="user.id" style="disply:flex" class="q-mb-sm" @click="gotoUserDetail(user.handle)" clickable v-ripple>
       <q-item-section avatar>
         <q-avatar>
           <!-- <img :src="`https://cdn.quasar.dev/img/${contact.avatar}`"> -->
@@ -21,18 +21,31 @@
         </q-avatar>
       </q-item-section>
 
-      <q-item-section>
-        <q-item-label>{{ user.handle }} <div v-if="forChannel" class="q-ml-auto rounded-rectangle">
+      <q-item-section >
+        <q-item-label style="display:flex; align-items: center;">{{ user.handle }}
+          <div v-if="channel_name!=''" class="q-ml-sm rounded-rectangle" >
             <p style="display:inline">Admin</p>
-          </div></q-item-label>
+          </div>
+        </q-item-label>
         <q-item-label caption>{{ user.username }}</q-item-label>
       </q-item-section>
-      <q-item-section side >
-        <div>
-        <q-btn @click.stop  size="12px" flat dense round icon="house"  />
+      <!-- <q-item-section style="margin-left:auto"> -->
+        <!-- <div style="margin-left:auto">
+        <q-btn @click.stop  size="12px" flat dense round icon="close"  />
         <q-btn @click.stop  size="12px" flat dense round icon="done"  />
+      </div> -->
+      <div style="margin-left:auto" v-if="forRequests">
+        <q-btn @click.stop.prevent="refuseHandler(user.handle)"  size="12px" flat dense round icon="close"  />
+        <q-btn @click.stop.prevent="consentHandler(user.handle)"  size="12px" flat dense round icon="done"  />
       </div>
-      </q-item-section>
+      <div style="margin-left:auto" v-if="forAdmin">
+        <!--
+          // TODO: mute a user
+          <q-btn @click.stop  size="12px" flat dense round icon="person_off"  /> -->
+        <q-btn @click.stop.prevent="removeHandler(user.handle)"  size="12px" flat dense round icon="person_remove"  />
+      </div>
+
+      <!-- </q-item-section> -->
       <!-- <q-item-label>
               <p>{{ user.handle }}</p>
               <span><q-icon name="house"></q-icon></span>
@@ -49,9 +62,8 @@
   </q-dialog> -->
 </template>
 
-<script>
-import { Text } from 'vue';
-
+<!-- <script>
+import { useChannelStore } from 'src/stores/channels';
 
 export default {
   name: "UserEnum",
@@ -60,18 +72,26 @@ export default {
       type: Array,
       required: true
     },
-    forChannel: {
+    forRequests: {
       type: Boolean,
       default: false
-    }
-    // handle: {
-    //   type: String,
-    //   required: true,
-    // },
-    // username:{
-    //   type: String,
-    //   required:true
-    // }
+    },
+    request_member:{
+      type: Boolean,
+      default: false
+    },
+    request_editor:{
+      type: Boolean,
+      default: false
+    },
+    forChannel: {
+      type: Boolean,
+      default: true
+    },
+    forAdmin: {
+      type: Boolean,
+      default: false
+    },
   },
   data() {
     return {
@@ -86,47 +106,119 @@ export default {
           userId: userHandle
         }
       });
+    },
+    refuseHandler(){
+
+    },
+    consentHandler(){
+
     }
   },
   setup() {
-    return {};
+
+
+    return {
+      channelStore: useChannelStore()
+    };
   },
+  mounted(){
+    console.log("forChannel: " ,this.forChannel)
+  }
 };
+</script> -->
+
+
+<script setup>
+import { useChannelStore } from 'src/stores/channels';
+
+
+const channelStore= useChannelStore()
+
+const props = defineProps({
+    users: {
+      type: Array,
+      required: true
+    },
+    forRequests: {
+      type: Boolean,
+      default: false
+    },
+    request_member:{
+      type: Boolean,
+      default: false
+    },
+    request_editor:{
+      type: Boolean,
+      default: false
+    },
+    channel_name: {
+      type: String,
+      default: ""
+    },
+    forAdmin: {
+      type: Boolean,
+      default: false
+    },
+    admin_member:{
+      type: Boolean,
+      default: false
+    },
+    admin_editor:{
+      type: Boolean,
+      default: false
+    }
+})
+
+
+const gotoUserDetail = ((userHandle)=> {
+      this.$router.push({
+        name: "userDetail",
+        params: {
+          userId: userHandle
+        }
+      });
+    })
+
+const refuseHandler=(async (user_handle)=>{
+  if (props.request_member){
+    const res = await channelStore.refuseChannelMember(props.channel_name, user_handle)
+    console.log("userEnum refuse member res: ", res)
+  }
+  else if (props.request_editor){
+    const res = await channelStore.refuseChannelEditor(props.channel_name, user_handle)
+    console.log("userEnum refuse editor res: ", res)
+  }
+})
+
+const consentHandler=(async (user_handle)=>{
+  if (props.request_member){
+    const res= await channelStore.addChannelMember(props.channel_name,user_handle)
+    console.log("userEnum consent member res: ", res)
+  }
+  else if (props.request_editor){
+    const res= await channelStore.addChannelEditor(props.channel_name,user_handle)
+    console.log("userEnum consent editor res: ", res)
+  }
+})
+
+const removeHandler=(async (user_handle)=>{
+  if(props.admin_member){
+    const res = await channelStore.removeChannelMember(props.channel_name, user_handle)
+    console.log("userEnum remove member res: ", res)
+  }
+  else if(props.admin_editor){
+    const res = await channelStore.removeChannelEditor(props.channel_name, user_handle)
+    console.log("userEnum remove editor res: ", res)
+  }
+})
+
 </script>
 
-<!-- <style lang="sass" scoped>
-.follow-button
-  color: #1da1f2
-  background-color: inherit
-  // line-height: 18px
-  font-size: 15px
-  font-weight: 700
-  border: 1px solid #1da1f2
-  box-sizing: border-box
-  border-radius: 59px
-  width: 77px
-  height: 30px
-  margin-right: 1rem
-.follow-button:hover
-  border: 1px solid #fff
-  background-color: #1da1f2
-  color: #fff
-  border: 1px solid #fff
-  transition: 1s color, 1s background-color, 1s border
-.follow-button:active
-  outline: none
-  border: none
-.follow-button:focus
-  outline: 0
-</style> -->
-
 <style scoped lang="sass">
-
 .rounded-rectangle
   border-radius: 10px
   display: inline-block
   background-color: #1da1f2
   color: white
   padding: 0.3rem
-
 </style>

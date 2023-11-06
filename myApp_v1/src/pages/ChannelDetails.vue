@@ -20,7 +20,8 @@
     <div class="center-container">
       <channel-button :channel_name=$route.params.channelName style="box-sizing: content-box; font-size:15px" />
     </div>
-    <p>editors: {{ channelDetails.editors }}</p>
+    <p>member_requests: {{ channelDetails.member_requests }}</p>
+    <p>editors_requests: {{ channelDetails.editor_requests }}</p>
 
     <div clickable class="cursor-pointer" style="display:flex; align-items:center; justify-content:space-between; ">
       <div class="q-pa-md q-gutter-sm" style="height: 80px">
@@ -38,7 +39,7 @@
             <!-- <div class="flex flex-center" style="width: 400px;position:absolute;"> -->
             <!-- <ShowDialog><UserEnum :users="channelDetails.members"/></ShowDialog> -->
             <!-- </div> -->
-              <MemberDetails :users="channelDetails.members"/>
+              <MemberDetails :members="channelDetails.members" :editors="channelDetails.editors"/>
           </ShowDialog>
         </q-popup-proxy>
 
@@ -49,7 +50,7 @@
           <q-popup-proxy>
           <ShowDialog>
               <!-- <MemberDetails :users="channelDetails.members"/> -->
-              <ChannelSettings :channel-name="channelDetails.name" :users="channelDetails.members"  :member_requests="channelDetails.member_requests"></ChannelSettings>
+              <ChannelSettings :channel-name="channelDetails.name" :is-public-channel="channelDetails.isPublic" :members="channelDetails.members" :editors="channelDetails.editors" :member_requests="channelDetails.member_requests_json" :editor_requests="channelDetails.editor_requests_json"></ChannelSettings>
           </ShowDialog>
         </q-popup-proxy>
 
@@ -87,7 +88,7 @@ import ChannelButton from 'src/components/ChannelButton.vue';
 import { useChannelStore } from 'src/stores/channels.js';
 import { useAuthStore } from 'src/stores/auth';
 import { useUserStore } from 'src/stores/user';
-import UserEnum from 'src/components/UserEnum.vue';
+// import UserEnum from 'src/components/UserEnum.vue';
 import { usePostStore } from 'src/stores/posts';
 import { ref, onMounted, reactive } from "vue";
 import ShowPost from "src/components/posts/ShowPost.vue";
@@ -118,9 +119,13 @@ const channelDetails = reactive({
   editors: [],
   member_requests: [],
   editor_requests: [],
+  member_requests_json: [],
+  editor_requests_json: [],
   messages: [],
   isEditor: false,
-  isMember: false //Error from backend: "message": "Not a member of §daily_news"
+  isCreator: false,
+  isMember: false,
+  isPublic: false
 })
 
 const myhandle=authStore.getUser().handle
@@ -129,30 +134,37 @@ const myhandle=authStore.getUser().handle
 const fetchChannelData = async (channelId) => {
   channelDetails.name=channelId
   const data = await channelStore.searchChannel(channelId)
-  console.log("data:", data)
+  console.log("fetchChannelData res: ",data[0])
   if (data.length > 0) {
     channelDetails.description = data[0].description
     channelDetails.creator = data[0].creator
     channelDetails.members_name = data[0].members
 
-    channelDetails.editors = data[0].editors
     channelDetails.isEditor = data[0].editors.includes(myhandle)
+    channelDetails.isCreator = (data[0].creator === myhandle)
     // console.log("isEditor: ", channelDetails.isEditor)
-    // channelDetails.member_requests = data[0].memberRequests
+    channelDetails.member_requests = data[0].memberRequests
     channelDetails.editor_requests = data[0].editorRequests
+    channelDetails.isPublic=data[0].publicChannel
     // const data2= await fetchMembers(data[0].members)
     const data2 = await userStore.getUserArr(data[0].members)
+    const editor_json = await userStore.getUserArr(data[0].editors)
     const member_request_json = await userStore.getUserArr(data[0].memberRequests)
+    const editor_requests_json = await userStore.getUserArr(data[0].editorRequests)
 
 
     channelDetails.members = data2
-    channelDetails.member_requests = member_request_json
-    console.log("member requests: ", data[0])
-    console.log("member requests: ", channelDetails.member_requests)
+    channelDetails.editors = editor_json
+    console.log("members: ", JSON.parse(JSON.stringify(channelDetails.members)))
+    channelDetails.member_requests_json = member_request_json
+    channelDetails.editor_requests_json = editor_requests_json
+    console.log("member requests: ", JSON.parse(JSON.stringify(channelDetails.member_requests_json)))
+    console.log("editor requests: ", JSON.parse(JSON.stringify(channelDetails.editor_requests_json)))
     channelDetails.isMember = data[0].members.includes(myhandle)
     if(channelDetails.isMember){
-      const data = await postStore.fetchChannelPost(channelId)
-  channelDetails.messages = data
+      const channel_post = await postStore.fetchChannelPost(channelId)
+      console.log("get channel post: ",channel_post)
+      channelDetails.messages = channel_post
     }
 
   }

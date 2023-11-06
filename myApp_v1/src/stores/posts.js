@@ -53,6 +53,7 @@ export const usePostStore = defineStore("post", {
       return converted_html;
     },
     messageHandler(data) {
+      if (data.length>0){
       return data.map((obj) => {
         const post_text = obj["content"].text;
         obj["liked"] = false;
@@ -66,6 +67,8 @@ export const usePostStore = defineStore("post", {
           );
         return obj;
       });
+      }
+      return data
     },
     async sendPost(handle, post) {
       try {
@@ -97,7 +100,7 @@ export const usePostStore = defineStore("post", {
                 );
               return obj;
             }); */
-            myTweets_list = this.messageHandler(response.data);
+            myTweets_list = this.messageHandler(response.data.results);
 
             this.allPosts = myTweets_list;
             // this.findUserMessages()
@@ -111,7 +114,8 @@ export const usePostStore = defineStore("post", {
         .then((response) => {
           var myTweets_list = [];
           if (response.status === 200) {
-            myTweets_list = this.messageHandler(response.data);
+            console.log("fetch official res: ", response.data)
+            myTweets_list = this.messageHandler(response.data.results);
 
             this.allOfficialPosts = myTweets_list;
             // this.findUserMessages()
@@ -135,7 +139,8 @@ export const usePostStore = defineStore("post", {
     async fetchChannelPost(channel_name) {
       try {
         const response = await API.channel_messages(channel_name);
-        return this.messageHandler(response.data);
+        // console.log("fetchChannelPost: ", response)
+        return this.messageHandler(response.data.results);
       } catch (error) {
         console.log("fetch channel post error!!!", error);
         throw error;
@@ -145,7 +150,7 @@ export const usePostStore = defineStore("post", {
     async fetchReplis(id) {
       try {
         const response = await API.replies(id);
-        return this.messageHandler(response.data);
+        return this.messageHandler(response.data.results);
       } catch (error) {
         console.log("fetch post replies error!!!", error);
         throw error;
@@ -155,9 +160,10 @@ export const usePostStore = defineStore("post", {
     async searchPosts(text) {
       try {
         const response = await API.search_messages(text);
-        return this.messageHandler(response.data);
+        console.log("searchPost error!", response.data.results)
+        return this.messageHandler(response.data.results);
       } catch (error) {
-        console.log("fetch post con 'text' error!!!", error);
+        console.log(`fetch post con '${text} error!!!`, error);
         throw error;
       }
     },
@@ -172,7 +178,8 @@ export const usePostStore = defineStore("post", {
 
       try {
         const response = await API.search_keywords(text);
-        return this.messageHandler(response.data);
+        console.log("searchHashTag res: ",response.data.results)
+        return this.messageHandler(response.data.results);
       } catch (error) {
         console.log("fetch post con 'text' error!!!", error);
         throw error;
@@ -184,7 +191,8 @@ export const usePostStore = defineStore("post", {
 
       try {
         const response = await API.search_mentions(text);
-        return this.messageHandler(response.data);
+        console.log("search mention res: ", response.data.results)
+        return this.messageHandler(response.data.results);
       } catch (error) {
         console.log("fetch post con 'text' error!!!", error);
         throw error;
@@ -206,7 +214,7 @@ export const usePostStore = defineStore("post", {
       if (userHandle) {
         try {
           const response = await API.user_messages(userHandle);
-          const res = this.messageHandler(response.data);
+          const res = this.messageHandler(response.data.results);
           this.setUserPost(res)
           // this.userPosts = res;
           // console.log("fetchUserPost res: ", this.getUserPosts);

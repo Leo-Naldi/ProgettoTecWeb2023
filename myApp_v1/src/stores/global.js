@@ -7,6 +7,8 @@ export const useGlobalStore = defineStore('global', {
     clickShowMore: false,
     hasClickedShowMore:false,
     timerId: null, // notification
+    verify_emai: "",
+    verify_handle:""
   }),
 
   getters: {
@@ -14,10 +16,18 @@ export const useGlobalStore = defineStore('global', {
     getUnreadCnt: (state)=>state.unreadCnt,
     getClickedUnread: (state)=>state.clickShowMore,
     getHasClickedShowMore: (state)=>state.hasClickedShowMore,
-    getTimerId: (state)=>state.timerId
+    getTimerId: (state)=>state.timerId,
+    getVerifyEmail: (state)=>state.verify_emai,
+    getVerifyHandle: (state)=>state.verify_handle
   },
 
   actions: {
+    setVerifyEmail(email){
+      this.verify_emai=email
+    },
+    setVerifyHandle(handle){
+      this.verify_handle=handle;
+    },
     incrementUnread() {
       this.unreadCnt++;
     },

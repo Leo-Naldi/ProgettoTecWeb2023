@@ -4,6 +4,10 @@ export default {
   userDetails: (user_id)=> "#/user/details/"+user_id,
   channelDetails: (channel_id) =>"#/channel/details/"+channel_id,
   hashtagPath: (hashtag) => "#/search/"+hashtag,
+  checkMail: (email)=> api.get("public/forget-password",{params:email}),
+  checkAvailability:(data)=>api.get("public/registration", {params: data}),
+  forgetPassword:(email)=>api.post("mail/verfication-code", email),
+  verifyCode:(code)=>api.post("mail/verifycode",code),
 
   login: (credentials) => api.post("auth/login", credentials),
   register: (handle,data) => api.put('/users/'+handle, data),
@@ -46,13 +50,14 @@ export default {
   user_messages: (user_handle) => api.get("users/" + user_handle + "/messages"),  // get user messages by handle
   write_user: (handle, data) =>api.post("users/"+handle, data),
 
-
+  modify_channel: (channel_name, data) => api.put("channels/"+channel_name, data),
+  delete_channel: (channel_name) => api.delete("channels/"+channel_name),
   channel_messages: (channel_name) => api.get("messages/channel/"+channel_name),
   get_created_channels : (handle) => api.get("channels/"+handle+"/created"),
   get_joined_channels: (handle) => api.get("users/"+handle+"/joined"),
-  modify_channel_member:(name)=>api.post("channels/"+name+"/members"),
-  modify_channel_editor:(name)=>api.post("channels/"+name+"/editors"),
-  delete_channel_message:(msg_id)=>api.delete("messages/channel/"+msg_id),
+  modify_channel_member:(name,data)=>api.post("channels/"+name+"/members",data),
+  modify_channel_editor:(name,data)=>api.post("channels/"+name+"/editors", data),
+  delete_channel_messages:(channel_name)=>api.delete("messages/channel/"+channel_name),
 
   like_messages: (msg_id) => api.post("messages/up/"+msg_id),
   dislike_messages: (msg_id) => api.post("messages/down/"+msg_id),

@@ -402,7 +402,7 @@ class ChannelServices{
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
-    static async writeMembers({ name, addMembers, removeMembers, socket }) {
+    static async writeMembers({ name, addMembers, removeRequests, removeMembers, socket }) {
         
         let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
         
@@ -419,10 +419,24 @@ class ChannelServices{
             //logger.debug(addMembers)
 
             await Promise.all(users.map(async u => {
-                logger.debug(u.joinChannelRequests)
                 if (u.joinChannelRequests.some(cid => channel._id.equals(cid))) {
 
                     u.joinedChannels.addToSet(channel._id);
+                    u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
+
+                    return u.save();
+                }
+            }));
+        }
+
+        if (removeRequests?.length) {
+            let users = await User.find().where('handle').in(removeRequests);
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(async u => {
+                if (u.joinChannelRequests.some(cid => channel._id.equals(cid))) {
+
                     u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid))
 
                     return u.save();
@@ -466,7 +480,7 @@ class ChannelServices{
         return Service.successResponse(ChannelServices.#makeChannelObject(channel));
     }
 
-    static async writeEditors({ name, channel = null, addEditors, removeEditors, socket }) {
+    static async writeEditors({ name, channel = null, addEditors, removeRequests, removeEditors, socket }) {
         if (channel === null) {
             channel = await Channel.findOne({ name: name })
                 .populate('creator', 'handle _id')
@@ -492,6 +506,21 @@ class ChannelServices{
                     
                     u.joinedChannels.addToSet(channel._id);
                     u.joinChannelRequests = u.joinChannelRequests.filter(cid => !channel._id.equals(cid));
+
+                    return u.save();
+                }
+            }));
+        }
+
+        if (removeRequests?.length) {
+            let users = await User.find().where('handle').in(removeRequests);
+
+            //logger.debug(addMembers)
+
+            await Promise.all(users.map(async u => {
+                if (u.editorChannelRequests.some(cid => channel._id.equals(cid))) {
+
+                    u.editorChannelRequests = u.editorChannelRequests.filter(cid => !channel._id.equals(cid))
 
                     return u.save();
                 }

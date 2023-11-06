@@ -143,7 +143,7 @@ class UserService {
         return Service.successResponse(UserService.makeUserObject(user));        
     }
 
-    static async createUser({ handle, email, password,
+    static async createUser({ handle, email, description, password,
             username, name, lastName, phone, gender, urlAvatar,
             blocked=false, accountType='user',
             meta }) {
@@ -153,7 +153,7 @@ class UserService {
         // Filter out undefined params that don't have a default
         // not sure if needed but oh well
         let extra = Object.entries({
-            username, name, lastName, phone, gender, urlAvatar, meta,
+            username, name, lastName, phone, description, gender, urlAvatar, meta,
         }).reduce((a, [k, v]) => {
             if (v !== undefined) {
                 a[k] = v;
@@ -220,14 +220,14 @@ class UserService {
 
     static async writeUser({ handle, username,
         email, password, name, lastName, 
-        phone, gender, blocked, charLeft, addMemberRequest, 
+        phone, gender, description,  blocked, charLeft, addMemberRequest, 
         addEditorRequest, removeMember, removeEditor, admin, socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
 
         const newVals = {
-            email, password, name, lastName, 
+            email, password, name, lastName,  description,
             phone, gender, username,
         }
         let user = await User.findOne({ handle: handle }).populate('smm', 'handle _id');
@@ -339,7 +339,9 @@ class UserService {
 
         await user.save();
 
-        user = await UserService.getSecureUserRecord({ handle: handle });
+        //user = await UserService.getSecureUserRecord({ handle: handle });
+
+        let managed = await User.find({ smm: user._id });
 
         await User.updateMany({ smm: user._id }, { smm: null });
 
@@ -347,7 +349,16 @@ class UserService {
             populatedUser: user,
             ebody: UserService.makeUserObject(user),
             socket: socket,
-            old_smm_handle: smm?.handle,
+            old_smm_handle: smm,
+        });
+
+        managed.map(u => {
+            u.smm = null;
+            SquealSocket.userChanged({
+                populatedUser: u,
+                ebody: { smm: null },
+                socket: socket,
+            })
         })
 
         return Service.successResponse(UserService.makeUserObject(user));
@@ -361,6 +372,7 @@ class UserService {
             message: "User with given handle not found",
         });
 
+        let old_type = user.accountType;
         let smm = user.smm?.handle;
         user.smm = user.smm?._id;
 
@@ -399,72 +411,31 @@ class UserService {
 
         user = await UserService.getSecureUserRecord({ handle: handle });
         
-        if (user.accountType === 'user') {
+        if ((user.accountType === 'user') && (old_type === 'pro')) {
             await User.updateMany({ smm: user._id }, { smm: null });
+            
+            User.find({ smm: user._id }).exec().then(function(users) {
+                users.map(u => {
+                    u.smm = null;
+
+                    SquealSocket.userChanged({
+                        populatedUser: u,
+                        ebody: { smm: null },
+                        socket: socket,
+                    });
+                })
+            })
         }
 
         SquealSocket.userChanged({
             populatedUser: user,
             ebody: UserService.makeUserObject(user),
             socket: socket,
-            old_smm_handle: smm?.handle,
+            old_smm_handle: smm,
         })
 
         return Service.successResponse(UserService.makeUserObject(user));
 
-    }
-
-    static async grantAdmin({ handle, socket }) {
-        
-        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
-
-        let user = await User.findOne({ handle: handle });
-
-        if (user) {
-            
-            // If this throws it should be caught by the controller since 
-            // is a 5xx error
-            user.admin = true;
-            await user.save();
-
-            SquealSocket.userChanged({
-                populatedUser: user,
-                ebody: { admin: true },
-                socket: socket,
-            });
-
-            return Service.successResponse()
-
-        } else {
-            Service.rejectResponse({ message: "User not found" });
-        }
-
-    }
-
-    static async revokeAdmin({ handle, socket }) {
-
-        if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
-
-        let user = await User.findOne({ handle: handle });
-
-        if (user) {
-
-            // If this throws it should be caught by the controller since 
-            // is a 5xx error
-            user.admin = false;
-            await user.save();
-
-            SquealSocket.userChanged({
-                populatedUser: user,
-                ebody: { admin: false },
-                socket: socket,
-            });
-
-            return Service.successResponse();
-
-        } else {
-            Service.rejectResponse({ message: "User not found" });
-        }
     }
 
     static async checkAvailability({ handle=null, email=null }) {
@@ -481,6 +452,22 @@ class UserService {
         if (handle) {
             checkHandle = await User.findOne({ handle: handle });
             results.handle = checkHandle ? false : true;
+        }
+        
+        return Service.successResponse(results);
+    }
+    
+    static async checkMailValidation({ email=null }) {
+        
+        if (!email) return Service.rejectResponse({ message: "Must provide email" })
+
+        let checkEmail;
+        let results = new Object();
+
+        if (email) {
+            checkEmail = await User.findOne({ email: email });
+            results.email = checkEmail ? true: false;
+            results.user=checkEmail
         }
         
         return Service.successResponse(results);

@@ -9,6 +9,9 @@ const routes = [
       { path: '', name: 'Login', component: () => import('pages/public/LoginPage.vue') },
       { path: 'register', name: 'Register', component: () => import('pages/public/RegisterPage.vue') },
       { path: 'forgot-password', name: 'ForgotPassword', component: () => import('pages/public/ForgotPasswordPage.vue') },
+      { path: 'verify-code', name: 'VerifyCode', component: () => import('pages/public/VerificationCode.vue') },
+      { path: 'modify-password', name: 'ModifyPassword', component: () => import('pages/public/ModifyPasswordPage.vue') },
+
     ],
   },
   {
@@ -45,7 +48,8 @@ const routes = [
       { path: "/notifications", name: "notificationPage", component: () => import("pages/MyNotification.vue") },
       { path: "/channel/user", name: "myChannelPage", component: () => import("pages/MyChannel.vue") },
       { path: "/user/settings", name: "settingsPage", component: () => import("pages/SettingsPage.vue") },
-      { path: "/members", name: "membersPage", component: () => import("pages/MemberDetails.vue") }
+      { path: "/members", name: "membersPage", component: () => import("pages/MemberDetails.vue") },
+      { path: '/test2', name: 'test2', component: () => import('pages/HomePage.vue') },
 
 
       // {path: '/all', name: 'All',component: () => import('pages/AllPosts.vue')},
