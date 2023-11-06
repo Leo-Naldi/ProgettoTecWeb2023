@@ -59,7 +59,7 @@ class DataTable {
 
         thead.append(headers_row);
 
-        data.map(d => {
+        data.results.map(d => {
             let row = $('<tr>', {
                 id: d.id,
             });
@@ -88,25 +88,13 @@ class DataTable {
         
         div.append(table);
 
-        let pagination = $(`
-            <nav aria-label="User Pagination" class="d-flex justify-content-center">
-                <ul class="pagination">
-                    <li class="page-item">
-                        <a class="page-link" href="#" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    <li class="page-item"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="#" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        `)
+        let pagination = $('<div>', { id: 'user-pagination' });
+        pagination.bootpang({
+            total: data.pages,
+            maxVisible: 4,
+        }).on('page', function(event, num) {
+            // TODO fetch new page
+        })
 
         div.append(pagination);
 

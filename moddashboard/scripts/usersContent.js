@@ -234,7 +234,7 @@ class UserContent{
 
         modal.on('show.bs.modal', event => {
             
-            let user = this.data_table.selected_user
+            let user = this.data_table.selected_user;
             $('.modal-title').text(`Edit @${user?.handle}`);
             $('#daily-characters').attr('value', user?.charLeft.day);
             $('#weekly-characters').attr('value', user?.charLeft.week);
