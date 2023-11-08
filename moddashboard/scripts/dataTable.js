@@ -1,6 +1,6 @@
 class DataTable {
     
-    constructor(container, headers, endpoint, after_row_select, data_transform=null) {
+    constructor(container, headers, endpoint, after_row_select, data_transform = null, results_per_page = 25) {
         this.headers = headers;
         this.table = null;
         this.spinner = null;
@@ -10,10 +10,14 @@ class DataTable {
         this.selected_row = null;
         this.selected_user = null;
         this.after_row_select = after_row_select;
+        this.results_per_page = results_per_page;
+
+        this.page = 1;
+        this.pages = null;
     }
 
 
-    mount(query) {
+    mount(query={}) {
         this.selected_row = null;
         this.selected_user = null;
         this.mountSpinner();
@@ -21,13 +25,22 @@ class DataTable {
         authorizedRequest({
             endpoint: this.endpoint,
             method: 'get',
-            query: query,
+            query: {  
+                results_per_page: this.results_per_page,
+                page: this.page,
+                ...query,
+            },
             token: DataTable.#getToken(),
         }).then(data => data.json())
         .then(data => {
             this.table = this.#makeTable(data);
             this.spinner?.remove();
             this.container.append(this.table);
+            
+            this.pages = data.pages;
+            this.page = query?.page || 1;
+
+            this.container.append(this.#makePagination);
         })
     }
 
@@ -89,16 +102,35 @@ class DataTable {
         div.append(table);
 
         let pagination = $('<div>', { id: 'user-pagination' });
-        pagination.bootpang({
-            total: data.pages,
-            maxVisible: 4,
-        }).on('page', function(event, num) {
-            // TODO fetch new page
-        })
 
         div.append(pagination);
 
         return div;
+    }
+
+    #makePagination() {
+        let res = $(`
+            <nav aria-label="Table Pagination">
+                <ul class="pagination justify-content-center">
+                </ul>
+            </nav>
+        `);
+
+        let first = $('<li class="page-item"><a class="page-link"><<</a></li>');
+
+        let dt = this;
+
+        if (this.page === 1) first.addClass('diasabled');
+
+        first.find('a').click(function(event){
+            event.preventDefault();
+            dt.page = 1;
+            dt.mount();
+        });
+
+        res.find('ul').append(first);
+
+        return res;
     }
 
     #selectRow(row, user) {
