@@ -17,9 +17,10 @@ const SocketServer = require('./socket/SocketServer');
 const PlansRouter = require('./routes/plans');
 const PublicRouter = require('./routes/public');
 const DebugRouter = require('./routes/debug');
+const SquealCrons = require('./config/crons');
 
 class ExpressServer {
-    constructor(crons=[]) {
+    constructor() {
 
         const app = express()
 
@@ -54,14 +55,16 @@ class ExpressServer {
 
         this.server = null;
         this.io = null;
-        this.crons = crons;
+        this.crons = null;
+        this.socketServer = null;
     }
 
     launchServer(port=config.port) {
         this.server = this.app.listen(port, () =>
             logger.info(`Listening on port ${port}`));
 
-        this.socketServer = new SocketServer(this.server)
+        this.socketServer = new SocketServer(this.server);
+        this.crons = new SquealCrons(this.socketServer.io);
         
         this.app.set('socketio', this.socketServer.io);  
 
@@ -70,7 +73,7 @@ class ExpressServer {
         this.app.set('adminNms', this.socketServer.adminNms);
         this.app.set('channelNms', this.socketServer.channelNms);
 
-        this.crons.map(cron_job => cron_job.start());
+        this.crons.startAll();
 
         logger.info('Crons Started');
         logger.info(`Server Secret is: ${config.secrect}`)

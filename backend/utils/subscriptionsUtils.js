@@ -1,6 +1,8 @@
 const dayjs = require('dayjs');
 const User = require('../models/User');
 
+// TODO add sockets
+
 /**
  * Renews expired subscriptions if autoRenew is true, 
  * cancels them where autoRenew is false.

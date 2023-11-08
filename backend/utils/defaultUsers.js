@@ -892,10 +892,6 @@ async function makeDefaultUsers() {
     await catFacts.save()
     await dogPics.save()
     await cronUser.save()
-
-
-    let answer = await Message.findOne({ answering: { $ne: null }, publicMessage: true });
-    logger.info(`Message with answers: ${answer.answering}`);
 }
 
 
