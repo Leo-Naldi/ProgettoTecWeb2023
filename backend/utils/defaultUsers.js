@@ -83,6 +83,18 @@ function makeMessagesWithImages() {
     })
 }
 
+
+function makeLocalTestData() {
+    
+    const num = 10;
+
+    _.range(num).map(i =>
+        test_env.addTestUser({ handle: `lt_pro_user${i}`, pro: true, autoRenew: false }));
+    
+    _.range(num).map(i =>
+        test_env.addTestUser({ handle: `lt_pro_user${i+num}`, pro: true, autoRenew: true }));
+}
+
 /**
  * Data used in postman tests at 
  */
@@ -851,6 +863,7 @@ async function makeDefaultUsers() {
 
     makeTestData();
     makeMessagesWithImages();
+    makeLocalTestData();
 
     await test_env.saveAll();
 
