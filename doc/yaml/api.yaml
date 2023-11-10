@@ -16,7 +16,7 @@ tags:
 
 paths:
 
-  /users:
+  /users/:
     get:
       tags:
         - User
@@ -273,7 +273,7 @@ paths:
         500: 
           description: Internal server error
 
-  /users/{handle}/managed:
+  /users/{handle}/managed/:
     post: 
       tags:
         - "User"
@@ -938,7 +938,7 @@ paths:
         '409':
           description: Invalid handle
 
-  /users/{handle}/joined:
+  /users/{handle}/joined/:
     get:
       tags:
         - User
@@ -969,7 +969,7 @@ paths:
         '409':
           description: Invalid handle
 
-  /users/{handle}/editor:
+  /users/{handle}/editor/:
     get:
       tags:
         - User
@@ -1139,7 +1139,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Message'
 
-  /messages/user/{handle}: 
+  /messages/user/{handle}/: 
     get:
       tags:
         - Message
@@ -1748,13 +1748,13 @@ paths:
         '500':
           description: Internal server error.
 
-  /channel/{name}/members: 
+  /channel/{name}/members/: 
     post: 
       tags:
         - Channel
         - User
-      description: Add and remove members.
-      operationId: writeChannelMembers
+      description: Add members.
+      operationId: addChannelMembers
       security:
         - adminAuth: []
         - userAuth: []
@@ -1769,46 +1769,82 @@ paths:
             minLength: 6
       requestBody:
         required: True
-        description: The data to be changed.
+        description: Users to be added.
         content:
           application/json: 
             schema:
               type: object
               properties:
-                addMembers:
+                members:
                   type: array
-                  description: Array of users's handles to be added as members.
-                  items:
-                    type: string 
-                    example: handle1123
-                removeMembers:
-                  type: array
-                  description: Array of handles to remove from members. 
-                    Users who are also editors will be removed from the editors as well.
-                  items:
-                    type: string 
-                    example: handle1123
-                removeRequests:
-                  type: array
-                  description: Array of handles to remove from member requests.
+                  description: Array of users's handles to be added as members. Useres that did not 
+                    request membership will not be added.
                   items:
                     type: string 
                     example: handle1123
       responses:
         '200': 
           description: Operation successful.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Channel'
         '401':
           description: Unauthorized operation.
         '409':
           description: No channel with the given name.
+    delete:
+      tags:
+        - Channel
+        - User
+      description: Remove members. 
+      operationId: deleteChannelMembers
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: Users to be removed. Users who are also editors will be removed from the 
+          editors field as well.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                members:
+                  type: array
+                  description: Array of users's handles to be removed from the channel's members.
+                  items:
+                    type: string 
+                    example: handle1123
+      responses:
+        '200': 
+          description: Operation successful.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.    
 
-  /channel/{name}/editors: 
-    post: 
+  /channel/{name}/members/requests/: 
+    delete:
       tags:
         - Channel
         - User
-      description: Add and remove editors.
-      operationId: writeChannelEditors
+      description: Remove member requests. 
+      operationId: deleteChannelMemberRequests
       security:
         - adminAuth: []
         - userAuth: []
@@ -1823,38 +1859,164 @@ paths:
             minLength: 6
       requestBody:
         required: True
-        description: The data to be changed.
+        description: Contains the user handles whose join request is to be refused/
         content:
           application/json: 
             schema:
               type: object
               properties:
-                addEditors:
+                handles:
                   type: array
-                  description: Array of users's handles to be added as editors. Users who are 
-                    not members will also be added to the members list.
-                  items:
-                    type: string 
-                    example: handle1123
-                removeEditors:
-                  type: array
-                  description: Array of handles to remove from the editor list. 
-                  items:
-                    type: string 
-                    example: handle1123
-                removeRequests:
-                  type: array
-                  description: Array of handles to remove from editor requests.
+                  description: Array of users's handles whose join request is to be refused.
                   items:
                     type: string 
                     example: handle1123
       responses:
         '200': 
           description: Operation successful.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.    
+
+  /channel/{name}/editors/: 
+    post: 
+      tags:
+        - Channel
+        - User
+      description: Add editors.
+      operationId: addChannelEditors
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: Users to be added.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                members:
+                  type: array
+                  description: Array of users's handles to be added as editors. Useres that did not 
+                    request membership will not be added. Users who were not members will also be 
+                    made members.
+                  items:
+                    type: string 
+                    example: handle1123
+      responses:
+        '200': 
+          description: Operation successful.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Channel'
         '401':
           description: Unauthorized operation.
         '409':
           description: No channel with the given name.
+    delete:
+      tags:
+        - Channel
+        - User
+      description: Remove editors. 
+      operationId: deleteChannelEditors
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: Users to be removed. Users who were not editors will be ignored.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                members:
+                  type: array
+                  description: Array of users's handles to be removed from the channel's editors.
+                  items:
+                    type: string 
+                    example: handle1123
+      responses:
+        '200': 
+          description: Operation successful.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.    
+
+  /channel/{name}/editors/requests/: 
+    delete:
+      tags:
+        - Channel
+        - User
+      description: Remove editor requests. 
+      operationId: deleteChannelMemberRequests
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: name
+          in: path
+          description: The Channel's name
+          required: True
+          example: channelAboutMountainPictures88
+          schema:
+            type: string
+            minLength: 6
+      requestBody:
+        required: True
+        description: Contains the user handles whose editor request is to be refused.
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                handles:
+                  type: array
+                  description: Array of users's handles whose editor request is to be refused.
+                  items:
+                    type: string 
+                    example: handle1123
+      responses:
+        '200': 
+          description: Operation successful.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: Unauthorized operation.
+        '409':
+          description: No channel with the given name.    
 
   /public/messages:
     get:

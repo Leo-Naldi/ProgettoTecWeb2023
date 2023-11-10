@@ -527,6 +527,10 @@ class UserService {
             return Service.rejectResponse({ message: `No subscription plan named: ${proplanName}` });
         }
 
+        user.charLeft.day += pro_plan.extraCharacters?.day || 0;
+        user.charLeft.week += pro_plan.extraCharacters?.week || 0;
+        user.charLeft.month += pro_plan.extraCharacters?.month || 0;
+
         await user.save();
 
         user = await UserService.getSecureUserRecord({ handle: handle });

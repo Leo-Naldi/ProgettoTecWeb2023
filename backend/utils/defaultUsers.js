@@ -83,6 +83,18 @@ function makeMessagesWithImages() {
     })
 }
 
+
+function makeLocalTestData() {
+    
+    const num = 10;
+
+    _.range(num).map(i =>
+        test_env.addTestUser({ handle: `lt_pro_user${i}`, pro: true, autoRenew: false }));
+    
+    _.range(num).map(i =>
+        test_env.addTestUser({ handle: `lt_pro_user${i+num}`, pro: true, autoRenew: true }));
+}
+
 /**
  * Data used in postman tests at 
  */
@@ -236,8 +248,19 @@ function makeTestData() {
     ind.map(j => {
         test_env.addReactionFromUser(test_env.messages.length - j, test_user_indexes[i], 'positive');
         test_env.addReactionFromUser(test_env.messages.length - j, test_user_indexes[i], 'negative');
-    })
+    });
 
+    //remove member requests
+    i = 24
+    channel = test_env.channels[channel_indexes[i]]
+    test_env.users[test_user_indexes[i]].joinChannelRequests.addToSet(channel._id);
+    test_env.users[test_pro_user_indexes[i]].joinChannelRequests.addToSet(channel._id);
+
+    //remove editor requests
+    i = 25
+    channel = test_env.channels[channel_indexes[i]]
+    test_env.users[test_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
+    test_env.users[test_pro_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
 }
 
 
@@ -840,6 +863,7 @@ async function makeDefaultUsers() {
 
     makeTestData();
     makeMessagesWithImages();
+    makeLocalTestData();
 
     await test_env.saveAll();
 
@@ -881,10 +905,6 @@ async function makeDefaultUsers() {
     await catFacts.save()
     await dogPics.save()
     await cronUser.save()
-
-
-    let answer = await Message.findOne({ answering: { $ne: null }, publicMessage: true });
-    logger.info(`Message with answers: ${answer.answering}`);
 }
 
 

@@ -70,12 +70,32 @@ ChannelRouter.delete('/:name', getAuthMiddleware('basicAuth'), checkNameCreator,
 
 ChannelRouter.post('/:name/members/', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
 
-    await Controller.handleRequest(req, res, ChannelServices.writeMembers);
+    await Controller.handleRequest(req, res, ChannelServices.addChannelMembers);
+})
+
+ChannelRouter.delete('/:name/members/', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+
+    await Controller.handleRequest(req, res, ChannelServices.deleteChannelMembers);
+})
+
+ChannelRouter.delete('/:name/members/requests/', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+
+    await Controller.handleRequest(req, res, ChannelServices.deleteChannelMemberRequests);
 })
 
 ChannelRouter.post('/:name/editors/', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
 
-    await Controller.handleRequest(req, res, ChannelServices.writeEditors);
+    await Controller.handleRequest(req, res, ChannelServices.addChannelEditors);
+})
+
+ChannelRouter.delete('/:name/editors/', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+
+    await Controller.handleRequest(req, res, ChannelServices.deleteChannelEditors);
+})
+
+ChannelRouter.delete('/:name/editors/requests/', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+
+    await Controller.handleRequest(req, res, ChannelServices.deleteChannelEditorRequests);
 })
 
 ChannelRouter.get('/:name/available', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {

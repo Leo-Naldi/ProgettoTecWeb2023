@@ -155,7 +155,7 @@ class TestEnv {
         }
         = { pro: false, admin: false, day: 1000, week: 7000, month: 31000,
             smmIndex: -1, created: null, joinedChannelIndexes: [],
-            proPlanIndex: -1, subscriptionExpiration: null, autoRenew: false }) {
+            proPlanIndex: -1, subscriptionExpiration: null, autoRenew: null }) {
 
 
         handle = handle ?? `${this.#prefix}-${this.#env_id++}-test_user-${TestEnv.getRandom(0, 4000000000)}`;
@@ -176,6 +176,8 @@ class TestEnv {
             
             if (!subscriptionExpiration) 
                 subscriptionExpiration = (new dayjs()).add(1, this.proPlans[proPlanIndex].period);
+
+            if (!_.isBoolean(autoRenew)) autoRenew = Math.random() > 0.5;
 
             u.subscription = {
                 proPlan: this.proPlans[proPlanIndex]._id,
