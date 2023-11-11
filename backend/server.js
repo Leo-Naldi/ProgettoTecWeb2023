@@ -10,7 +10,8 @@ const AuthRouter = require('./routes/auth');
 const MessageRouter = require('./routes/messages');
 const ChannelRouter = require('./routes/channel');
 const ImageRouter = require('./routes/image');
-const MailRouter = require('./routes/mail')
+const MailRouter = require('./routes/mail');
+const StripeRouter = require('./routes/stripe')
 
 const { logger, morganLogMiddleware } = require('./config/logging');
 const SocketServer = require('./socket/SocketServer');
@@ -46,6 +47,7 @@ class ExpressServer {
         app.use('/channels', ChannelRouter);
         app.use('/image', ImageRouter);
         app.use('/mail', MailRouter);
+        app.use('/stripe', StripeRouter);
         app.use('/plans', PlansRouter);
         app.use('/public', PublicRouter);
         app.use('/debug', DebugRouter);

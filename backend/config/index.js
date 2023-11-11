@@ -99,6 +99,8 @@
    mail_password: process.env.MAIL_PASSWORD, // your mail account password
    mail_service: process.env.MAIL_SERVICE, // nodemailer default supported mail: [Well-known services – Nodemailer](https://community.nodemailer.com/2-0-0-beta/setup-smtp/well-known-services/)
    mail_host: process.env.MAIL_HOST, // if not listed in mail_service
+   stripe_publishKey: process.env.STRIPE_PUBLISHABLE_KEY,
+   stripe_secretKey: process.env.STRIPE_SECRET_KEY
  };
  
  module.exports = config;

@@ -1,106 +1,92 @@
-<template>
-  <q-page padding>
-    <!-- content -->
-    <p>获取用户hanle 从 store 和 localStorage: {{testStoreUser  }}</p>
-    <!-- {{ all_posts }} -->
-    <!-- <p>all channel：{{ all_channels }}</p> -->
-    <!-- <p>{{ value }}</p> -->
-    <!-- <q-btn @click="Asocket()">dd</q-btn> -->
-    <!-- <div style="height: calc(100vh - 50px)">
-      <GMapMap
-        :center="center"
-        :zoom="10"
-      />
-    </div> -->
-    <!-- <div :id=mapId style="width:100%;height: calc(100vh - 50px); z-index:1;"></div> -->
-    <!-- <p>autocomplate channel：{{ all_auto_channels }}</p> -->
-    <!-- <p>get daily_news: {{ res_2 }}</p> -->
-    <!-- <ShowMap  :mapId="mapId" :my-position="[51,6]"></ShowMap> -->
-    <!-- <p>dsjdsagjhdsjgdsgdsgdsgdsgd</p> -->
-    <!-- <ShowMap  mapId="my-12345" :my-position="[51.431,6.3512]"></ShowMap> -->
-  </q-page>
-</template>
-
-
 <script setup>
-import { useUserStore } from 'src/stores/user';
-import { computed } from 'vue';
-
-const userStore = useUserStore()
-const testStoreUser =computed(()=>userStore.getUser)
-</script>
+import { ref, onMounted } from "vue";
+import { loadStripe } from "@stripe/stripe-js";
+import API from "src/api/apiconfig";
 
 
-<!-- <script setup>
-import { usePostStore } from 'src/stores/posts.js';
-import { useChannelStore } from 'src/stores/channels.js';
-import { ref, onMounted, computed, } from "vue";
-import  ShowMap  from 'src/components/map/ShowMap.vue'
+const isLoading = ref(false);
+const messages = ref([]);
+
+let stripe;
+let elements;
+
+onMounted(async () => {
+  const { publishableKey } = await API.stripe_config().then((res) => res.data);
+  // const { publishableKey } = await API.stripe_config().then((res) => console.log("stripe config res: ", res));
+  stripe = await loadStripe(publishableKey);
+
+  console.log("stripe: ", stripe)
+  // const submit_data = {"currency": "EUR", "amount":2}
+  // const { clientSecret, error: backendError } = await API.stripe_pay('').then((res) => res.data);
+  // const { clientSecret, error: backendError } = await fetch("http://localhost:8000/stripe/create-payment-intent",{submit_data}).then((res) =>{ console.log("paied con success2!",res);res.json()});
+  // const clientSecret = await fetch("/stripe/create-payment-intent").then((res) =>{ console.log("paied con success!",res);res.json()});
 
 
-// import { useMapStore } from 'src/stores/map.js'
-// import 'leaflet/dist/leaflet.css'
-// const mapStore = useMapStore()
+  console.log("clientSercret", clientSecret)
+  if (backendError) {
+    messages.value.push(backendError.message);
+  }
+  messages.value.push(`Client secret returned.`);
 
+  elements = stripe.elements({clientSecret});
+  const paymentElement = elements.create('payment');
+  paymentElement.mount("#payment-element");
+  const linkAuthenticationElement = elements.create("linkAuthentication");
+  linkAuthenticationElement.mount("#link-authentication-element");
+  isLoading.value = false;
+});
 
-const center = { lat: 51.093048, lng: 6.84212 };
-const postStore = usePostStore()
-const channelStore= useChannelStore()
+const handleSubmit = async () => {
+  if (isLoading.value) {
+    return;
+  }
 
-const all_posts = computed(() => postStore.getPosts[0])
-const all_channels = computed(()=> channelStore.getChannels[0])
+  isLoading.value = true;
 
-const all_auto_channels= computed(()=>channelStore.getAutoComplateAllChannel[0])
+  const { error } = await stripe.confirmPayment({
+    elements,
+    confirmParams: {
+      return_url: `${window.location.origin}/#/stripe_success`
+      // return_url: 'http://localhost:3000/'+'#'+'/stripe_success'
+    }
+  });
 
+  // console.log("什么是 window.location.origin: ", window.location.origin)
+  if (error.type === "card_error" || error.type === "validation_error") {
+    messages.value.push(error.message);
+  } else {
+    messages.value.push("An unexpected error occured.");
+  }
 
-const value =ref(null)
-const fetchData = async () => {
-  value.value = await channelStore.searchChannel("daily_news")
+  isLoading.value = false;
 }
-
-
-
-const mapId= 'map-1'
-onMounted(()=>{
-  // mapStore.initializeMapAndLocator(mapId);
-  fetchData()
-})
-
 </script>
- -->
+<template>
+  <main>
+    <h1>Payment</h1>
 
-<!-- // <script>
-// import {io} from "socket.io-client";
-// import { useAuthStore } from "src/stores/auth";
-// import { useUserStore } from "src/stores/user";
-// import {useSocketStore} from "src/stores/socket";
+    <p>
+      Enable more payment method types
+      <a
+        href="https://dashboard.stripe.com/settings/payment_methods"
+        target="_blank"
+      >in your dashboard</a>.
+    </p>
 
-// export default {
-//   name: 'HomePage',
-//   data(){
-//     return{
-//       mysocket: null,
-//       authStore: useAuthStore(),
-//       userStore: useUserStore(),
-//       socketStore: useSocketStore()
-//     }
-//   },
-  // methods:{
-    // setMySocket(){
-    //   this.mysocket=io("http://localhost:8000/user-io/fv", {
-    //                         extraHeaders: {
-    //                             Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJmdiIsImFjY291bnRUeXBlIjoidXNlciIsImFkbWluIjpmYWxzZSwiaWF0IjoxNjk4MzI3NDgzLCJleHAiOjE2OTg5MzIyODN9.Me-9vZxyu23RQzDTZht2hdGl4aCIWWu331vkWYjkwPw",
-    //                         }
-    //                         })
-      // io("http://localhost:8000/user-io/fv")
-    // }
-  // },
-  // mounted(){
-    // this.setMySocket()
-    // console.log(this.mysocket)
-    // this.socketStore.setSocket("fv", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJoYW5kbGUiOiJmdiIsImFjY291bnRUeXBlIjoidXNlciIsImFkbWluIjpmYWxzZSwiaWF0IjoxNjk4MzI3NDgzLCJleHAiOjE2OTg5MzIyODN9.Me-9vZxyu23RQzDTZht2hdGl4aCIWWu331vkWYjkwPw")
-    // console.log(this.socketStore.getSocket)
-    // this.authStore.login({"handle":"fv", "password":"12345678"})
-  // }
-// }
-// </script> -->
+    <form
+      id="payment-form"
+      @submit.prevent="handleSubmit"
+    >
+      <div id="link-authentication-element" />
+      <div id="payment-element" />
+      <button
+        id="submit"
+        :disabled="isLoading"
+      >
+        Pay now
+      </button>
+      <!-- <sr-messages :messages="messages" /> -->
+      <p>{{ messages }}</p>
+    </form>
+  </main>
+</template>

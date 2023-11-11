@@ -15,6 +15,8 @@ export default {
   // logout: () => api.get('/logout'),
   delete_account: (handle)=>api.delete("users/"+handle),
 
+  stripe_config: ()=>api.get("stripe/config"),
+  stripe_pay:(plan_name)=>api.get("stripe/create-payment-intent",{params:plan_name}), //TODO:传递支付的金额
 
   all_messages: () => api.get("messages/"),
   all_official_posts: ()=> api.get("public/messages/"),                                  // get public posts

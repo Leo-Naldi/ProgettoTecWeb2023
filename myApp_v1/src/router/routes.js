@@ -31,6 +31,7 @@ const routes = [
     children: [
       { path: '', name: 'NoLogin', component: () => import('pages/AllPostPublic.vue') },
       { path: '/test', name: 'test', component: () => import('pages/HomePage.vue') },
+      { path: '/stripe_success', name: 'stripe_success', component: () => import('pages/stripe/SuccessPage.vue') },
 
     ],
   },
