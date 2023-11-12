@@ -1,53 +1,73 @@
 class DataTable {
     
     constructor(container, headers, endpoint, after_row_select, data_transform = null, results_per_page = 25) {
-        this.headers = headers;
-        this.table = null;
-        this.spinner = null;
-        this.container = container;
-        this.endpoint = endpoint;
-        this.data_transform = data_transform;
-        this.selected_row = null;
-        this.selected_user = null;
-        this.after_row_select = after_row_select;
-        this.results_per_page = results_per_page;
+        this.#headers = headers;
+        this.#table = null;
+        this.#spinner = null;
+        this.#container = container;
+        this.#endpoint = endpoint;
+        this.#data_transform = data_transform;
+        this.#selected_row = null;
+        this.#selected_user = null;
+        this.#after_row_select = after_row_select;
+        
+        this.#results_per_page = results_per_page;
+        this.#page = 1;
+        this.#pages = null;
 
-        this.page = 1;
-        this.pages = null;
+        this.#pagination = null;
+        this.#filter = {};
     }
 
+    /**
+     * @param {object} f The new filter object
+     */
+    set filter(f) {
+        this.#filter = f;
+        this.#page = 1;
+        this.#pages = null;
+        this.#selected_row = null;
+        this.#selected_user = null;
+        this.#mount();
+    }
 
-    mount(query={}) {
-        this.selected_row = null;
-        this.selected_user = null;
-        this.mountSpinner();
+    get filter() {
+        return this.#filter;
+    }
 
-        authorizedRequest({
-            endpoint: this.endpoint,
+    /**
+     * @param {number} n
+     */
+    set page(n) {
+        if ((n <= 0) || (n > this.pages)) {
+            throw Error(`DataTable.page bad value: ${n}`);
+        } else {
+            this.#page = n;
+            this.#pageChanged();
+        }
+    }
+
+    get page() {
+        return this.#page;
+    }
+
+    #fetchData() {
+        return authorizedRequest({
+            endpoint: this.#endpoint,
             method: 'get',
-            query: {  
-                results_per_page: this.results_per_page,
-                page: this.page,
-                ...query,
+            query: {
+                ...this.filter,
+                results_per_page: this.#results_per_page,
+                page: this.#page,
             },
             token: DataTable.#getToken(),
-        }).then(data => data.json())
-        .then(data => {
-            this.table = this.#makeTable(data);
-            this.spinner?.remove();
-            this.container.append(this.table);
-            
-            this.pages = data.pages;
-            this.page = query?.page || 1;
-
-            this.container.append(this.#makePagination);
-        })
+        }).then(data => data.json());
     }
 
-    mountSpinner() {
-        this.table?.remove();
+    #mountSpinner() {
+        this.#table?.remove();
 
-        this.spinner = $(`
+        this.#spinner = $(`
             <div class="d-flex justify-content-center mt-4">
                 <div class="spinner-border" role="status">
                     <span class="visually-hidden">Loading...</span>
@@ -55,7 +75,41 @@ class DataTable {
             </div>
         `);
 
-        this.container.append(this.spinner);
+        this.#container.append(this.#spinner);
+    }
+
+    /**
+    * Creates the table anew.
+    */
+    #mount() {
+        this.#container.empty();
+        this.#mountSpinner();
+
+        this.#fetchData()
+            .then(data => {
+
+                this.#pages = data.pages;
+
+                this.#table = this.#makeTable(data);
+                this.#spinner?.remove();
+                this.#container.append(this.#table);
+
+                this.#pagination = this.#makePagination()
+
+                this.#container.append(this.#pagination);
+            })
+    }
+
+    #pageChanged() {
+        this.#mountSpinner();
+
+        this.#fetchData()
+            .then(data => {
+
+                this.#table = this.#makeTable(data);
+                this.#spinner?.remove();
+                this.#table.insertBefore(this.#pagination);
+            })
     }
 
     #makeTable(data) {
@@ -67,7 +121,7 @@ class DataTable {
 
         let headers_row = $('<tr>')
 
-        this.headers.map(header => 
+        this.#headers.map(header => 
             headers_row.append($(`<th scope="col">${header}</th>`)));
 
         thead.append(headers_row);
@@ -77,8 +131,8 @@ class DataTable {
                 id: d.id,
             });
 
-            let transformed = this.data_transform?.(d) ?? d;
-            this.headers.map(header => {
+            let transformed = this.#data_transform?.(d) ?? d;
+            this.#headers.map(header => {
                 row.append($(`<td>`, {
                     text: transformed[header.toLowerCase()],
                     'class': 'ellipsis-text',
@@ -109,28 +163,68 @@ class DataTable {
     }
 
     #makePagination() {
-        let res = $(`
+        
+        let ul = $('<ul>', { "class": "pagination justify-content-center" })
+        let nav = $(`
             <nav aria-label="Table Pagination">
-                <ul class="pagination justify-content-center">
-                </ul>
             </nav>
         `);
 
-        let first = $('<li class="page-item"><a class="page-link"><<</a></li>');
+        let first_a = $('<a class="page-link"><<</a>');
+        let first = $('<li class="page-item"></li>');
+        let last_a = $('<a class="page-link">>></a>');
+        let last = $('<li class="page-item"></li>');
 
-        let dt = this;
-
-        if (this.page === 1) first.addClass('diasabled');
-
-        first.find('a').click(function(event){
+        first.click(event => {
             event.preventDefault();
-            dt.page = 1;
-            dt.mount();
+            if (this.page !== 1) {
+                this.page = 1;
+            }
         });
 
-        res.find('ul').append(first);
+        last.click(event => {
+            event.preventDefault();
+            if (this.page !== this.#pages) {
+                this.page = this.#pages;
+            }
+        });
 
-        return res;
+        first.append(first_a);
+        last.append(last_a);
+
+        ul.append(first);
+
+        this.#getPages().map(p => {
+            let a = $(`<a class="page-link">${p}</a>`);
+            let li = $('<li class="page-item"></li>');
+
+            if (this.page === p) li.addClass('active');
+
+            li.append(a);
+
+            li.click(event => {
+                event.preventDefault();
+                if (this.page !== p) {
+                    this.page = p;
+                }
+            })
+
+            ul.append(li);
+        })
+
+        nav.append(ul);
+
+        return nav;
+    }
+
+    #getPages() {
+        if (this.page === 1) {
+            return _.range(1, 4);
+        } else if (this.page === this.#pages) {
+            return _.range(this.pages - 2, this.pages + 1);
+        } else {
+            return [this.page -1, this.page, this.page + 1];
+        }
     }
 
     #selectRow(row, user) {
