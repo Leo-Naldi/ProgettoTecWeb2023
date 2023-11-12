@@ -65,7 +65,7 @@ class SquealCrons {
         );
     }
 
-    async getrandomCatFact(){
+/*     async getrandomCatFact(){
         const res = await(await fetch('https://catfact.ninja/fact')).json();
 
         // illegal art number 462: make your own token
@@ -94,9 +94,9 @@ class SquealCrons {
         );
 
         logger.debug(`Ran Cat Job with Status: ${s.status}`);
-    }
+    } */
 
-    async getRandomDogPicture(){
+/*     async getRandomDogPicture(){
         const res = await (await fetch('https://dog.ceo/api/breeds/image/random')).json();
 
         const jwtoken = makeToken({
@@ -124,7 +124,7 @@ class SquealCrons {
         );
 
         logger.debug(`Dog Image Job with Status: ${s.status}`);
-    }
+    } */
 
     async renewSubscriptions() {
         let query = User.find()

@@ -4,6 +4,7 @@ import { useNotificationsStore } from "./notifications";
 import { useGlobalStore } from "./global";
 import { useAuthStore } from "./auth";
 import { usePostStore } from "./posts";
+import { useUserStore } from "./user";
 import { computed } from "vue";
 
 export const useSocketStore = defineStore("socket", {
@@ -72,6 +73,9 @@ export const useSocketStore = defineStore("socket", {
       const globalStore = useGlobalStore();
       const postStore = usePostStore();
       const notificationStore = useNotificationsStore();
+      const userStore = useUserStore()
+      const authStore = useAuthStore()
+
       const userPost = postStore.userPosts;
       console.log("userPost: ", userPost)
 
@@ -130,6 +134,12 @@ export const useSocketStore = defineStore("socket", {
         }
         globalStore.incrementUnread();
       });
+
+      mysocket.on("user:changed", (message)=>{
+        console.log("user changed: ", message)
+        userStore.modifyUser(message)
+        authStore.setUser(message)
+      })
     },
   },
 });

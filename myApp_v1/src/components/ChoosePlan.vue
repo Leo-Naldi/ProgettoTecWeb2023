@@ -1,17 +1,18 @@
 <template>
   <div class="q-pa-md">
-    <q-card class="my-card" flat>
+    <q-card class="my-card">
       <q-card-section>
         <div class="text-h6">Become our member!</div>
       </q-card-section>
 
-      <q-tabs v-model="tab" class="text-teal">
+      <q-tabs v-model="tab" class="text-primary" >
         <q-tab label="Basic" name="basic" />
-        <q-tab label="Plus" name="plus" />
+        <q-tab label="Subscription" name="subscription" />
       </q-tabs>
 
       <q-separator />
 
+      <!-- TODO: maybe subscription and day/month extra characters put in different places? -->
       <q-tab-panels v-model="tab" animated>
         <q-tab-panel name="basic">
           <ul style="list-style-type:'\2714   ';">
@@ -20,23 +21,32 @@
             <li>subscrive channels!</li>
             <li>create/modify/delete channels!</li>
             <br>
-            <li>dd</li>
+            <li>extra day/month/year characters!</li>
           </ul>
         </q-tab-panel>
 
-        <q-tab-panel name="plus">
-          With so much content to display at once, and often so little screen real-estate,
-          Cards have fast become the design pattern of choice for many companies, including
-          the likes of Google and Twitter.
+        <q-tab-panel name="subscription">
+          <ul style="list-style-type:'\2714   ';">
+            <li>extra {{ planDetails.subscriptions[0].extraCharacters.day }} characters in a day!</li>
+            <li>extra {{ planDetails.subscriptions[0].extraCharacters.week }} characters in a week!</li>
+            <li>extra {{ planDetails.subscriptions[0].extraCharacters.month }} characters in a month!</li>
+            <br>
+            <li>Only </li>
+            <br>
+            <li>Become our member and enjoy with us!</li>
+          </ul>
         </q-tab-panel>
       </q-tab-panels>
       <q-card-actions align="around" v-if="tab=='basic'">
-        <q-btn flat>€294.99/Year</q-btn>
-        <q-btn flat>€32.99/Month</q-btn>
+        <q-btn rounded color="primary">€294.99/day</q-btn>
+        <q-btn rounded color="primary">€32.99/month</q-btn>
       </q-card-actions>
-      <q-card-actions align="around" v-if="tab=='plus'">
-        <q-btn flat>€494.99/Year</q-btn>
-        <q-btn flat>€62.99/Month</q-btn>
+      <q-card-actions align="around" v-if="tab=='subscription'">
+        <q-btn rounded color="primary" @click="buyPlan(0)">€{{ planDetails.subscriptions[0].price }}/Month</q-btn>
+        <q-btn rounded color="primary" @click="buyPlan(1)">€{{ planDetails.subscriptions[1].price }}/Year</q-btn>
+
+        <div class="q-pt-md">Auto Renew: <q-toggle v-model="autoRenew" checked-icon="check" color="primary" unchecked-icon="clear" /></div>
+
       </q-card-actions>
     </q-card>
 <!--     <div class="q-pt-md" style="display:flex; align-items: center; justify-content: center">
@@ -45,7 +55,7 @@
   </div>
 </template>
 
-<script>
+<!-- <script>
 import { ref } from 'vue'
 
 export default {
@@ -55,6 +65,44 @@ export default {
     }
   }
 }
+</script> -->
+
+<script setup>
+import { reactive, ref, onMounted, computed } from 'vue'
+import { useUserStore } from 'src/stores/user';
+
+const tab=ref('basic')
+const autoRenew=ref(false)
+const userStore = useUserStore()
+const planDetails = reactive({
+  basic:[],
+  subscriptions:[]
+})
+
+const fetchPlanData = async () => {
+  const data = await userStore.getPlans()
+  planDetails.basic= computed(()=>data.filter( obj => !obj.pro))
+  planDetails.subscriptions= computed(()=>data.filter( obj => obj.pro))
+  console.log("plan page get plan: ", data)
+  console.log("plan page get basic plan: ", planDetails.basic)
+  console.log("plan page get subscription plan: ", planDetails.subscriptions)
+}
+
+const buyPlan = async(planChoice)=>{
+  const planName = planDetails.subscriptions[planChoice].name
+  const submit_data = {
+    "proPlanName": planName,
+    "autoRenew": autoRenew.value
+  }
+  const data = await userStore.buyPlan(submit_data)
+  console.log("plan page buy plan res: ", data)
+}
+
+
+
+onMounted(() => {
+  fetchPlanData()
+})
 </script>
 
 <style lang="sass" scoped>

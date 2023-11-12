@@ -23,6 +23,14 @@ export const useUserStore = defineStore("User", {
       }
       return "Error";
     },
+    getUserJson (state){
+      if (state.user.user != "") {
+        return state.user.user;
+      } else if (LocalStorage.getItem(USER_KEY)) {
+        return JSON.parse(LocalStorage.getItem(USER_KEY));
+      }
+      return "Error";
+    },
     getUserToken: (state) => state.user.token,
     getUsers: (state) => state.allUser,
     getAutoComplateAllUser: (state) => state.autoComplateAllUser,
@@ -80,7 +88,7 @@ export const useUserStore = defineStore("User", {
 
       try {
         const response = await API.search_user(user);
-        console.log("searchUser res: ", response.data.results)
+        console.log("searchUser res: ", response.data.results);
         return response.data.results;
       } catch (error) {
         console.log("fetch post con 'text' error!!!", error);
@@ -215,9 +223,59 @@ export const useUserStore = defineStore("User", {
         return null;
       }
     },
+    async getPlans() {
+      return await API.get_plans()
+        .then((response) => {
+          if (response.status === 200) {
+            return response.data;
+          }
+        })
+        .catch((err) => {
+          console.log("fetch all plan error!!!", err);
+        });
+    },
+    async buyPlan(submit_data) {
+      const user_handle = useAuthStore().getUserHandle();
+      if (user_handle) {
+        return await API.buy_plan(user_handle, submit_data)
+          .then((response) => {
+            if (response.status === 200) {
+              return response.data;
+            }
+          })
+          .catch((err) => {
+            console.log("buy plan error!!!", err);
+          });
+      } else {
+        return null;
+      }
+    },
+    /*
+    TODO: changePlan
+    async changePlan() {},
+    */
+    async cancelPlan() {
+      const user_handle = useAuthStore().getUserHandle();
+      if (user_handle) {
+        return await API.delete_plan(user_handle)
+          .then((response) => {
+            if (response.status === 200) {
+              return response.data;
+            }
+          })
+          .catch((err) => {
+            console.log("cancel plan error!!!", err);
+          });
+      } else {
+        return null;
+      }
+    },
     setUser(userJson, token) {
       this.user.user = userJson;
       this.user.token = token;
+    },
+    modifyUser(userJson){
+      this.user.user = userJson
     },
     unfollowChannel(channel_name) {
       const authStore = useAuthStore();

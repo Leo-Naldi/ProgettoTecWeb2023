@@ -77,7 +77,8 @@
                     </q-btn>
                   </q-item-section>
                 </q-item>
-                <q-separator inset="" spaced="10px" />
+
+  <!--               <q-separator inset="" spaced="10px" />
                 <q-item>
                   <q-item-section>
                     <q-item-label>Auto Renew</q-item-label>
@@ -88,26 +89,25 @@
                   <q-item-section avatar>
                     <q-toggle v-model="autoRenew" checked-icon="check" color="primary" unchecked-icon="clear" />
                   </q-item-section>
-                </q-item>
+                </q-item> -->
                 <q-separator inset="" spaced="10px" />
-<!--                 <q-item>
+                <q-item v-if="storedUser.subscription">
                   <q-item-section>
-                    <q-item-label>Delete plan</q-item-label>
-                    <q-item-label class="text-grey-6">become our member!
+                    <q-item-label>Cancel plan</q-item-label>
+                    <q-item-label class="text-grey-6">delete your plan
                     </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
-                    <q-btn flat unelevated color="primary" label="Modify">
-                      <q-popup-proxy>
-                        <div class="flex flex-center" style="width: 400px;position:absolute;">
-                          <ShowDialog :choose-plan="true" />
-                        </div>
-                      </q-popup-proxy>
+                    <q-btn flat unelevated color="primary" label="Cancel" @click="cancelPlan = true">
+                      <!-- <q-popup-proxy></q-popup-proxy> -->
+                      <q-dialog v-model="cancelPlan" persistent>
 
+                      <ConfirmPopup :confirm-data="5">{{ cancelPlanPopup }}</ConfirmPopup>
+                      </q-dialog>
                     </q-btn>
                   </q-item-section>
                 </q-item>
-                <q-separator inset="" spaced="10px" /> -->
+                <q-separator v-if="storedUser.subscription" inset="" spaced="10px" />
               </q-list>
             </q-tab-panel>
             <q-tab-panel name="safeSettings" class="q-pt-sm">
@@ -242,26 +242,39 @@
 import ShowDialog from 'src/components/ShowDialog.vue';
 import ConfirmPopup from 'src/components/ConfirmPopup.vue';
 import InsertPopup from 'src/components/InsertPopup.vue';
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { useAuthStore } from 'src/stores/auth';
 import { useUserStore } from 'src/stores/user';
 
 export default {
   name: 'SettingsPage',
+  setup(){
+    const userStore = useUserStore()
+    const storedUser = computed(()=>userStore.getUserJson)
+    const isMember = JSON.parse(JSON.stringify(storedUser.value)).subscription
+
+    return {
+      userStore,
+      storedUser,
+      isMember
+    }
+  },
   data() {
     return {
       authStore: useAuthStore(),
-      userStore: useUserStore(),
+      // userStore: useUserStore(),
       confirm: ref(false),
       autoRenew: ref(false),
       resetPopup: "Are you sure you want to reset the password?!",
       deletePopup: "Are you sure you want to delete the account?!",
+      cancelPlanPopup: "Are you sure you want to cancel your plan?!",
       username: "",
       user_description: "",
       settingsTab: 'basicSettings',
       prompt: ref(false),
       telephone: ref(''),
       resetPassword: ref(false),
+      cancelPlan:ref(false),
       deleteAccountProps: ref(false),
       insertHeader: "Modify your email!",
       modifyTelephone: ref(false),
@@ -295,7 +308,6 @@ export default {
       const userData_json = JSON.parse(JSON.stringify(this.userData))
       const submit_userData =  this.filteredData(userData_json)
       this.userStore.modifyUser(submit_userData)
-
     }
   }
 }

@@ -15,6 +15,9 @@ export default {
   // logout: () => api.get('/logout'),
   delete_account: (handle)=>api.delete("users/"+handle),
 
+  buy_plan: (handle, data)=>api.post("users/"+handle+"/subscription", data),                // buy plan
+  delete_plan: (handle)=>api.delete("users/"+handle+"/subscription"),           // buy plan
+  get_plans:()=>api.get("plans/"),                                              // get plan
   stripe_config: ()=>api.get("stripe/config"),
   stripe_pay:(plan_name)=>api.get("stripe/create-payment-intent",{params:plan_name}), //TODO:传递支付的金额
 

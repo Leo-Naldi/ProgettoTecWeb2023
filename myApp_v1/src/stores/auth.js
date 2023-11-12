@@ -50,6 +50,9 @@ export const useAuthStore = defineStore("auth", {
     getToken() {
       return LocalStorage.getItem(TOKEN_KEY);
     },
+    setUser(user){
+      LocalStorage.set(USER_KEY, JSON.stringify(user));
+    },
     saveUser(user, token) {
       LocalStorage.set(USER_KEY, JSON.stringify(user));
       LocalStorage.set(TOKEN_KEY, token);

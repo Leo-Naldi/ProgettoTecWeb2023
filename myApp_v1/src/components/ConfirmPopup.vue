@@ -67,6 +67,10 @@ export default {
           const res = this.channelStore.deleteChannelMessages(this.$props.channelName)
           console.log("delete channel messages returned with res: "+res)
           break;
+        case 5:
+          const data = this.userStore.cancelPlan()
+          console.log("cancel plan!")
+          break;
         default:
           console.log("no submit")
       }
