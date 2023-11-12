@@ -7,6 +7,7 @@ export const useGlobalStore = defineStore('global', {
     clickShowMore: false,
     hasClickedShowMore:false,
     timerId: null, // notification
+    autoTimerId:null, // auto_message
     verify_emai: "",
     verify_handle:""
   }),
@@ -17,6 +18,7 @@ export const useGlobalStore = defineStore('global', {
     getClickedUnread: (state)=>state.clickShowMore,
     getHasClickedShowMore: (state)=>state.hasClickedShowMore,
     getTimerId: (state)=>state.timerId,
+    getAutoTimerId: (state)=>state.autoTimerId,
     getVerifyEmail: (state)=>state.verify_emai,
     getVerifyHandle: (state)=>state.verify_handle
   },
@@ -55,6 +57,12 @@ export const useGlobalStore = defineStore('global', {
     },
     resetTimerId(){
       this.timerId=null
-    }
+    },
+    setAutoTimerId(timerId){
+      this.autoTimerId=timerId
+    },
+    resetAutoTimerId(){
+      this.autoTimerId=null
+    },
   }
 })

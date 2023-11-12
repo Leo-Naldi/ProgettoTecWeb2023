@@ -50,6 +50,7 @@ const routes = [
       { path: "/channel/user", name: "myChannelPage", component: () => import("pages/MyChannel.vue") },
       { path: "/user/settings", name: "settingsPage", component: () => import("pages/SettingsPage.vue") },
       { path: "/members", name: "membersPage", component: () => import("pages/MemberDetails.vue") },
+      { path: "/tag/:tagName", name: "tagPage", component: () => import("pages/TagPage.vue") },
       { path: '/test2', name: 'test2', component: () => import('pages/HomePage.vue') },
 
 

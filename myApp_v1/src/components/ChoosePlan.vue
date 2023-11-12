@@ -38,9 +38,6 @@
         <q-btn flat>€494.99/Year</q-btn>
         <q-btn flat>€62.99/Month</q-btn>
       </q-card-actions>
-      <q-card-actions align="center">
-        <q-btn color="primary">Pay this</q-btn>
-      </q-card-actions>
     </q-card>
 <!--     <div class="q-pt-md" style="display:flex; align-items: center; justify-content: center">
     <q-btn color="primary">Pay</q-btn>

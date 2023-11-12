@@ -1,11 +1,13 @@
 <template>
   <div>
-
-    <q-dialog v-model="showModal">
+    <q-dialog v-model="showModal" persistent>
       <q-card>
         <q-card-section class="row items-center q-pb-none">
           <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
+          <q-btn icon="close" flat round dense v-close-popup >
+            <q-tooltip v-if="globalStore.getAutoTimerId != null && stopAutoMsg">if you close this, auto-message well stop!</q-tooltip>
+            <q-tooltip v-else class="bg-primary" >click to exit</q-tooltip>
+          </q-btn>
         </q-card-section>
 
         <!-- <div class="modal-content">
@@ -29,6 +31,8 @@
 <script>
 import ModifyPassword from './ModifyPassword.vue';
 import ChoosePlan from './ChoosePlan.vue'
+import { useGlobalStore } from "src/stores/global";
+
 
 export default {
   props: {
@@ -42,6 +46,10 @@ export default {
     choosePlan:{
       type: Boolean,
       default: false
+    },
+    stopAutoMsg:{
+      type: Boolean,
+      default: false
     }
   },
   components:{
@@ -50,7 +58,8 @@ export default {
   },
   data() {
     return {
-      showModal: true
+      showModal: true,
+      globalStore: useGlobalStore()
     }
   }
 }

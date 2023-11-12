@@ -1,4 +1,4 @@
-<!-- imgURL: http://localhost:8000/fv/0ef4c415ca16d832e45fb1c00_截屏2023-10-08 22.png -->
+<!-- imgURL: http://localhost:8000/files/fv/0ef4c415ca16d832e45fb1c00_picName2023-10-08 22.png -->
 
 <template>
   <div class="my-new-post">
@@ -31,25 +31,137 @@
             class="closeIcon" color="red" icon="fa-regular fa-circle-xmark" />
         </div>
 
-        <div v-if="clickedInput" class="sendTips cursor-pointer"  @click="whoCanSee()" >
+        <div v-if="clickedInput" class="sendTips cursor-pointer" @click="whoCanSee()">
           <!-- <q-btn  flat round color="primary" icon="public" @click="newPost.everyOneCanSee = false"/> -->
 
 
-          <q-icon style="margin: 0.22rem 0.2rem 0 0" name="public"  />
-          <p v-if="newPost.everyOneCanSee==false" class="text-weight-bold text-blue-6">Only Selected can see</p>
+          <q-icon style="margin: 0.22rem 0.2rem 0 0" name="public" />
+          <p v-if="newPost.everyOneCanSee == false" class="text-weight-bold text-blue-6">Only Selected can see</p>
           <p v-else class="text-weight-bold text-blue-6">Everyone can see</p>
         </div>
 
         <div class="my-icons">
           <span class="my-icon-left text-grey-7 ">
-            <q-btn flat round icon="fa-regular fa-calendar-plus" size="sm" @click="scheduleMsg(post)">
+            <!--
+              // TODO: schedule message send
+              <q-btn flat round icon="fa-regular fa-calendar-plus" size="sm" @click="scheduleMsg(post)">
+            </q-btn> -->
+            <!-- <q-btn flat round icon="fa-solid fa-clock" size="sm" @click="repeteSend(post)"> -->
+            <q-btn v-if="canRepeat" flat round icon="fa-solid fa-clock" size="sm">
+              <q-tooltip class="bg-primary">click to start auto-message</q-tooltip>
+              <q-popup-proxy>
+                <ShowDialog>
+                  <div class="q-pa-md">
+                    <q-stepper v-model="step" ref="stepper" contracted color="primary" animated>
+                      <q-step :name="1" title="Select campaign settings" icon="settings" :done="step > 1">
+                        selected value: {{ setRepeatContent }}<br>
+                        selected value: {{ setContentOptions }}<br>
+
+                        step: {{ step }} {{ setRepeatContent === 'geolocation' }} {{ setContentOptions === 'template'
+                        }}<br>
+                        <q-option-group :options="repeatOptions" type="radio" v-model="setRepeatContent" />
+                      </q-step>
+
+                      <!-- <q-step :name="2" title="Create an ad group" caption="Optional" icon="create_new_folder"
+                        :done="step > 2"> -->
+                      <q-step :name="2" title="Create an ad group" caption="Optional" icon="create_new_folder"
+                        :done="step > 2 || setRepeatContent === 'geolocation' || setContentOptions != null">
+
+                        selected value: {{ setRepeatContent }}<br>
+                        <!-- step: {{ step }}<br> -->
+                        step: {{ step }} {{ setRepeatContent === 'geolocation' }} {{ setContentOptions === 'template'
+                        }}<br>
+
+                        <q-option-group :options="contentOptions" type="radio" v-model="setContentOptions">
+                          <template v-slot:label-0="opt">
+                            <span>{{ opt.label }}</span>
+                            <q-tooltip class="bg-primary" :offset="[0, 0]">Template is: Ciao a tutti, questo è il mio
+                              messaggio n.{NUM} delle ore {TIME} del giorno {DATE}.</q-tooltip>
+                          </template>
+                          <!-- TODO:not the second?  -->
+                          <template v-slot:label-2="opt">
+                            <span>{{ opt.label }}</span>
+                            <q-tooltip class="bg-primary" :offset="[0, 0]">Template is: Ciao a tutti, questo è il mio
+                              messaggio n.{NUM} delle ore {TIME} del giorno {DATE}.</q-tooltip>
+                          </template>
+                        </q-option-group>
+
+                      </q-step>
+
+                      <q-step :name="3" title="Create an ad" icon="add_comment"
+                        :done="step > 3 || setRepeatContent === 'geolocation' || setContentOptions === 'template'">
+                        selected value: {{ setContentOptions }}<br>
+                        <!-- step: {{ step }}<br> -->
+                        step: {{ step }} {{ setRepeatContent === 'geolocation' }} {{ setContentOptions === 'template'
+                        }}<br>
+
+                        <q-input class="q-pa-md" v-model="customTextContent" filled clearable type="textarea" autogrow
+                          maxlength="300" counter />
+                      </q-step>
+
+                      <q-step :name="4" title="Finish" icon="add_comment" :done="step > 4">
+                        <!-- step: {{ step }}<br> -->
+                        step: {{ step }} {{ setRepeatContent === 'geolocation' }} {{ setContentOptions === 'template'
+                        }}<br>
+
+                        <p v-if="setRepeatContent === 'geolocation' && setContentOptions === null">you're going to send
+                          messages repeatedly with only geolocations</p>
+                        <p v-else-if="setRepeatContent === 'geolocation' || setRepeatContent === 'content_geo'">and also
+                          with
+                          geolocations</p>
+
+                        <p v-if="setContentOptions === 'template'">you're going to send messages repleatly with predifined
+                          text content:
+                          Ciao a tutti, questo è il mio messaggio n.{NUM} delle ore {TIME} del giorno {DATE}.</p>
+
+                        <p v-else-if="setContentOptions === 'custom'">you're going to send messages repleatly with
+                          following
+                          text content:{{ customTextContent }}</p>
+
+                        <p v-else-if="setContentOptions === 'template_custom'">you're going to send messages repleatly
+                          with
+                          following text content:<br><br>&nbsp;&nbsp;{{ customTextContent }} <br>&nbsp;&nbsp;Ciao a tutti,
+                          questo è il mio messaggio n.{NUM} delle ore {TIME} del giorno {DATE}. </p>
+
+                        set repeat times (!important: must > 0, 1000=1s, then you'll see a Confirm button, click to
+                        confirm final
+                        data, click upper right x to exit):
+                        <q-input borderless v-model.number="repeatTime" type="number" filled style="max-width: 10rem"
+                          :rules="[
+                            val => val > 0 || 'Please use positive integer',
+                          ]" />
+
+                      </q-step>
+
+                      <template v-slot:navigation>
+                        <q-stepper-navigation>
+                          <q-btn v-if="step === 4 && repeatTime != 0" color="primary" label="Confirm"
+                            @click="repeteSend()" />
+
+                          <q-btn v-else
+                            @click=" setRepeatContent === 'geolocation' ? $refs.stepper.goTo(4) : setContentOptions === 'template' ? $refs.stepper.goTo(4) : $refs.stepper.next()"
+                            :disable="step === 1 && setRepeatContent === null || step === 2 && setContentOptions === null"
+                            color="primary" label="Continue" />
+                          <q-btn v-if="step > 1" flat color="primary"
+                            @click="setRepeatContent === 'geolocation' ? $refs.stepper.goTo(1) : setContentOptions === 'template' && step != 2 ? $refs.stepper.goTo(2) : $refs.stepper.previous()"
+                            label="Back" class="q-ml-sm" />
+                        </q-stepper-navigation>
+                      </template>
+                    </q-stepper>
+                  </div>
+                </ShowDialog>
+              </q-popup-proxy>
             </q-btn>
-            <q-btn flat round icon="fa-solid fa-clock" size="sm" @click="repeteSend(post)">
+            <q-btn v-if="globalStore.getAutoTimerId != null" @click="stopAutoMessage()" flat round
+              icon="fa-solid fa-circle-stop" size="sm">
+              <q-tooltip class="bg-primary">click to stop auto-message</q-tooltip>
             </q-btn>
+            <!-- <q-btn v-if="timer != null" @click="stopAutoMessage()" flat round icon="fa-solid fa-circle-stop" size="sm" /> -->
             <q-btn flat round icon="fa-solid fa-user" size="sm">
+              <q-tooltip class="bg-primary">Who do you want to send the message to?</q-tooltip>
               <q-popup-proxy>
                 <q-select filled v-model="newPost.destUsers" use-input use-chips stack-label multiple input-debounce="0"
-                  label="Simple filter" :options="optionsUser" @filter="filterFnUser" style="width: 250px"
+                  label="select dest user" :options="optionsUser" @filter="filterFnUser" style="width: 250px"
                   behavior="menu">
                   <template v-slot:no-option>
                     <q-item>
@@ -62,10 +174,11 @@
               </q-popup-proxy>
             </q-btn>
             <q-btn flat round icon="fa-solid fa-list" size="sm">
+              <q-tooltip class="bg-primary">Which channel do you want to send the message to?</q-tooltip>
               <q-popup-proxy>
-                <q-select filled v-model="newPost.destChannels" use-input use-chips stack-label multiple input-debounce="0"
-                  label="Simple filter" :options="optionsChannel" @filter="filterFnChannel" style="width: 250px"
-                  behavior="menu">
+                <q-select filled v-model="newPost.destChannels" use-input use-chips stack-label multiple
+                  input-debounce="0" label="select dest channel" :options="optionsChannel" @filter="filterFnChannel"
+                  style="width: 250px" behavior="menu">
                   <template v-slot:no-option>
                     <q-item>
                       <q-item-section class="text-grey">
@@ -77,15 +190,21 @@
               </q-popup-proxy>
             </q-btn>
             <q-btn flat round icon="fa-regular fa-image" size="sm">
+              <!--
+                // TODO: choose files from android/iod
+                <q-tooltip class="bg-primary">Upload images from your device!</q-tooltip>
+              -->
               <q-popup-proxy cover :breakpoint="800">
                 <!--                 <q-video
                   src="https://www.youtube.com/embed/k3_tw44QsZQ?rel=0"
                 /> -->
-                <q-uploader @uploaded="handleUploaded" :url="globalStore.baseURL+'image/upload/'+user_handle"
+                <q-uploader @uploaded="handleUploaded" :url="globalStore.baseURL + 'image/upload/' + user_handle"
                   label="upload one or more imgs(choose one in a time)" style="width: 300px" />
               </q-popup-proxy>
             </q-btn>
-            <q-btn flat round color="grey" icon="fas fa-map-marker-alt" size="sm" @click="getGeo()" />
+            <q-btn flat round color="grey" icon="fas fa-map-marker-alt" size="sm" @click="getGeo()">
+              <q-tooltip class="bg-primary">click to send current geolocation!</q-tooltip>
+            </q-btn>
             <!-- " size="sm" @click="toggleLiked(post)"> -->
           </span>
           <div class="my-icon-right">
@@ -149,9 +268,9 @@
 <script setup>
 import { Mentionable } from "vue-mention";
 import "floating-vue/dist/style.css";
-import { formatISO, formatDistance } from "date-fns";
+import { formatISO, formatDistance, format, parse } from "date-fns";
 
-import { ref, onMounted, computed, reactive, toRaw, toRefs } from "vue";
+import { ref, onMounted, onUnmounted, computed, reactive, toRaw, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
 import { usePostStore } from "src/stores/posts";
@@ -162,6 +281,9 @@ import { useImageStore } from "src/stores/image"
 import ShowMap from 'src/components/map/ShowMap.vue'
 import { useAuthStore } from "src/stores/auth";
 import { useGlobalStore } from "src/stores/global";
+import ShowDialog from 'src/components/ShowDialog.vue';
+
+
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
@@ -182,6 +304,10 @@ const props = defineProps({
   author: {
     type: String,
     default: ""
+  },
+  canRepeat: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -293,71 +419,203 @@ function onApply(item, key, replacedWith) {
 }
 
 /******************************************
-               functions
+             send at specified time
  *******************************************/
 
 const scheduleMsg = () => {
   alert("at what time to send")
 }
 
-const repeteSend = () => {
-  alert("send repeatedly")
+/******************************************
+               send repeatedly
+ *******************************************/
+const step = ref(1)
+const setRepeatContent = ref(null)
+const repeatOptions = [
+  { label: 'with text-content', value: 'content' },
+  { label: 'with only geolocations', value: 'geolocation', color: 'green' },
+  { label: 'with both text-content and geolocations', value: 'content_geo', color: 'red' }
+]
+
+const setContentOptions = ref(null)
+const contentOptions = [
+  { label: 'with predefined template', value: 'template' },
+  { label: 'with custom text', value: 'custom', color: 'green' },
+  { label: 'with both custom-text and template', value: 'template_custom', color: 'red' }
+]
+const customTextContent = ref(null)
+const repeatTime = ref(0)
+// const date=addHours(new Date,1)
+const date = new Date()
+const dateHandler = reactive({
+  year: date.getFullYear(),
+  month: date.getMonth() + 1,
+  day: date.getDate(),
+  hour: new Date().getHours(),
+  minute: new Date().getMinutes(),
+  second: new Date().getSeconds(),
+  msg_counter: 0,
+})
+
+const timer = ref(null)
+const stopAutoMessage = () => {
+  /* if (timer.value != null) {
+    clearInterval(timer)
+  } */
+  if (globalStore.getAutoTimerId != null) {
+    clearInterval(globalStore.autoTimerId)
+    globalStore.resetAutoTimerId()
+  }
 }
 
+//TODO: 不能在回复页用，只能在主页或频道页用
+const repeteSend = () => {
+  /*
+  TOT second
+  第几个
+  TIME
+  DATE
+  content
+  getGeo and send geo
+  dest
+  setpublic
+  设置放到 popup里
+  max value for setInterval: 2,147,483,647 ms≈24.8天
+
+  content.text
+  meta.geo
+  */
+  // console.log("repeat time: ", repeatTime.value)
+
+  const repeat_json = {}
+
+  const repeat_template = ref("")
+  if (setRepeatContent.value != 'content') {
+    const geo_repeat = mapStore.getCurrentLocation()
+    repeat_json.meta = { geo: { type: "Point", coord: toRaw(geo_repeat) } };
+  }
+  if (setContentOptions.value != null) {
+    repeat_json.content = {}
+    if (setContentOptions.value != 'custom') {
+      repeat_template.value = "Ciao a tutti, questo è il mio messaggio n." + dateHandler.msg_counter.toString() + " delle ore " + dateHandler.hour.toString() + ":" + dateHandler.second.toString()+ ":" + dateHandler.minute.toString() + " del giorno " + dateHandler.day.toString() + "-" + dateHandler.month.toString() + "-" + dateHandler.year.toString() + "."
+    }
+    if (setContentOptions.value != 'custom') {
+      repeat_json.content.text = repeat_template.value
+    }
+    else {
+      repeat_json.content.text = customTextContent.value + " " + repeat_template.value
+    }
+  }
+
+  // console.log("重复发送的最终 json 为：", repeat_json)
+  // timer.value = setInterval(() => {
+  //   // alert(repeat_json.content.text)
+  //   console.log(repeat_json.content.text)
+  // }, repeatTime.value);
+
+  if (setContentOptions.value == 'template') {
+    const tmpTimer = setInterval(async () => {
+      dateHandler.msg_counter += 1
+      repeat_template.value = "Ciao a tutti, questo è il mio messaggio n." + dateHandler.msg_counter.toString() + " delle ore " + new Date().getHours().toString() + ":" + new Date().getMinutes().toString() + " del giorno " + dateHandler.day.toString() + "-" + dateHandler.month.toString() + "-" + dateHandler.year.toString() + "."
+      repeat_json.content.text = repeat_template.value
+      await postStore.sendPost(user_handle, repeat_json).then().catch(error => {
+        if (error.response.status === 418) {
+          stopAutoMessage()
+          alert("stop auto message you've ran out of the characters!")
+        }
+        console.log("post  error!", error)
+      })
+
+      // console.log("repeat content: ", repeat_json)
+      // console.log("repeat couter: ", dateHandler.msg_counter)
+      // console.log("repeat couter: ", repeat_template.value)
+      // console.log("repeat couter json: ", repeat_json.content.text)
+      // console.log("repeat couter json: ", new Date().getSeconds())
+
+    }, repeatTime.value); /* 1000 = 1s */
+    globalStore.setAutoTimerId(tmpTimer);
+  }
+  else if (setContentOptions.value == 'template_custom') {
+    const tmpTimer = setInterval(async () => {
+      dateHandler.msg_counter += 1
+
+      repeat_template.value = "Ciao a tutti, questo è il mio messaggio n." + dateHandler.msg_counter.toString() + " delle ore " + new Date().getHours().toString() + ":" + new Date().getMinutes().toString() + " del giorno " + dateHandler.day.toString() + "-" + dateHandler.month.toString() + "-" + dateHandler.year.toString() + "."
+      repeat_json.content.text = customTextContent.value + " " + repeat_template.value
+
+      await postStore.sendPost(user_handle, repeat_json).then().catch(error => {
+        if (error.response.status === 418) {
+          stopAutoMessage()
+          alert("stop auto message you've ran out of the characters!")
+        }
+        console.log("post  error!", error)
+      })
+      console.log("repeat content: ", repeat_json)
+      // console.log("repeat couter: ", dateHandler)
+    }, repeatTime.value); /* 1000 = 1s */
+    globalStore.setAutoTimerId(tmpTimer);
+  }
+}
+
+
+
+
+/******************************************
+               functions
+ *******************************************/
 const getGeo = () => {
   newPost.coordinate = mapStore.getCurrentLocation()
   alert(newPost.coordinate)
 }
 
-const whoCanSee=()=>{
+const whoCanSee = () => {
   newPost.everyOneCanSee = !newPost.everyOneCanSee
 }
 
 
 const sendNewPost = () => {
   const toSend = {}
-  if(newPost.everyOneCanSee==false)
-    toSend.publicMessage=false
-  if(newPost.answering!="")                                                             // answering
-    toSend.answering=newPost.answering
-  if (newPost.destUsers!=null && newPost.destUsers!=[]) {                               // destUsers
+  if (newPost.everyOneCanSee == false)
+    toSend.publicMessage = false
+  if (newPost.answering != "")                                                             // answering
+    toSend.answering = newPost.answering
+  if (newPost.destUsers != null && newPost.destUsers != []) {                               // destUsers
     const destUsers = newPost.destUsers.map(function (element) {
       return "@" + element;
     });
-    toSend.dest= "dest" in toSend? (Array.isArray(toSend.dest) ? toSend.dest.concat(destUsers) : [toSend.dest, destUsers]) : destUsers
+    toSend.dest = "dest" in toSend ? (Array.isArray(toSend.dest) ? toSend.dest.concat(destUsers) : [toSend.dest, destUsers]) : destUsers
   }
-  if (newPost.destChannels != null && newPost.destChannels!=[]){                        // destChannels
+  if (newPost.destChannels != null && newPost.destChannels != []) {                        // destChannels
     const destChannels = newPost.destChannels.map(function (element) {
       return "§" + element;
     });
-    toSend.dest = "dest" in toSend? (Array.isArray(toSend.dest) ? toSend.dest.concat(destChannels) : [toSend.dest, destChannels]) : destChannels    // dest
+    toSend.dest = "dest" in toSend ? (Array.isArray(toSend.dest) ? toSend.dest.concat(destChannels) : [toSend.dest, destChannels]) : destChannels    // dest
 
   }
-  if (newPost.content!=""){                                                             // content
-    toSend.content={}
-    toSend.content.text=newPost.content;
+  if (newPost.content != "") {                                                             // content
+    toSend.content = {}
+    toSend.content.text = newPost.content;
   }
-  if (newPost.imageURL!=""){                                                             // image
-    if (!("content" in toSend)){
-      toSend.content={}
+  if (newPost.imageURL != "") {                                                             // image
+    if (!("content" in toSend)) {
+      toSend.content = {}
     }
     toSend.content.image = newPost.imageURL
   }
-  if (newPost.coordinate.length!=0)                                                      // coordinate
-    toSend.meta  = { geo: { type: "Point", coord: toRaw(newPost.coordinate) } };
+  if (newPost.coordinate.length != 0)                                                      // coordinate
+    toSend.meta = { geo: { type: "Point", coord: toRaw(newPost.coordinate) } };
 
 
-  if(newPost.imageURL!="" || newPost.coordinate.length!=0 || newPost.content!=""){
+  if (newPost.imageURL != "" || newPost.coordinate.length != 0 || newPost.content != "") {
     // TODO: 可能需要更新 store 的值？？？ 回复页，全部页，用户消息页
-    postStore.sendPost(user_handle,toSend)
+    postStore.sendPost(user_handle, toSend)
   }
 
-  newPost.everyOneCanSee=true
-  newPost.content=""
-  newPost.imageURL=""
-  newPost.coordinate=[]
-  newPost.destUsers=null
-  newPost.destChannels=null
+  newPost.everyOneCanSee = true
+  newPost.content = ""
+  newPost.imageURL = ""
+  newPost.coordinate = []
+  newPost.destUsers = null
+  newPost.destChannels = null
 }
 
 // TODO: 当点击叉号后连带后端里的图片也删掉
@@ -367,15 +625,17 @@ const deleteImage = () => {
 }
 
 // 获得调用上传图片 API 之后的返回值
-const handleUploaded=(response) =>{
-      const img_name = response.files[0].xhr.response
-      const baseURL = globalStore.getBaseURL
-      const handle = user_handle
-      newPost.imageURL=baseURL+handle+"/"+img_name
-      console.log(img_name);
-    }
+const handleUploaded = (response) => {
+  const img_name = response.files[0].xhr.response
+  const baseURL = globalStore.getBaseURL
+  const handle = user_handle
+  newPost.imageURL = baseURL + handle + "/" + img_name
+  console.log(img_name);
+}
 
 onMounted(() => {
+  // console.log("test date: ", dateHandler)
+
   userStore.fetchAllUserName()
   userStore.fetchAutoCompleteUsers()
   channelStore.fetchAllChannelName()
@@ -402,6 +662,9 @@ onMounted(() => {
   });
 });
 
+onUnmounted(() => {
+  stopAutoMessage()
+});
 /******************************************
                 debug functions
  *******************************************/

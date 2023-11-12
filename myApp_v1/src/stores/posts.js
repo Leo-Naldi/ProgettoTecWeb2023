@@ -76,8 +76,9 @@ export const usePostStore = defineStore("post", {
         const data = this.messageHandler([response.data.message]);
         return data;
       } catch (error) {
-        console.log("fetch one post error!!!", error);
+        console.log("send one post error!!!", error);
         throw error;
+        // return error.response.status
       }
     },
     // fetch all posts
@@ -177,6 +178,7 @@ export const usePostStore = defineStore("post", {
       text = text[0] == "#" ? "%23" + text.substring(1) : text;
 
       try {
+        console.log("searchHashtags with: ", text)
         const response = await API.search_keywords(text);
         console.log("searchHashTag res: ",response.data.results)
         return this.messageHandler(response.data.results);

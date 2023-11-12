@@ -22,10 +22,16 @@
       </div>
       <div class="my-nav">
         <q-list>
-          <EssentialLink :unread_cnt="globalStore.getUnreadCnt" class="nav-padding" v-for="link in essentialLinks" :key="link.title" v-bind="link" />
+          <EssentialLink :unread_cnt="globalStore.getUnreadCnt" class="nav-padding" v-for="link in essentialLinks"
+            :key="link.title" v-bind="link" />
         </q-list>
         <q-btn push v-if="leftDrawerOpen == true && miniState.value === false" unelevated rounded label="new" size="18px"
           class="q-px-xl q-py-xs q-my-md my-button">
+          <q-popup-proxy>
+            <ShowDialog :stop-auto-msg="true">
+              <WritePost :can-repeat="true"></WritePost>
+            </ShowDialog>
+          </q-popup-proxy>
         </q-btn>
         <q-btn v-else round icon="history_edu" class="q-my-md">
         </q-btn>
@@ -77,7 +83,7 @@
 </template>
 
 <script>
-import { defineComponent, ref,reactive, onMounted, watch, computed, toRefs, onUnmounted } from "vue";
+import { defineComponent, ref, reactive, onMounted, watch, computed, toRefs, onUnmounted } from "vue";
 import EssentialLink from "components/EssentialLink.vue";
 import { useQuasar } from "quasar";
 import { LocalStorage } from "quasar";
@@ -89,6 +95,10 @@ import { useNotificationsStore } from 'src/stores/notifications';
 import { useRouter } from "vue-router";
 import NotifyType from "src/components/notify/NotifyType.vue";
 import { useGlobalStore } from "src/stores/global";
+
+import ShowDialog from 'src/components/ShowDialog.vue';
+import WritePost from "src/components/posts/WritePost.vue";
+
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
@@ -104,8 +114,10 @@ export default defineComponent({
 
   components: {
     EssentialLink,
+    ShowDialog,
+    WritePost
     // NotifyType
-},
+  },
   data() {
     return {
       token: LocalStorage.getItem("token"),
@@ -120,7 +132,7 @@ export default defineComponent({
     const rightDrawerOpen = ref(false);
     const $q = useQuasar();
 
-    const userHandle2 = computed(()=>userStore.getUser).value
+    const userHandle2 = computed(() => userStore.getUser).value
 
     const miniState = ref(computed(() => {
       return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
@@ -128,43 +140,43 @@ export default defineComponent({
     const miniStateR = ref(computed(() => {
       return !($q.screen.gt.xs && $q.screen.lt.md) ? ref(false) : ref(true)
     }))
-    const linksList= [
-  {
-    title: "home",
-    icon: "home",
-    link: "/home",
-  },
-  {
-    title: "Search",
-    icon: "search",
-    link: "/Search",
-  },
-  {
-    title: "Notify",
-    icon: "notifications",
-    link: "/notifications",
-  },
-  {
-    title: "Channel",
-    icon: "group",
-    link: "/channel/user",
-  },
-  {
-    title: "Bookmark",
-    icon: "bookmark",
-    link: "/bookmark",
-  },
-  {
-    title: "User",
-    icon: "person",
-    link: "/user/details/" + userHandle2,
-  },
+    const linksList = [
+      {
+        title: "home",
+        icon: "home",
+        link: "/home",
+      },
+      {
+        title: "Search",
+        icon: "search",
+        link: "/Search",
+      },
+      {
+        title: "Notify",
+        icon: "notifications",
+        link: "/notifications",
+      },
+      {
+        title: "Channel",
+        icon: "group",
+        link: "/channel/user",
+      },
+      {
+        title: "Bookmark",
+        icon: "bookmark",
+        link: "/bookmark",
+      },
+      {
+        title: "User",
+        icon: "person",
+        link: "/user/details/" + userHandle2,
+      },
 
-  {
-    title: "more",
-    icon: "more_horiz",
-  },
-]
+      {
+        title: "more",
+        icon: "more_horiz",
+      },
+    ]
 
     return {
       essentialLinks: linksList,
@@ -196,7 +208,7 @@ export default defineComponent({
         },
       });
     },
-    goHome(){
+    goHome() {
       this.router.push({
         name: "Home",
       });
