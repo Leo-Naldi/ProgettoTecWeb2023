@@ -9,6 +9,7 @@ const ReactionSchema = new mongoose.Schema({
     negative: { type: Number, default: 0, min: 0 },
 }, { _id: false });
 
+// GEOJson objects
 const pointSchema = new mongoose.Schema({
     type: {
       type: String,
@@ -32,9 +33,6 @@ const MessageMetaSchema = new mongoose.Schema({
         type: Date, 
         default: Date.now 
     },
-    geo: { 
-        type: pointSchema
-    },  // defined as GeoJSON Objects
     impressions: {
         type: Number,
         required: true,
@@ -47,6 +45,8 @@ const MessageMetaSchema = new mongoose.Schema({
 const ContentSchema = new mongoose.Schema({
     text: String,
     image: String,  // image url
+    geo: pointSchema,
+    video: String,
 }, { _id: false })
 
 
