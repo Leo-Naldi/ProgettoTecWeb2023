@@ -17,7 +17,7 @@ const SocketServer = require('./socket/SocketServer');
 const PlansRouter = require('./routes/plans');
 const PublicRouter = require('./routes/public');
 const DebugRouter = require('./routes/debug');
-const SquealCrons = require('./config/crons');
+const { SquealCrons } = require('./config/crons');
 
 class ExpressServer {
     constructor() {
