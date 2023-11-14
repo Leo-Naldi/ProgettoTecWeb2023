@@ -26,8 +26,9 @@ class UserContent{
             }
         }
 
+        this.table_container = $('<div>');
         this.data_table = new DataTable(
-            this.container, 
+            this.table_container, 
             headers, 
             'http://localhost:8000/users', 
             after_row_select,
@@ -148,14 +149,13 @@ class UserContent{
 
             if (query.admin) query.admin = true;
 
-            dt.mount(query);
+            dt.filter = query;
         })
 
         this.container.append(this.filters);
         this.container.append(modal);
-        this.data_table.mount({
-            results_per_page: 25,
-        });
+        this.container.append(this.table_container);
+        this.data_table.mount();
     }
 
     #makeModal(id) {

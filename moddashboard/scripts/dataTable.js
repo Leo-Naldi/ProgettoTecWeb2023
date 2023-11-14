@@ -1,22 +1,31 @@
 class DataTable {
     
+
+    #headers;
+    #table = null;
+    #spinner = null;
+    #container;
+    #endpoint;
+    #data_transform;
+    #selected_row = null;
+    #selected_user = null;
+    #after_row_select;
+
+    #results_per_page;
+    #page = 1;
+    #pages = null;
+
+    #pagination = null;
+    #filter = {};
+
     constructor(container, headers, endpoint, after_row_select, data_transform = null, results_per_page = 25) {
         this.#headers = headers;
-        this.#table = null;
-        this.#spinner = null;
         this.#container = container;
         this.#endpoint = endpoint;
         this.#data_transform = data_transform;
-        this.#selected_row = null;
-        this.#selected_user = null;
         this.#after_row_select = after_row_select;
         
         this.#results_per_page = results_per_page;
-        this.#page = 1;
-        this.#pages = null;
-
-        this.#pagination = null;
-        this.#filter = {};
     }
 
     /**
@@ -28,7 +37,7 @@ class DataTable {
         this.#pages = null;
         this.#selected_row = null;
         this.#selected_user = null;
-        this.#mount();
+        this.mount();
     }
 
     get filter() {
@@ -81,21 +90,21 @@ class DataTable {
     /**
     * Creates the table anew.
     */
-    #mount() {
+    mount() {
         this.#container.empty();
         this.#mountSpinner();
 
         this.#fetchData()
             .then(data => {
+                this.#spinner?.remove();
 
                 this.#pages = data.pages;
+                console.log(this.#pages);
 
                 this.#table = this.#makeTable(data);
-                this.#spinner?.remove();
-                this.#container.append(this.#table);
-
                 this.#pagination = this.#makePagination()
-
+                
+                this.#container.append(this.#table);
                 this.#container.append(this.#pagination);
             })
     }
@@ -108,7 +117,10 @@ class DataTable {
 
                 this.#table = this.#makeTable(data);
                 this.#spinner?.remove();
-                this.#table.insertBefore(this.#pagination);
+                this.#pagination?.remove();
+                this.#pagination = this.#makePagination();
+                this.#container.append(this.#table);
+                this.#container.append(this.#pagination);
             })
     }
 
@@ -210,7 +222,9 @@ class DataTable {
             })
 
             ul.append(li);
-        })
+        });
+
+        ul.append(last);
 
         nav.append(ul);
 
@@ -218,12 +232,12 @@ class DataTable {
     }
 
     #getPages() {
-        if (this.page === 1) {
-            return _.range(1, 4);
-        } else if (this.page === this.#pages) {
-            return _.range(this.pages - 2, this.pages + 1);
+        if (this.#page === 1) {
+            return _.range(1, Math.min(3, this.#pages) + 1);
+        } else if (this.#page === this.#pages) {
+            return _.range(this.#pages - 2, this.#pages + 1);
         } else {
-            return [this.page -1, this.page, this.page + 1];
+            return [this.#page - 1, this.#page, this.#page + 1];
         }
     }
 
@@ -239,7 +253,7 @@ class DataTable {
             this.selected_user = null;
         }
 
-        this.after_row_select(this);
+        this.#after_row_select(this);
     }
 
     static #getToken() {

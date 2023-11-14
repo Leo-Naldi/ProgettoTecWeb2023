@@ -1,6 +1,8 @@
 let user_table = null;
 let message_table = null;
 let channel_table = null;
+let container = null;
+let tabs = null;
 
 
 $(function () {
@@ -102,23 +104,22 @@ function makeLogin() {
 
 function mountDashboard(){
 
-    let container = $('div.container');
-    
+    container = $('div.container');
     container.empty();
 
-    let header = makeDashboardHeader();
+    tabs = makeDashboardHeader();
     let users = makeUserContent();
     let messages = makeMessagesContent();
     let channels = makeChannelsContent();
 
-    container.append(header);
+    container.append(tabs);
 
     let main = $('<main>');
     container.append(main);
 
     main.append(users);
-    main.append(messages);
-    main.append(channels);
+    //main.append(messages);
+    //main.append(channels);
 
     addTabClickListeners();
 }
@@ -150,7 +151,7 @@ function makeDashboardHeader() {
 function makeUserContent() {
     
     let result = $("<div>", {
-        'class': 'container active-content',
+        'class': 'container content active-content',
         id: 'usersContent',
     })
     
@@ -162,7 +163,7 @@ function makeUserContent() {
 
 function makeMessagesContent() {
     return $(`
-        <div class="content" id="messagesContent">
+        <div id="messagesContent">
             <div class="row my-3 d-flex justify-content-center" id="message-search-widgets">     
                 <div class="col-md-5" id="filter-dropdowns">
                     <div class="form-group">
@@ -186,7 +187,7 @@ function makeMessagesContent() {
 
 function makeChannelsContent() {
     return $(`
-        <div class="content" id="channelsContent">
+        <div id="channelsContent">
             <!-- Channels content goes here -->
             <h2>Channels Content</h2>
         </div>
@@ -195,17 +196,33 @@ function makeChannelsContent() {
 
 function addTabClickListeners() {
     $(".nav-link").click(function () {
-        // Remove the 'active' class from all tabs
-        $(".nav-link").removeClass("active");
-        // Add the 'active' class to the clicked tab
-        $(this).addClass("active");
+       
+        if (!$(this).hasClass("active")) {
 
-        // Hide all content sections
-        $(".content").removeClass("active-content");
+            $(".nav-link").removeClass("active");
+            $(this).addClass("active");
+            
+            $('main').empty();
+            let new_content_name = $(this).attr("id");
+            let new_content = null;
 
-        // Show the corresponding content section based on the clicked tab
-        var tabId = $(this).attr("id").replace("Tab", "Content");
-        $("#" + tabId).addClass("active-content");
+            switch (new_content_name) {
+                case 'usersTab': {
+                    new_content = makeUserContent();
+                    break;
+                } case 'messagesTab' : {
+                    new_content = makeMessagesContent();
+                    break;
+                } case 'channelsTab' : {
+                    new_content = makeChannelsContent();
+                    break;
+                } default: {
+                    throw new Error(`Unknown content name: ${new_content_name}`);
+                }
+            }
+
+            $('main').append(new_content);
+        }
     });
 }
 
