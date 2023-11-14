@@ -10,7 +10,7 @@ export const usePostStore = defineStore("post", {
   }),
 
   getters: {
-    getPosts: (state) => state.allPosts,
+    getPosts: (state) => state.allPosts, // get the first 100 posts
     getOfficialPosts: (state) => state.allOfficialPosts,
     getUserPosts: (state) => state.userPosts,
   },
@@ -82,9 +82,9 @@ export const usePostStore = defineStore("post", {
       }
     },
     // fetch all posts
-    async fetchPosts() {
+    async fetchPosts(page=1) {
       console.log("i've fetched again all posts!");
-      return API.all_messages()
+      return API.all_messages(page)
         .then((response) => {
           var myTweets_list = [];
           if (response.status === 200) {
@@ -103,7 +103,9 @@ export const usePostStore = defineStore("post", {
             }); */
             myTweets_list = this.messageHandler(response.data.results);
 
-            this.allPosts = myTweets_list;
+            this.allPosts = this.allPosts.concat(myTweets_list);
+            console.log("now you're fetching "+page+" th page.")
+
             // this.findUserMessages()
           }
         })

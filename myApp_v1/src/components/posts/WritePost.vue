@@ -26,8 +26,8 @@
 
         <div class="image-container">
           <q-img :src="newPost.imageURL" v-if="newPost.imageURL != ''" spinner-color="white" class="my-img" />
-          <ShowMap v-if="newPost.coordinate.length != 0" :mapId="newPost.mapName" :my-position="newPost.coordinate" />
-          <q-btn @click="deleteImage" v-if="newPost.imageURL != '' || newPost.coordinate.length != 0" flat round
+          <ShowMap v-if="newPost.coordinates.length != 0" :mapId="newPost.mapName" :my-position="newPost.coordinates" />
+          <q-btn @click="deleteImage" v-if="newPost.imageURL != '' || newPost.coordinates.length != 0" flat round
             class="closeIcon" color="red" icon="fa-regular fa-circle-xmark" />
         </div>
 
@@ -346,7 +346,7 @@ const newPost = reactive({
   content: "",
   imageURL: "",
   mapName: "tmp",
-  coordinate: [],
+  coordinates: [],
   destUsers: null,
   destChannels: null,
   answering: props.id != "" ? props.id :
@@ -492,7 +492,7 @@ const repeteSend = () => {
   const repeat_template = ref("")
   if (setRepeatContent.value != 'content') {
     const geo_repeat = mapStore.getCurrentLocation()
-    repeat_json.meta = { geo: { type: "Point", coord: toRaw(geo_repeat) } };
+    repeat_json.meta = { geo: { type: "Point", coordinates: toRaw(geo_repeat) } };
   }
   if (setContentOptions.value != null) {
     repeat_json.content = {}
@@ -554,6 +554,22 @@ const repeteSend = () => {
     }, repeatTime.value); /* 1000 = 1s */
     globalStore.setAutoTimerId(tmpTimer);
   }
+  else{
+    const tmpTimer = setInterval(async () => {
+      dateHandler.msg_counter += 1
+
+      await postStore.sendPost(user_handle, repeat_json).then().catch(error => {
+        if (error.response) {
+          stopAutoMessage()
+          alert("stop auto message you've ran out of the characters!")
+        }
+        console.log("post  error!", error)
+      })
+      console.log("repeat content: ", repeat_json)
+      // console.log("repeat couter: ", dateHandler)
+    }, repeatTime.value); /* 1000 = 1s */
+    globalStore.setAutoTimerId(tmpTimer);
+  }
 }
 
 
@@ -563,8 +579,8 @@ const repeteSend = () => {
                functions
  *******************************************/
 const getGeo = () => {
-  newPost.coordinate = mapStore.getCurrentLocation()
-  alert(newPost.coordinate)
+  newPost.coordinates = mapStore.getCurrentLocation()
+  alert(newPost.coordinates)
 }
 
 const whoCanSee = () => {
@@ -601,11 +617,11 @@ const sendNewPost = () => {
     }
     toSend.content.image = newPost.imageURL
   }
-  if (newPost.coordinate.length != 0)                                                      // coordinate
-    toSend.meta = { geo: { type: "Point", coord: toRaw(newPost.coordinate) } };
+  if (newPost.coordinates.length != 0)                                                      // coordinate
+    toSend.meta = { geo: { type: "Point", coordinates: toRaw(newPost.coordinates) } };
 
 
-  if (newPost.imageURL != "" || newPost.coordinate.length != 0 || newPost.content != "") {
+  if (newPost.imageURL != "" || newPost.coordinates.length != 0 || newPost.content != "") {
     // TODO: 可能需要更新 store 的值？？？ 回复页，全部页，用户消息页
     postStore.sendPost(user_handle, toSend)
   }
@@ -613,7 +629,7 @@ const sendNewPost = () => {
   newPost.everyOneCanSee = true
   newPost.content = ""
   newPost.imageURL = ""
-  newPost.coordinate = []
+  newPost.coordinates = []
   newPost.destUsers = null
   newPost.destChannels = null
 }
@@ -621,7 +637,7 @@ const sendNewPost = () => {
 // TODO: 当点击叉号后连带后端里的图片也删掉
 const deleteImage = () => {
   newPost.imageURL = ""
-  newPost.coordinate = []
+  newPost.coordinates = []
 }
 
 // 获得调用上传图片 API 之后的返回值

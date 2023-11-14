@@ -3,7 +3,9 @@ import { api } from "boot/axios";
 export default {
   userDetails: (user_id)=> "#/user/details/"+user_id,
   channelDetails: (channel_id) =>"#/channel/details/"+channel_id,
-  hashtagPath: (hashtag) => "#/search/"+hashtag,
+  // hashtagPath: (hashtag) => "#/search/"+hashtag,
+  hashtagPath: (hashtag) => "#/tag/%23"+hashtag,
+
   checkMail: (email)=> api.get("public/forget-password",{params:email}),
   checkAvailability:(data)=>api.get("public/registration", {params: data}),
   forgetPassword:(email)=>api.post("mail/verfication-code", email),
@@ -21,7 +23,9 @@ export default {
   stripe_config: ()=>api.get("stripe/config"),
   stripe_pay:(plan_name)=>api.get("stripe/create-payment-intent",{params:plan_name}), //TODO:传递支付的金额
 
-  all_messages: () => api.get("messages/"),
+
+  all_messages: (page) => api.get("messages/?page="+page),
+  // all_messages: () => api.get("messages/"),
   all_official_posts: ()=> api.get("public/messages/"),                                  // get public posts
   all_users: () => api.get("users/"),
   all_channels: () => api.get("channels/"),
