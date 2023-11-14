@@ -95,6 +95,30 @@ function makeLocalTestData() {
         test_env.addTestUser({ handle: `lt_pro_user${i+num}`, pro: true, autoRenew: true }));
 }
 
+function makeRandomGeoMessages() {
+
+    const author_index = _.random(test_env.users.length - 1);
+    const n = _.random(10, 20);
+
+    test_env.addRandomMessages({
+        today: n,
+        authorIndex: author_index,
+    });
+
+    _.last(test_env.messages, n).map(m => {
+        m.publicMessage = true;
+        m.destChannel = [];
+        m.content = {
+            geo: {
+                'type': 'Point',
+                coordinates: [_.random(361) + Math.random(), _.random(361) + Math.random()],
+            }
+        }
+
+        if (Math.random() > 0.5) m.content.text = TestEnv.lorem.generateSentences(1);
+    });
+}
+
 /**
  * Data used in postman tests at 
  */
@@ -864,6 +888,7 @@ async function makeDefaultUsers() {
     makeTestData();
     makeMessagesWithImages();
     makeLocalTestData();
+    makeRandomGeoMessages()
 
     await test_env.saveAll();
 

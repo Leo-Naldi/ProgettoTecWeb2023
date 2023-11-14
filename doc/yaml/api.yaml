@@ -524,8 +524,27 @@ paths:
                       example: This is an example squeal that contains very interesting info.
                     image:
                       type: string
-                      format: binary
-                      description: An image
+                      description: An Image URL
+                    video: 
+                      type: string 
+                      description: A video URL 
+                    geo: 
+                      type: object
+                      description: GeoJson point object, the field type is set by the server so 
+                        it is optional.
+                      properties:
+                        type: 
+                          type: string 
+                          enum:
+                            - Point 
+                          default: 'Point'
+                        coordinates:
+                          type: array
+                          maxLength: 2
+                          minLength: 2 
+                          description: Latitude and Longitude
+                          example: [0.5, 248.9]
+                      required: [coordinates]
                 dest:
                   type: array
                   items:
@@ -2559,7 +2578,7 @@ components:
         reactions:
           type: object
           required: [positive, negative]
-          description: Bookkeeping data on reactions
+          description: Book-keeping data on reactions
           properties:
             positive:
               type: object
@@ -2593,13 +2612,12 @@ components:
               example: This is an example squeal that contains very interesting info.
             image:
               type: string
-              format: binary
-              description: An image
-        posted:
-          type: string
-          description: Message's timestamp
-          format: date-time
-          example: "2021-01-30T08:30:00Z"
+              description: An image url
+            video:
+              type: string
+              description: A video url
+            geo:
+              $ref: '#/components/schemas/GeoSchema'
         author:
           type: string
           description: The author's handle
@@ -2621,8 +2639,6 @@ components:
           type: string 
           format: date 
           description: Last time the message was modified
-        geo:
-          $ref: '#/components/schemas/GeoSchema'
         impressions:
           type: number 
           description: Number of times the message was viewed.
@@ -2642,6 +2658,7 @@ components:
           maxLength: 2
           minLength: 2
           example: [45.89, 42.069]
+      required: [type, coordinates]
     Channel:
       type: object
       required: [name, created, owner, publicChannel, official]

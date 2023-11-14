@@ -599,6 +599,13 @@ class MessageService {
             official: official,
         });
 
+
+        if ((message.content.geo) && (message.content.geo.coordinates)) {
+            message.content.geo = {
+                type: 'Point',
+                coordinates: message.content.geo.coordinates,
+            };
+        }
         if (destChannel?.length) message.destChannel = destChannel.map(c => c._id);
         if (destUser?.length) message.destUser = destUser.map(u => u._id);
         if (answering_record) message.answering = answering;
