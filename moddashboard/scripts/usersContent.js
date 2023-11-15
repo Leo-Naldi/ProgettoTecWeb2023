@@ -1,4 +1,5 @@
 class UserContent{
+
     constructor(container) {
         this.container = container;
         this.filters = null;
@@ -117,48 +118,21 @@ class UserContent{
     }
 
     #makeModal(id) {
-        let modal = $('<div>', {
-            'class': 'modal modal-lg fade',
-            id: id,
-            tabindex: -1,
-            'aria-hidden': true,
-            role: 'dialog',
-            'aria-labeledby': 'modal-title',
-        })
 
+        let modal_headers = [
+            $('<h1>', {
+                'text': 'Edit @' + this.data_table?.selected_user?.handle,
+                'class': 'modal-title fs-5',
+                'id': 'modal-title'
+            }),
+            $('<button>', {
+                'type': 'button',
+                'class': 'btn-close',
+                'data-bs-dismiss': 'modal',
+                'aria-label': 'Close'
+            }),
+        ]
         
-        let dialog = $('<div>', {
-            'class': 'modal-dialog',
-            role: 'document'
-        })
-        
-        modal.append(dialog)
-
-        let modal_content = $('<div>', {
-            'class': 'modal-content'
-        });
-
-        dialog.append(modal_content);
-
-        modal_content.append($('<div>', {
-            'class': 'modal-header', 
-        }).append($('<h1>', {
-            'text': 'Edit @'+ this.data_table?.selected_user?.handle,
-            'class': 'modal-title fs-5',
-            'id': 'modal-title'
-        })).append($('<button>', {
-            'type': 'button',
-            'class': 'btn-close',
-            'data-bs-dismiss': 'modal',
-            'aria-label': 'Close'
-        })))
-
-
-        let modal_body = $('<div>', {
-            'class': 'modal-body',
-        })
-
-        modal_content.append(modal_body);
 
         let form = $(`
             <form>
@@ -188,10 +162,8 @@ class UserContent{
             </form>
         `);
 
-        modal_body.append(form);
+        let onSohw = event => {
 
-        modal.on('show.bs.modal', event => {
-            
             let user = this.data_table.selected_user;
             $('.modal-title').text(`Edit @${user?.handle}`);
             $('#daily-characters').attr('value', user?.charLeft.day);
@@ -199,11 +171,11 @@ class UserContent{
             $('#monthly-characters').attr('value', user?.charLeft.month);
             $('#blocked-switch').attr('checked', user.blocked);
             $('#admin-switch').attr('checked', user.admin);
-        });
+        };
 
-        modal.on('hidden.bs.modal', event => {
+       let onHide = event => {
             form.trigger('reset')
-        })
+        };
 
         let dt = this.data_table;
         let user_cont = this;
@@ -219,7 +191,7 @@ class UserContent{
             // satanism, since checkbocks give no value if they are not checked
             body.blocked = !!body.blocked;
             body.admin = !!body.admin;
-            
+
             if (body.blocked == user.blocked) {
                 delete body.blocked;
             }
@@ -233,8 +205,8 @@ class UserContent{
                 week: body.week,
                 month: body.month,
             }
-            body.charLeft = _.mapObject(charLeft, function(val, key) { return parseInt(val) });
-            
+            body.charLeft = _.mapObject(charLeft, function (val, key) { return parseInt(val) });
+
             delete body.day; delete body.week; delete body.month;
 
             authorizedRequest({
@@ -248,6 +220,6 @@ class UserContent{
             user_cont.edit_button?.attr('disabled', true);
         })
 
-        return modal;
+        return makeModDashboardModal(id, modal_headers, form, onSohw, onHide);
     }
 }
