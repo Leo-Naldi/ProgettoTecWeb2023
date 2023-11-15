@@ -92,48 +92,6 @@ class UserContent{
             'class': 'form-group'
         }).append(this.edit_button)));
 
-        let f = $(`
-            <form class="row my-3 d-flex justify-content-center" id="user-search-widgets">
-                <div class="col-md-7">
-                    <div class="input-group">
-                        <input name="handle" type="text" class="form-control" placeholder="Search by Name" id="userSearchInput">
-                    </div>
-                </div>
-                <div class="col-md-3" id="user-filter">
-                    <div class="form-group">
-                        <label for="accountTypeFilter">Account Type:</label>
-                        <select class="form-control" id="accountTypeFilter" name="accountType">
-                            <option value="">All</option>
-                            <option value="user">User</option>
-                            <option value="pro">Pro User</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="userPopularityFilter">Popularity:</label>
-                        <select class="form-control" id="userPopularityFilter" name="popularity">
-                            <option value="">All</option>
-                            <option value="popular">Popular</option>
-                            <option value="unpopular">Unpopular</option>
-                            <option value="controversial">Controversial</option>
-                        </select>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="admin" value="true" id="flexCheckDefault">
-                        <label class="form-check-label" for="flexCheckDefault">
-                            Admins Only
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary">Search</button>
-                    </div>
-                    <div class="form-group">
-                        <button type="button" class="btn btn-primary" disabled>Edit</button>
-                    </div>
-                </div>
-            </form>
-        `);
-
         this.filters = filters_form;
 
         let dt = this.data_table;
@@ -239,8 +197,8 @@ class UserContent{
             $('#daily-characters').attr('value', user?.charLeft.day);
             $('#weekly-characters').attr('value', user?.charLeft.week);
             $('#monthly-characters').attr('value', user?.charLeft.month);
-            $('#blocked-switch').attr('value', (user.blocked) ? 'on' : 'off');
-            $('#admin-switch').attr('value', (user.admin) ? 'on': 'off');
+            $('#blocked-switch').attr('checked', user.blocked);
+            $('#admin-switch').attr('checked', user.admin);
         });
 
         modal.on('hidden.bs.modal', event => {
@@ -257,9 +215,8 @@ class UserContent{
                 acc[cur.name] = cur.value;
                 return acc;
             }, {});
-            //console.log(body)
 
-            // satanism
+            // satanism, since checkbocks give no value if they are not checked
             body.blocked = !!body.blocked;
             body.admin = !!body.admin;
             
@@ -271,17 +228,14 @@ class UserContent{
                 delete body.admin;
             }
 
-            body.charLeft = {}
-            console.log(JSON.stringify(user));
-            ['day', 'week', 'month'].map(prop => {
-                if (body[prop] != user.charLeft[prop]) {
-                    body.charLeft[prop] = parseInt(body[prop]);
-                }
-            })
+            let charLeft = {
+                day: body.day,
+                week: body.week,
+                month: body.month,
+            }
+            body.charLeft = _.mapObject(charLeft, function(val, key) { return parseInt(val) });
             
             delete body.day; delete body.week; delete body.month;
-
-            console.log(body);
 
             authorizedRequest({
                 endpoint: '/users/' + user.handle,
@@ -290,9 +244,7 @@ class UserContent{
             });
 
             modal.modal('hide');
-            dt.mount({
-                results_per_page: 25,
-            });
+            dt.mount();
             user_cont.edit_button?.attr('disabled', true);
         })
 

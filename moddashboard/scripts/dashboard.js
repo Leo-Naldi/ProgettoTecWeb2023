@@ -106,6 +106,7 @@ function mountDashboard(){
 
     container = $('div.container');
     container.empty();
+    startRefreshTokenInterval();
 
     tabs = makeDashboardHeader();
     let users = makeUserContent();

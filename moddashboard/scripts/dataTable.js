@@ -28,6 +28,10 @@ class DataTable {
         this.#results_per_page = results_per_page;
     }
 
+    get selected_user() {
+        return this.#selected_user;
+    }
+
     /**
      * @param {object} f The new filter object
      */
@@ -37,6 +41,7 @@ class DataTable {
         this.#pages = null;
         this.#selected_row = null;
         this.#selected_user = null;
+        this.#after_row_select();
         this.mount();
     }
 
@@ -99,7 +104,7 @@ class DataTable {
                 this.#spinner?.remove();
 
                 this.#pages = data.pages;
-                console.log(this.#pages);
+                //console.log(this.#pages);
 
                 this.#table = this.#makeTable(data);
                 this.#pagination = this.#makePagination()
@@ -242,24 +247,26 @@ class DataTable {
     }
 
     #selectRow(row, user) {
-        this.selected_row?.toggleClass('table-primary');
+        this.#selected_row?.toggleClass('table-primary');
         
-        if (this.selected_row?.attr('id') !== row.attr('id')) {
+        if (this.#selected_row?.attr('id') !== row.attr('id')) {
             row.toggleClass('table-primary');
-            this.selected_row = row;
-            this.selected_user = user;
+            this.#selected_row = row;
+            this.#selected_user = user;
         } else {
-            this.selected_row = null;
-            this.selected_user = null;
+            this.#selected_row = null;
+            this.#selected_user = null;
         }
 
-        this.#after_row_select(this);
+        this.#after_row_select();
     }
 
     static #getToken() {
         let mem = localStorage.getItem('modDashboardData');
+        
+        if (!mem) throw new Error("No token in localstorage");
 
-        return (mem) ? JSON.parse(mem).token : null;
+        return JSON.parse(mem).token;
     }
 
 }

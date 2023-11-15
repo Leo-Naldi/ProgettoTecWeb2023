@@ -7,7 +7,7 @@ function authorizedRequest({ endpoint, method = 'get', query = null, body = null
 
     // Create a new URL object
     const url = new URL(endpoint, baseUrl);
-    console.log(url.href);
+    //console.log(url.href);
 
     if (query) {
         const params = new URLSearchParams();
@@ -38,7 +38,7 @@ function unauthorizedRequest({ endpoint, method = 'get', query = null, body = nu
 
     // Create a new URL object
     const url = new URL(endpoint, baseUrl);
-    console.log(url.href);
+    //console.log(url.href);
 
     if (query) {
         const params = new URLSearchParams();
@@ -59,7 +59,7 @@ function unauthorizedRequest({ endpoint, method = 'get', query = null, body = nu
 
     if (body) opt.body = _.isString(body) ? body: JSON.stringify(body);
 
-    console.log(opt.body)
+    //console.log(opt.body)
 
     return fetch(url.href, opt);
 }
