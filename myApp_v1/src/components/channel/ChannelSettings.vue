@@ -103,8 +103,8 @@
 </template>
 
 <script setup>
-import MemberDetails from 'src/components/MemberDetails.vue';
-import RequestsDetails from 'src/components/RequestsDetails.vue';
+import MemberDetails from 'src/components/channel/MemberDetails.vue';
+import RequestsDetails from 'src/components/channel/RequestsDetails.vue';
 
 import ShowDialog from 'src/components/ShowDialog.vue';
 import ConfirmPopup from 'src/components/ConfirmPopup.vue';
@@ -204,8 +204,8 @@ const deleteChannelPost = (() => {
 </script>
 
 <!-- <script>
-import MemberDetails from 'src/components/MemberDetails.vue';
-import RequestsDetails from 'src/components/RequestsDetails.vue';
+import MemberDetails from 'src/components/channel/MemberDetails.vue';
+import RequestsDetails from 'src/components/channel/RequestsDetails.vue';
 
 import ShowDialog from 'src/components/ShowDialog.vue';
 import ConfirmPopup from 'src/components/ConfirmPopup.vue';

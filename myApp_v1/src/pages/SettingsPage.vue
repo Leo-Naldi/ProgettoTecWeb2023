@@ -10,6 +10,9 @@
             <q-tab name="planSettings" label="premium" style="justify-content: left" content-class="q-pl-md" />
 
             <q-tab name="safeSettings" label="safe settings" style="justify-content: left" content-class="q-pl-md" />
+            <q-tab name="privacySettings" label="privacy settings" style="justify-content: left"
+              content-class="q-pl-md" />
+
             <q-tab name="authSettings" label="Account safety" style="justify-content: left" content-class="q-pl-md" />
 
             <q-tab name="deleteAccount" label="Delete Account" style="justify-content: left" content-class="q-pl-md" />
@@ -78,7 +81,7 @@
                   </q-item-section>
                 </q-item>
 
-  <!--               <q-separator inset="" spaced="10px" />
+                <!--               <q-separator inset="" spaced="10px" />
                 <q-item>
                   <q-item-section>
                     <q-item-label>Auto Renew</q-item-label>
@@ -102,7 +105,7 @@
                       <!-- <q-popup-proxy></q-popup-proxy> -->
                       <q-dialog v-model="cancelPlan" persistent>
 
-                      <ConfirmPopup :confirm-data="5">{{ cancelPlanPopup }}</ConfirmPopup>
+                        <ConfirmPopup :confirm-data="5">{{ cancelPlanPopup }}</ConfirmPopup>
                       </q-dialog>
                     </q-btn>
                   </q-item-section>
@@ -192,6 +195,27 @@
                 <q-separator inset="" spaced="10px" /> -->
               </q-list>
             </q-tab-panel>
+            <q-tab-panel name="privacySettings" class="q-pt-sm">
+              <div class="text-h5 col-12 q-mb-md">Login Logs</div>
+              <q-list class="text-body2">
+                <q-item>
+                  <q-item-section>
+                    <q-item-label clickable class="cursor-pointer">See hided posts
+                      <q-popup-proxy>
+                        <div class="flex flex-center" style="width: 400px;position:absolute;">
+                          <ShowDialog>
+                            <q-list separator v-if="hided_posts.length>0">
+                              <ShowPost v-for="post in hided_posts" :key="post.id" v-bind="post" clickable />
+                            </q-list>
+                            <p v-else>No hided posts!</p>
+                          </ShowDialog>
+                        </div>
+                      </q-popup-proxy>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-tab-panel>
             <q-tab-panel name="authSettings" class="q-pt-sm">
               <div class="text-h5 col-12 q-mb-md">Login Logs</div>
               <q-list class="text-body2">
@@ -242,21 +266,26 @@
 import ShowDialog from 'src/components/ShowDialog.vue';
 import ConfirmPopup from 'src/components/ConfirmPopup.vue';
 import InsertPopup from 'src/components/InsertPopup.vue';
+import ShowPost from 'src/components/posts/ShowPost.vue';
 import { reactive, ref, computed } from 'vue';
 import { useAuthStore } from 'src/stores/auth';
 import { useUserStore } from 'src/stores/user';
+import { usePostStore } from 'src/stores/posts';
 
 export default {
   name: 'SettingsPage',
-  setup(){
+  setup() {
     const userStore = useUserStore()
-    const storedUser = computed(()=>userStore.getUserJson)
+    const postStore = usePostStore()
+    const storedUser = computed(() => userStore.getUserJson)
     const isMember = JSON.parse(JSON.stringify(storedUser.value)).subscription
+    const hided_posts = computed(() => postStore.getHideList)
 
     return {
       userStore,
       storedUser,
-      isMember
+      isMember,
+      hided_posts
     }
   },
   data() {
@@ -274,7 +303,7 @@ export default {
       prompt: ref(false),
       telephone: ref(''),
       resetPassword: ref(false),
-      cancelPlan:ref(false),
+      cancelPlan: ref(false),
       deleteAccountProps: ref(false),
       insertHeader: "Modify your email!",
       modifyTelephone: ref(false),
@@ -292,21 +321,22 @@ export default {
   components: {
     ShowDialog,
     ConfirmPopup,
-    InsertPopup
+    InsertPopup,
+    ShowPost
   },
   methods: {
     filteredData(formData) {
       return Object.entries(formData)
-      .reduce((acc, [key, value]) => {
-        if (value !== '') {
-          acc[key] = value;
-        }
-        return acc;
-      }, {})
+        .reduce((acc, [key, value]) => {
+          if (value !== '') {
+            acc[key] = value;
+          }
+          return acc;
+        }, {})
     },
     submitUserdata() {
       const userData_json = JSON.parse(JSON.stringify(this.userData))
-      const submit_userData =  this.filteredData(userData_json)
+      const submit_userData = this.filteredData(userData_json)
       this.userStore.modifyUser(submit_userData)
     }
   }

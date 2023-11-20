@@ -13,15 +13,17 @@
     "build": "quasar build"
   },
   "dependencies": {
+    "@faker-js/faker": "^8.3.1",
     "@fawmi/vue-google-maps": "^0.9.79",
     "@quasar/extras": "^1.0.0",
+    "@stripe/stripe-js": "^2.1.11",
     "axios": "^1.2.1",
     "date-fns": "^2.30.0",
+    "dotenv": "^16.3.1",
     "floating-vue": "^2.0.0-beta.20",
     "pinia": "^2.0.11",
     "quasar": "^2.6.0",
     "socket.io-client": "^4.7.2",
-    "@stripe/stripe-js": "^2.1.11",
     "stripe": "^14.3.0",
     "vue": "^3.0.0",
     "vue-i18n": "^9.0.0",

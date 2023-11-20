@@ -64,15 +64,15 @@
 
     <div>
       <q-list v-if="isActive === 'posts'" separator>
-        <ShowPost v-for="post in userMessageDetails.userPosts" :key="post.id" v-bind="post"
+        <ShowPost :canModify="true" v-for="post in userMessageDetails.userPosts" :key="post.id" v-bind="post"
           class="q-py-md" clickable/>
       </q-list>
       <q-list v-if="isActive === 'replies'" separator>
-        <ShowPost v-for="post in userMessageDetails.userReplies" :key="post.id" v-bind="post"
+        <ShowPost v-for="post in userMessageDetails.userReplies" :key="post.id" v-bind="post" :canModify="true"
           class=" q-py-md" clickable />
       </q-list>
       <q-list v-if="isActive === 'media'" separator>
-        <ShowPost v-for="post in userMessageDetails.userMedias" :key="post.id" v-bind="post"
+        <ShowPost :canModify="true" v-for="post in userMessageDetails.userMedias" :key="post.id" v-bind="post"
           class="q-py-md" clickable/>
       </q-list>
       <q-list v-if="isActive === 'likes'" separator>

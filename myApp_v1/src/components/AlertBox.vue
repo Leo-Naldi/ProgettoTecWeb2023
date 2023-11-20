@@ -44,7 +44,9 @@ export default defineComponent({
   flex: 1;
 }
 
-.alert-box-close {
-  cursor: pointer;
-}
+
+</style>
+<style lang="sass">
+.alert-box-close
+  cursor: pointer
 </style>

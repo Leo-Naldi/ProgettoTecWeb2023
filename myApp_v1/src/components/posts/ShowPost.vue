@@ -17,14 +17,15 @@
         <q-btn flat round color="grey-5" icon="more_horiz" @click.stop>
           <q-menu>
             <q-list style="min-width: 100px">
-              <q-item clickable v-close-popup v-if="canModify" @click="deletePost(id)">
+              <q-item v-if="canModify" clickable v-close-popup @click="deletePost(id)">
                 <q-item-section color="red">delete</q-item-section>
               </q-item>
-              <q-item clickable v-close-popup v-if="canModify" @click="modifyPost(id)">
+              <q-item v-if="canModify" clickable v-close-popup @click="modifyPost(id)">
                 <q-item-section>Modify</q-item-section>
               </q-item>
-              <q-item clickable v-close-popup @click="hidePost(id)">
-                <q-item-section>Hide</q-item-section>
+              <q-item v-if="!canModify" clickable v-close-popup>
+                <q-item-section @click="hidePost(id)" v-if="!hide">Hide</q-item-section>
+                <q-item-section @click="cancelHidePost(id)" v-else>Cancel Hide</q-item-section>
               </q-item>
             </q-list>
           </q-menu>
@@ -73,11 +74,12 @@
 
         </div>
 
-        <div class="my-button" id="reply">
-          <q-btn id="replyBtn" flat round icon="fa-regular fa-comment" size="sm" @click.stop.prevent="showReplies(id)">
-            <!-- <q-popup-proxy>
-            <NewPosts :id="id" :author="author"></NewPosts>
-          </q-popup-proxy> -->
+        <div class="my-button" id="reply" @click.stop>
+          <q-btn id="replyBtn" flat round icon="fa-regular fa-comment" size="sm">
+            <!-- @click.stop.prevent="showReplies(id)" -->
+            <q-popup-proxy v-if="router.currentRoute.value.name != 'PostDetail'">
+              <WritePost :id="id" :author="author" />
+            </q-popup-proxy>
           </q-btn>
           <span>{{ postReplies.length }}</span>
         </div>
@@ -89,7 +91,8 @@
         </div>
 
         <div class="my-button">
-          <q-btn id="bookmark" flat round icon="fa-regular fa-bookmark" size="sm" @click.stop.prevent="addToBookmark(id)">
+          <q-btn id="bookmark" flat round :icon="collected ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'" size="sm"
+            @click.stop.prevent="bookmarkHandler(collected, id)">
           </q-btn>
         </div>
       </div>
@@ -107,6 +110,7 @@ import { formatDistance } from "date-fns";
 import { parseISO } from "date-fns";
 import { onMounted, reactive, ref } from "vue";
 import ShowMap from 'src/components/map/ShowMap.vue'
+import WritePost from "./WritePost.vue";
 
 const props = defineProps({
   id: {
@@ -174,10 +178,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  // hide:{
-  //   type: Boolean,
-  //   default: false,
-  // }
+  collected: {
+    type: Boolean,
+    default: false,
+  },
+  hide: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 /******************************************
@@ -225,9 +233,17 @@ const modifyPost = (id) => { };
 const hidePost = (id) => {
   postStore.hidePost(id);
 };
+const cancelHidePost = (id) => {
+  postStore.cancelHidePost(id)
+}
 
-const addToBookmark = (id) => {
-  postStore.addToBookmark(id);
+const bookmarkHandler = (collected, id) => {
+  if (!collected) {
+    postStore.addToBookmark(id);
+  }
+  else {
+    postStore.removeBookmark(id)
+  }
 };
 
 const userLikes = reactive({

@@ -51,7 +51,7 @@ class MailService {
 
     setTimeout(async ()=>{   
         await VerificationCode.deleteMany({ mail: email })
-    },1000*60*5) //1 min, 1000=1s
+    },1000*60*5) //5 min, 1000=1s
 
     
   }

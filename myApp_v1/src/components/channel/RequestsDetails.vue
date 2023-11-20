@@ -56,7 +56,7 @@
 
 <script>
 import { ref } from 'vue'
-import UserEnum from './UserEnum.vue';
+import UserEnum from '../UserEnum.vue';
 
 export default {
   components:{

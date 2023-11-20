@@ -21,7 +21,7 @@ export default {
   delete_plan: (handle)=>api.delete("users/"+handle+"/subscription"),           // buy plan
   get_plans:()=>api.get("plans/"),                                              // get plan
   stripe_config: ()=>api.get("stripe/config"),
-  stripe_pay:(plan_name)=>api.get("stripe/create-payment-intent",{params:plan_name}), //TODO:传递支付的金额
+  stripe_pay:(plan_name)=>api.get("stripe/create-payment-intent",{params:plan_name}), //TODO:except for 'EUR' (current: 'EUR' bu currency default)
 
 
   all_messages: (page) => api.get("messages/?page="+page),
@@ -39,18 +39,13 @@ export default {
 
   search_channel: (channel_name) => api.get("channels/?name=" + channel_name),    // find channel with name *name*
   search_user: (user_name) => api.get("users/?handle=" + user_name),              // find user with name *name*
-  search_messages: (msg_name) => api.get("messages/?text=" + msg_name),
-  search_keywords: (msg_name) => api.get("messages/?keywords=" + msg_name),           // find messages with text *text*
-           // find messages with text *text*
-/*   search_keywords: (keywords) => api.get("messages/", {
-    params: {
-      "keywords": keywords
-    }
-  }), */
-  search_mentions: (mention) => api.get("messages/?mentions=" + mention),           // find messages with text *text*
-
 
   // TODO: more search API
+  search_messages: (text) => api.get("messages/?text=" + text),
+  search_keywords: (keywords, page=0) => api.get("messages/?keywords=" + keywords+"&results_per_page="+page),           // find messages with single keywords
+  search_mentions: (mention, page=0) => api.get("messages/?mentions=" + mention+"&results_per_page="+page),           // find messages with text *text*
+  search_time:(before, after, page=0)=>api.get("messages/?before="+before+"&after="+after+"&results_per_page="+page),
+
 
   get_message:(msg_id) =>api.get("messages/"+msg_id),
   delete_message: (msg_id)=> api.delete("messages/"+msg_id),

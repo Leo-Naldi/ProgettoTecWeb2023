@@ -27,7 +27,7 @@
       <div class="q-pa-md q-gutter-sm" style="height: 80px">
         <q-avatar v-for="n in channelDetails.members_name.length" :key="n" size="40px" class="overlapping"
           :style="`left: ${n * 25}px`">
-          <img :src="`https://cdn.quasar.dev/img/avatar${n + 1}.jpg`">
+          <img :src="`https://cdn.quasar.dev/img/avatar${(n + 1)%5+1}.jpg`">
         </q-avatar>
 
         <div style="margin-left: 12rem; margin-top: 1rem;">
@@ -84,7 +84,7 @@
 
 
 <script setup>
-import ChannelButton from 'src/components/ChannelButton.vue';
+import ChannelButton from 'src/components/channel/ChannelButton.vue';
 import { useChannelStore } from 'src/stores/channels.js';
 import { useAuthStore } from 'src/stores/auth';
 import { useUserStore } from 'src/stores/user';
@@ -94,8 +94,8 @@ import { ref, onMounted, reactive } from "vue";
 import ShowPost from "src/components/posts/ShowPost.vue";
 import ShowDialog from "src/components/ShowDialog.vue";
 import { useRouter } from "vue-router";
-import MemberDetails from 'src/components/MemberDetails.vue';
-import ChannelSettings from 'src/components/ChannelSettings.vue';
+import MemberDetails from 'src/components/channel/MemberDetails.vue';
+import ChannelSettings from 'src/components/channel/ChannelSettings.vue';
 
 const channelStore = useChannelStore()
 const postStore = usePostStore()

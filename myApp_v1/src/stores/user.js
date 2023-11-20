@@ -41,10 +41,12 @@ export const useUserStore = defineStore("User", {
       return await API.all_users()
         .then((response) => {
           if (response.status === 200) {
-            for (var element in response.data) {
+            const userArr = response.data.results
+            // console.log("fetchAutoComplete user res: ", userArr)
+            for (var element in userArr) {
               var tmp_res2 = { value: "", username: "" };
-              tmp_res2.value = response.data[element].handle;
-              tmp_res2.username = response.data[element].username;
+              tmp_res2.value = userArr[element].handle;
+              tmp_res2.username = userArr[element].username;
               this.autoComplateAllUser.push(tmp_res2);
             }
           }

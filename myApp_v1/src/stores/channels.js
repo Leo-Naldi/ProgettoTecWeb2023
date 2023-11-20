@@ -5,12 +5,16 @@ import { useNotificationsStore } from "./notifications";
 export const useChannelStore = defineStore("channel", {
   state: () => ({
     allChannel: [],
+    channels_list: [],
     autoComplateAllChannel: [],
   }),
 
   getters: {
     getChannels(state) {
       return state.allChannel;
+    },
+    getChannelLists(state){
+      return state.channels_list
     },
     getAutoComplateAllChannel(state) {
       return state.autoComplateAllChannel;
@@ -22,16 +26,33 @@ export const useChannelStore = defineStore("channel", {
       return await API.all_channels()
         .then((response) => {
           if (response.status === 200) {
-            for (var element in response.data) {
+            const channelArr = response.data.results;
+            console.log("fetchAutoComplete channel res: ", channelArr);
+            console.log(
+              "fetchAutoComplete channel length: ",
+              channelArr.length
+            );
+            for (var element in channelArr) {
               var tmp_res2 = { value: "", label: "", searchText: "" };
-              tmp_res2.value = response.data[element].name;
-              tmp_res2.label = response.data[element].description;
-              tmp_res2.searchText = response.data[element].name;
+              tmp_res2.value = channelArr[element].name;
+              tmp_res2.label = channelArr[element].description;
+              tmp_res2.searchText = channelArr[element].name;
               this.autoComplateAllChannel.push(tmp_res2);
             }
           }
         })
         .catch((err) => console.log("fetch all channels error!!!", err));
+    },
+    async fetchChannels() {
+      try {
+        const response = await API.all_channels();
+        this.channels_list=response.data.results
+        console.log("fetch all channel res: ", response.data)
+        return response.data.results;
+      } catch (error) {
+        console.log("fetch all channel error!!!", error);
+        throw error;
+      }
     },
     async fetchAllChannelName() {
       return await API.all_channels_name()
@@ -89,13 +110,13 @@ export const useChannelStore = defineStore("channel", {
       return await API.delete_channel_messages(channel_name)
         .then((response) => {
           if (response.status === 200) {
-            console.log("you've delete all "+channel_name+"'s messages!")
-            return response.status
+            console.log("you've delete all " + channel_name + "'s messages!");
+            return response.status;
           }
         })
         .catch((err) => {
-          console.log("delete channel message error!", err)
-          return err.response.status
+          console.log("delete channel message error!", err);
+          return err.response.status;
         });
     },
     async addChannelMember(channel_name, handle) {
@@ -130,7 +151,7 @@ export const useChannelStore = defineStore("channel", {
     },
     async refuseChannelEditor(channel_name, handle) {
       let refuseEditorJson = { removeRequests: [handle] };
-      console.log("我正在移除这个人的频道编辑请求：", channel_name, [handle]);
+      // console.log("我正在移除这个人的频道编辑请求：", channel_name, [handle]);
 
       return await API.modify_channel_editor(channel_name, refuseEditorJson)
         .then((response) => {

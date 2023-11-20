@@ -63,7 +63,7 @@
 <script setup>
 import { useUserStore } from "src/stores/user";
 import { onMounted, reactive } from "vue";
-import ChannelEnum from "src/components/ChannelEnum.vue";
+import ChannelEnum from "src/components/channel/ChannelEnum.vue";
 
 const userStore = useUserStore()
 const userChannels = reactive({

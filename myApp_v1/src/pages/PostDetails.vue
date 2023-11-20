@@ -14,7 +14,7 @@
       <ShowPost v-for="post in postInfo.replies" :key="post.id" v-bind="post" clickable />
 
     </q-list>
-    <p v-if="postInfo.replies.length <= 0">没有相关回复</p>
+    <p v-if="postInfo.replies.length <= 0" class="flex flex-center">No replies!</p>
   </q-page>
 </template>
 
