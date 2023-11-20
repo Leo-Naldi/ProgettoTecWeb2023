@@ -318,7 +318,17 @@ class TestEnv {
     /**
      * Creates a randomized non official channel and adds it to this.channels. name, description, members
      * creators, date of creation etc are chosen at random.
-     * 
+     * test_env.addRandomMessages({ 
+                    today: 1,
+                    authorIndex: author_index,
+                });
+
+                test_env.messages.at(-1).content.image = 
+                    `http://localhost:8000/image/${h}/${img.name}`;
+                test_env.messages.at(-1).publicMessage = true;
+                test_env.messages.at(-1).destUser = [];
+                test_env.messages.at(-1).destChannel = [];
+                test_env.messages.at(-1).meta.created = (new dayjs()).toDate();
      * @param {number} creatorInd The channel's creator index, if lower than 0 the creato is selected at random.
      * @param {number} min_members The minimum number of members.
      */
@@ -712,10 +722,10 @@ class TestEnv {
      */
     static getRandomIndexes(n, min_length=1) {
 
-        let random_length = TestEnv.getRandom(min_length, n+1);
+        let random_length = _.random(min_length, n+1);
         
         let indexes = _.range(n);
-        indexes = TestEnv.shuffle(indexes);
+        indexes = _.shuffle(indexes);
 
         return indexes.slice(0, random_length);
     }

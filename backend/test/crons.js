@@ -2,8 +2,8 @@ const { expect } = require("chai");
 const User = require("../models/User");
 const dayjs = require('dayjs');
 const config = require("../config");
-const SquealCrons = require("../config/crons");
 const { logger } = require("../config/logging");
+const { resetDaily, resetWeekly, resetMonthly, renewSubscriptions } = require("../config/crons");
 
 describe("Crons Tests", function() {
 
@@ -30,11 +30,10 @@ describe("Crons Tests", function() {
         let users;
 
         before(async function(){
-            let sq = new SquealCrons(null);
 
-            await sq.resetDaily();
-            await sq.resetWeekly();
-            await sq.resetMonthly();
+            await resetDaily();
+            await resetWeekly();
+            await resetMonthly();
 
             users = await User.find().populate('subscription.proPlan');
         });
@@ -78,10 +77,8 @@ describe("Crons Tests", function() {
             
             no_renew_users.map(u => expect(u.subscription).to.not.be.null);
             no_renew_users = no_renew_users.map(u => u.handle);
- 
-            let sq = new SquealCrons(null);
 
-            await sq.renewSubscriptions();
+            await renewSubscriptions();
 
             users = await User.find().populate('subscription.proPlan');
             no_renew_users = await User.find({
