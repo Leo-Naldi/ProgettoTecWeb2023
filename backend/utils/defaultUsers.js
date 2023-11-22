@@ -111,7 +111,7 @@ function makeRandomGeoMessages() {
         m.content = {
             geo: {
                 'type': 'Point',
-                coordinates: [_.random(361) + Math.random(), _.random(361) + Math.random()],
+                coordinates: [_.random(-179, 179) + Math.random(), _.random(-89, 89) + Math.random()],
             }
         }
 
