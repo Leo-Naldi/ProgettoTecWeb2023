@@ -13,14 +13,18 @@ class UserContent{
         ]
 
         let transform = (d) => {
-                d.member = (d.joinedChannels?.length) ? d.joinedChannels: '-';
-                d['account type'] = d.accountType;
-                d.editor = (d.editorChannels?.length) ? d.editorChannels : '-';
-                return d;
+            let res = _.clone(d);
+
+            res.member = (res.joinedChannels?.length) ? res.joinedChannels: '-';
+            res['account type'] = res.accountType;
+            res.editor = (res.editorChannels?.length) ? res.editorChannels : '-';
+            res.blocked = (res.blocked) ? 'true':'false';
+            
+            return res;
         }; 
 
         let after_row_select = () => {
-            if (this.data_table?.selected_user) {
+            if (this.data_table?.selected_item) {
                 this.edit_button?.attr('disabled', false);
             } else {
                 this.edit_button?.attr('disabled', true);
@@ -121,7 +125,7 @@ class UserContent{
 
         let modal_headers = [
             $('<h1>', {
-                'text': 'Edit @' + this.data_table?.selected_user?.handle,
+                'text': 'Edit @' + this.data_table?.selected_item?.handle,
                 'class': 'modal-title fs-5',
                 'id': 'modal-title'
             }),
@@ -164,7 +168,7 @@ class UserContent{
 
         let onSohw = event => {
 
-            let user = this.data_table.selected_user;
+            let user = this.data_table.selected_item;
             $('.modal-title').text(`Edit @${user?.handle}`);
             $('#daily-characters').attr('value', user?.charLeft.day);
             $('#weekly-characters').attr('value', user?.charLeft.week);
@@ -177,11 +181,13 @@ class UserContent{
             form.trigger('reset')
         };
 
+        let modal = makeModDashboardModal(id, modal_headers, form, onSohw, onHide);
+
         let dt = this.data_table;
         let user_cont = this;
         form.on('submit', function (event) {
 
-            let user = dt.selected_user;
+            let user = dt.selected_item;
             event.preventDefault();
             let body = $(this).serializeArray().reduce((acc, cur) => {
                 acc[cur.name] = cur.value;
@@ -220,6 +226,6 @@ class UserContent{
             user_cont.edit_button?.attr('disabled', true);
         })
 
-        return makeModDashboardModal(id, modal_headers, form, onSohw, onHide);
+        return modal;
     }
 }

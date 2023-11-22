@@ -1,5 +1,6 @@
+const data_display_default = (data, header) => data[header.toLowerCase()];
+
 class DataTable {
-    
 
     #headers;
     #table = null;
@@ -7,8 +8,9 @@ class DataTable {
     #container;
     #endpoint;
     #data_transform;
+    #data_display;
     #selected_row = null;
-    #selected_user = null;
+    #selected_item = null;
     #after_row_select;
 
     #results_per_page;
@@ -18,18 +20,19 @@ class DataTable {
     #pagination = null;
     #filter = {};
 
-    constructor(container, headers, endpoint, after_row_select, data_transform = null, results_per_page = 25) {
+    constructor(container, headers, endpoint, after_row_select, data_transform = _.identity, data_display = data_display_default, results_per_page = 25) {
         this.#headers = headers;
         this.#container = container;
         this.#endpoint = endpoint;
         this.#data_transform = data_transform;
+        this.#data_display = data_display;
         this.#after_row_select = after_row_select;
         
         this.#results_per_page = results_per_page;
     }
 
-    get selected_user() {
-        return this.#selected_user;
+    get selected_item() {
+        return this.#selected_item;
     }
 
     /**
@@ -40,7 +43,7 @@ class DataTable {
         this.#page = 1;
         this.#pages = null;
         this.#selected_row = null;
-        this.#selected_user = null;
+        this.#selected_item = null;
         this.#after_row_select();
         this.mount();
     }
@@ -53,7 +56,7 @@ class DataTable {
      * @param {number} n
      */
     set page(n) {
-        if ((n <= 0) || (n > this.pages)) {
+        if ((n <= 0) || (n > this.#pages)) {
             throw Error(`DataTable.page bad value: ${n}`);
         } else {
             this.#page = n;
@@ -150,10 +153,18 @@ class DataTable {
 
             let transformed = this.#data_transform?.(d) ?? d;
             this.#headers.map(header => {
-                row.append($(`<td>`, {
-                    text: transformed[header.toLowerCase()],
-                    'class': 'ellipsis-text',
-                }));
+
+                let td = $('<td>', {
+                    'class': 'ellipsis-text'
+                });
+                let content = this.#data_display(transformed, header);
+                if (_.isArray(content)) {
+                    td.append(...content);
+                } else {
+                    td.append(content);
+                }
+
+                row.append(td);
 
             });
             tbody.append(row);
@@ -168,7 +179,6 @@ class DataTable {
 
         table.append(thead);
         table.append(tbody);
-
         
         div.append(table);
 
@@ -246,16 +256,16 @@ class DataTable {
         }
     }
 
-    #selectRow(row, user) {
+    #selectRow(row, data) {
         this.#selected_row?.toggleClass('table-primary');
         
         if (this.#selected_row?.attr('id') !== row.attr('id')) {
             row.toggleClass('table-primary');
             this.#selected_row = row;
-            this.#selected_user = user;
+            this.#selected_item = data;
         } else {
             this.#selected_row = null;
-            this.#selected_user = null;
+            this.#selected_item = null;
         }
 
         this.#after_row_select();

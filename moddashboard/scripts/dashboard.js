@@ -110,8 +110,6 @@ function mountDashboard(){
 
     tabs = makeDashboardHeader();
     let users = makeUserContent();
-    let messages = makeMessagesContent();
-    let channels = makeChannelsContent();
 
     container.append(tabs);
 
@@ -119,8 +117,6 @@ function mountDashboard(){
     container.append(main);
 
     main.append(users);
-    //main.append(messages);
-    //main.append(channels);
 
     addTabClickListeners();
 }
@@ -152,7 +148,7 @@ function makeDashboardHeader() {
 function makeUserContent() {
     
     let result = $("<div>", {
-        'class': 'container content active-content',
+        'class': 'container',
         id: 'usersContent',
     })
     
@@ -163,6 +159,17 @@ function makeUserContent() {
 }
 
 function makeMessagesContent() {
+    
+    let result = $("<div>", {
+        'class': 'container',
+        id: 'messagesContent',
+    })
+
+    let messages_content = new MessageContent(result);
+    messages_content.mount();
+
+    return result;
+    
     return $(`
         <div id="messagesContent">
             <div class="row my-3 d-flex justify-content-center" id="message-search-widgets">     
@@ -209,9 +216,11 @@ function addTabClickListeners() {
 
             switch (new_content_name) {
                 case 'usersTab': {
+                    console.log('Switched to users');
                     new_content = makeUserContent();
                     break;
                 } case 'messagesTab' : {
+                    console.log('Switched to messages');
                     new_content = makeMessagesContent();
                     break;
                 } case 'channelsTab' : {
