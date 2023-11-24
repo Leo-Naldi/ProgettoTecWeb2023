@@ -39,7 +39,7 @@ class MessageService {
      */
     static async _addQueryChains({ 
         query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest, page = 1, results_per_page=config.results_per_page,
+        before, after, dest,
         official=null, mentions=[], 
         keywords=[], text='',
         reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
@@ -337,17 +337,23 @@ class MessageService {
         mentions = [], keywords = [], results_per_page=config.results_per_page, official=null,
     }={ page: 1, reqUser: null }) {
         
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
-            before, after, dest, page, reqUser, publicMessage, answering,
-            text, mentions, keywords, results_per_page, official,
+            before, after, dest, reqUser, publicMessage, answering,
+            text, mentions, keywords, official,
         })
 
         let res = await query;
 
         let updates;
+
         if (page > 0)
             updates = res.slice((page - 1) * results_per_page, page * results_per_page);
         else
@@ -371,12 +377,17 @@ class MessageService {
     static async getChannelMessages({ reqUser, name, reqChannel,
         page=1, results_per_page=config.results_per_page }){
         
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
         const query = MessageService.#populateMessageQuery(
                 Message.find({
                     destChannel: reqChannel._id,
                 }));
-
-        if (results_per_page <= 0) results_per_page = config.results_per_page;
         
         let res = await query;
 
@@ -406,6 +417,15 @@ class MessageService {
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
         
+        
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
+
         let user = await User.findOne({ handle: handle });
 
         let messagesQuery = await MessageService._addQueryChains({ 
