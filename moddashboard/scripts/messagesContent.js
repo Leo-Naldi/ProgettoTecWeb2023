@@ -8,6 +8,7 @@ class MessageContent{
             'Author',
             'Channels',
             'Users',
+            'Published',
             'Text',
             'Image',
             'Geo',
@@ -34,6 +35,7 @@ class MessageContent{
                     return $("<a>", {
                         href: d.content.image,
                         text: 'Image',
+                        target: '_blank',
                     });
                 } else {
                     return '-'
@@ -44,10 +46,14 @@ class MessageContent{
                     return $("<a>", {
                         href: `https://www.google.com/maps/search/?api=1&query=${d.content.geo.coordinates[1]},${d.content.geo.coordinates[0]}`,
                         text: 'Location',
+                        target: '_blank',
                     });
                 } else {
                     return '-';
                 }
+            } else if (header == 'Published') {
+                let val = new dayjs(d.meta.created);
+                return val.format('DD/MM/YYYY, H:m')
             }
             
             let res = d[header.toLowerCase()];
@@ -94,19 +100,19 @@ class MessageContent{
         let s = `
         
             <form id="message-search>     
-                <div class="mb-3">
+                <div class="my-3 form-group">
                     <label class="form-label" for="authorSearchInput">Author</label>
                     <input type="text" class="form-control" placeholder="Author..." id="authorSearchInput"> 
                 </div>
-                <div class="form-group">
+                <div class="form-group my-2">
                     <label class="form-label" for="destField">Destined To</label>
                     <input type="text" class="form-control" id="destField">
                 </div>
-                <div class="form-group">
+                <div class="form-group my-2">
                     <label class="form-label" for="before-filter">Before</label>
                     <input type="date" class="form-control" id="before-filter">
                 </div>
-                <div class="form-group">
+                <div class="form-group my-2">
                     <label class="form-label" for="after-filter">After</label>
                     <input type="date" class="form-control" id="after-filter">
                 </div>
@@ -121,7 +127,7 @@ class MessageContent{
             'class': 'form-group'
         }).append($('<button>', {
             'type': 'submit',
-            'class': 'btn btn-primary',
+            'class': 'btn btn-primary my-2',
             'text': 'Search',
         }))));
 
