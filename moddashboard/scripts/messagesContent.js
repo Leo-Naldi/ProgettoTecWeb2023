@@ -52,31 +52,14 @@ class MessageContent{
             
             let res = d[header.toLowerCase()];
             
-            if (_.isArray(res)) {
-                if (res.length) {
-                    return res.join(', ');
-                } else {
-                    return '-';
-                }
+            if (_.isArray(res) && (res?.length)) {
+                return res.join(', ');
+            } else if (_.isArray(res) && (!res?.length)) {
+                return '-';
             } else {
                 return res;
             }
-
-            let result = $('<div>', {
-                'class': 'ellipsis-text'
-            });
-            
-            if (d.content.text) {
-                result.append($('<div>', {
-                    'class': 'ellipsis-text',
-                    text: d.content.text
-                }));
-            }
-
-            return result;
         }
-
-        let display2 = () => 'content';
 
         let after_row_select = () => {
             if (this.data_table?.selected_item) {
@@ -218,7 +201,7 @@ class MessageContent{
         let onSohw = event => {
 
             let message = this.data_table.selected_item;
-            $('.modal-title').text(`Edit Message ${message.id}`);
+            $('.modal-title').text(`Edit Message from @${message.author}`);
             $('#positive-reactions').attr('value', message?.reactions.positive);
             $('#negative-reactions').attr('value', message?.reactions.negative);
         };
@@ -249,7 +232,7 @@ class MessageContent{
             delete body.positive; delete body.negative;
 
             authorizedRequest({
-                endpoint: '/messages/' + message.id,
+                endpoint: `/users/${message.author}/messages/${message.id}`,
                 method: 'post',
                 body: body,
             });
