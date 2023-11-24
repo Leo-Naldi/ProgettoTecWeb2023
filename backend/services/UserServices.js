@@ -93,7 +93,14 @@ class UserService {
     static async getUsers({ handle, admin, accountType, handleOnly=false, page = 1, 
         results_per_page=config.results_per_page,
      } = { page: 1, results_per_page: config.results_per_page }){
-        
+
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
         let filter = new Object();
 
         if (handle) filter.handle = { $regex: handle, $options: 'i' };
@@ -111,8 +118,6 @@ class UserService {
 
             let query = UserService.getSecureUserRecords(filter)
                             .sort('meta.created');
-
-            if (results_per_page <= 0) results_per_page = config.results_per_page;
 
             users = await query
 
