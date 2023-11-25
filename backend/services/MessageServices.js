@@ -39,9 +39,9 @@ class MessageService {
      */
     static async _addQueryChains({ 
         query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest, page = 1, results_per_page=config.results_per_page,
+        before, after, dest,
         official=null, mentions=[], 
-        keywords=[], text='',
+        keywords=[], text='', author_filter='',
         reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
         answering=null } = 
         { query: Message.find(), page: 1, 
@@ -205,13 +205,17 @@ class MessageService {
             }
         }   
 
+        if ((_.isString(author_filter)) && (author_filter?.length)) {
+            let uids = await User.find({
+                handle: { $regex: author_filter, $options: 'i' }
+            }).select('_id');
+
+            query.find({ author: { $in: _.pluck(uids, '_id') } });
+        }
+
         if (filterOnly) return query.getFilter()
 
-        query
-            .select('-__v')
-            //.populate('author', 'handle -_id')
-            //.populate('destUser', 'handle -_id')
-            //.populate('destChannel', 'name -_id');
+        query.select('-__v')
         
         if (allowedSortFields.find(elem => elem === sortField)) {
 
@@ -333,21 +337,27 @@ class MessageService {
      * @returns A message object array
      */
     static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage, answering, text='',
+        before, after, dest, publicMessage, answering, text='', author='',
         mentions = [], keywords = [], results_per_page=config.results_per_page, official=null,
     }={ page: 1, reqUser: null }) {
         
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
-            before, after, dest, page, reqUser, publicMessage, answering,
-            text, mentions, keywords, results_per_page, official,
+            before, after, dest, reqUser, publicMessage, answering,
+            text, mentions, keywords, official, author_filter: author,
         })
 
         let res = await query;
 
         let updates;
+
         if (page > 0)
             updates = res.slice((page - 1) * results_per_page, page * results_per_page);
         else
@@ -371,12 +381,17 @@ class MessageService {
     static async getChannelMessages({ reqUser, name, reqChannel,
         page=1, results_per_page=config.results_per_page }){
         
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
         const query = MessageService.#populateMessageQuery(
                 Message.find({
                     destChannel: reqChannel._id,
                 }));
-
-        if (results_per_page <= 0) results_per_page = config.results_per_page;
         
         let res = await query;
 
@@ -406,6 +421,15 @@ class MessageService {
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
         
+        
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
+
         let user = await User.findOne({ handle: handle });
 
         let messagesQuery = await MessageService._addQueryChains({ 

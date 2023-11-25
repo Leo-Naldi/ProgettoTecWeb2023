@@ -189,6 +189,13 @@ class ChannelServices{
             member: null, namesOnly: false,
         }) {
 
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
         const query = ChannelServices.getPopulatedChannelsQuery();
 
         if (name){ 
@@ -233,8 +240,6 @@ class ChannelServices{
             query.find({ publicChannel: publicChannel })
 
         query.sort('created')
-        
-        if (results_per_page <= 0) results_per_page = config.results_per_page;
 
         if (namesOnly) {
             const res = await query.select('name');

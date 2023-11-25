@@ -4,9 +4,7 @@ const Plan = require('../models/Plan');
 const config = require('../config/index');
 const dayjs = require('dayjs');
 
-const { logger } = require('../config/logging');
 const TestEnv = require('./DataCreation');
-const Message = require('../models/Message');
 
 const fs = require('fs');
 const _ = require('underscore');
@@ -111,7 +109,7 @@ function makeRandomGeoMessages() {
         m.content = {
             geo: {
                 'type': 'Point',
-                coordinates: [_.random(361) + Math.random(), _.random(361) + Math.random()],
+                coordinates: [_.random(-179, 179) + Math.random(), _.random(-89, 89) + Math.random()],
             }
         }
 
