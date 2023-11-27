@@ -93,10 +93,10 @@ function makeLocalTestData() {
         test_env.addTestUser({ handle: `lt_pro_user${i+num}`, pro: true, autoRenew: true }));
 }
 
-function makeRandomGeoMessages() {
+function makeRandomGeoMessages(author_index=-1, min=10, max=20) {
 
-    const author_index = _.random(test_env.users.length - 1);
-    const n = _.random(10, 20);
+    author_index = (author_index >= 0) ? author_index: _.random(test_env.users.length - 1);
+    const n = _.random(min, max);
 
     test_env.addRandomMessages({
         today: n,
@@ -886,7 +886,9 @@ async function makeDefaultUsers() {
     makeTestData();
     makeMessagesWithImages();
     makeLocalTestData();
-    makeRandomGeoMessages()
+    makeRandomGeoMessages();
+    makeRandomGeoMessages(u2_index, 3, 6);
+
 
     await test_env.saveAll();
 
