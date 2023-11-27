@@ -41,7 +41,7 @@ class MessageService {
         query=Message.find(), popular, unpopular, controversial, risk,
         before, after, dest,
         official=null, mentions=[], 
-        keywords=[], text='',
+        keywords=[], text='', author_filter='',
         reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
         answering=null } = 
         { query: Message.find(), page: 1, 
@@ -117,13 +117,13 @@ class MessageService {
 
             if (channels?.length) {
 
-                 query.where('destChannel').in(channels.map(c => c._id));
+                 query.where('destChannel').in(_.pluck(channels, '_id'));
 
             }
             
             if (users?.length) {
 
-                query.where('destUser').in(users.map(u => u._id));
+                query.where('destUser').in(_.pluck(users, '_id'));
             } 
         } 
 
@@ -149,13 +149,13 @@ class MessageService {
 
             if (_.isString(mentions)) {
                 mentions = [mentions]
-            } else if (!Array.isArray(mentions)) {
+            } else if (!_.isArray(mentions)) {
                 mentions = []
             }
 
             if (_.isString(keywords)) {
                 keywords = [keywords]
-            } else if (!Array.isArray(keywords)) {
+            } else if (!_.isArray(keywords)) {
                 keywords = []
             }
 
@@ -205,13 +205,18 @@ class MessageService {
             }
         }   
 
+        if ((_.isString(author_filter)) && (author_filter?.length)) {
+            
+            let uids = await User.find({
+                handle: { $regex: author_filter, $options: 'i' }
+            }).select('_id');
+
+            query.find({ author: { $in: _.pluck(uids, '_id') } });
+        }
+
         if (filterOnly) return query.getFilter()
 
-        query
-            .select('-__v')
-            //.populate('author', 'handle -_id')
-            //.populate('destUser', 'handle -_id')
-            //.populate('destChannel', 'name -_id');
+        query.select('-__v')
         
         if (allowedSortFields.find(elem => elem === sortField)) {
 
@@ -333,7 +338,7 @@ class MessageService {
      * @returns A message object array
      */
     static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage, answering, text='',
+        before, after, dest, publicMessage, answering, text='', author='',
         mentions = [], keywords = [], results_per_page=config.results_per_page, official=null,
     }={ page: 1, reqUser: null }) {
         
@@ -347,7 +352,7 @@ class MessageService {
         let query = await MessageService._addQueryChains({ query: Message.find(),
             popular, unpopular, controversial, risk,
             before, after, dest, reqUser, publicMessage, answering,
-            text, mentions, keywords, official,
+            text, mentions, keywords, official, author_filter: author,
         })
 
         let res = await query;

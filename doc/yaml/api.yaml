@@ -1148,6 +1148,13 @@ paths:
           schema:
             type: boolean 
             example: true
+        - name: author
+          in: query
+          description: Will only return messages whose handle contains the given 
+            string (matching is case insensitive).
+          schema:
+            type: string
+            example: test
       responses:
         200: 
           description: Ok 
