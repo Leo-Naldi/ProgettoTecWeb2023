@@ -117,13 +117,13 @@ class MessageService {
 
             if (channels?.length) {
 
-                 query.where('destChannel').in(channels.map(c => c._id));
+                 query.where('destChannel').in(_.pluck(channels, '_id'));
 
             }
             
             if (users?.length) {
 
-                query.where('destUser').in(users.map(u => u._id));
+                query.where('destUser').in(_.pluck(users, '_id'));
             } 
         } 
 
@@ -149,13 +149,13 @@ class MessageService {
 
             if (_.isString(mentions)) {
                 mentions = [mentions]
-            } else if (!Array.isArray(mentions)) {
+            } else if (!_.isArray(mentions)) {
                 mentions = []
             }
 
             if (_.isString(keywords)) {
                 keywords = [keywords]
-            } else if (!Array.isArray(keywords)) {
+            } else if (!_.isArray(keywords)) {
                 keywords = []
             }
 
@@ -206,6 +206,7 @@ class MessageService {
         }   
 
         if ((_.isString(author_filter)) && (author_filter?.length)) {
+            
             let uids = await User.find({
                 handle: { $regex: author_filter, $options: 'i' }
             }).select('_id');
