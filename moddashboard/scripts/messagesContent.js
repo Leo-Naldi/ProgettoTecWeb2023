@@ -98,23 +98,22 @@ class MessageContent{
         let modal = this.#makeModal(modal_id);
 
         let s = `
-        
             <form id="message-search>     
                 <div class="my-3 form-group">
                     <label class="form-label" for="authorSearchInput">Author</label>
-                    <input type="text" class="form-control" placeholder="Author..." id="authorSearchInput"> 
+                    <input name="author" type="text" class="form-control" placeholder="Author..." id="authorSearchInput"> 
                 </div>
                 <div class="form-group my-2">
                     <label class="form-label" for="destField">Destined To</label>
-                    <input type="text" class="form-control" id="destField">
+                    <input name="dest" type="text" class="form-control" id="destField">
                 </div>
                 <div class="form-group my-2">
                     <label class="form-label" for="before-filter">Before</label>
-                    <input type="date" class="form-control" id="before-filter">
+                    <input name="before" type="date" class="form-control" id="before-filter">
                 </div>
                 <div class="form-group my-2">
                     <label class="form-label" for="after-filter">After</label>
-                    <input type="date" class="form-control" id="after-filter">
+                    <input name="after" type="date" class="form-control" id="after-filter">
                 </div>
             </form>
         `
@@ -159,7 +158,13 @@ class MessageContent{
                 return acc;
             }, {});
 
-            if (query.admin) query.admin = true;
+            if (query.before) {
+                query.before = (new dayjs(query.before)).toISOString();
+            }
+
+            if (query.after) {
+                query.after = (new dayjs(query.after)).toISOString();
+            }
 
             dt.filter = query;
         })
@@ -198,6 +203,19 @@ class MessageContent{
                     <label class="form-label" for="negative-reactions">Likes</label>
                     <input name="negative" class="form-control" type="number" min="0" id="negative-reactions" />
                 </div>
+                <div class="mb-3 row">
+                    <div class="col-auto">
+                        <label class="form-label" for="dests">Add a Destination</label>
+                    </div>
+                </div>
+                <div class="mb-3 row">
+                    <div class="col-10">
+                        <input type="text" class="form-control" id="dests" placeholder="Use @ for users and § for channels" />
+                    </div>
+                    <div class="col-2">
+                        <button id="add-dest-btn" class="btn btn-primary">Add</button>
+                    </div>
+                </div>
                 <div class="d-flex flex-row-reverse">
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
@@ -207,6 +225,7 @@ class MessageContent{
         let onSohw = event => {
 
             let message = this.data_table.selected_item;
+
             $('.modal-title').text(`Edit Message from @${message.author}`);
             $('#positive-reactions').attr('value', message?.reactions.positive);
             $('#negative-reactions').attr('value', message?.reactions.negative);

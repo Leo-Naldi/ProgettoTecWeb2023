@@ -15,9 +15,9 @@ class UserContent{
         let transform = (d) => {
             let res = _.clone(d);
 
-            res.member = (res.joinedChannels?.length) ? res.joinedChannels: '-';
+            res.member = (res.joinedChannels?.length) ? res.joinedChannels.join(', '): '-';
             res['account type'] = res.accountType;
-            res.editor = (res.editorChannels?.length) ? res.editorChannels : '-';
+            res.editor = (res.editorChannels?.length) ? res.editorChannels.join(', ') : '-';
             res.blocked = (res.blocked) ? 'true':'false';
             
             return res;

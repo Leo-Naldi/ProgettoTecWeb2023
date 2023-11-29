@@ -258,11 +258,14 @@ class DataTable {
 
     #selectRow(row, data) {
         this.#selected_row?.toggleClass('table-primary');
+        this.#selected_row?.children('td').toggleClass('ellipsis-text');
         
         if (this.#selected_row?.attr('id') !== row.attr('id')) {
             row.toggleClass('table-primary');
+            row.children('td').toggleClass('ellipsis-text');
             this.#selected_row = row;
             this.#selected_item = data;
+
         } else {
             this.#selected_row = null;
             this.#selected_item = null;
