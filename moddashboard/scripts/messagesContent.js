@@ -194,33 +194,74 @@ class MessageContent{
 
 
         let form = $(`
-            <form>
+            <form id="edit-message-form">
                 <div class="mb-3">
                     <label class="form-label" for="positive-reactions">Likes</label>
                     <input name="positive" class="form-control" type="number" min="0" id="positive-reactions" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="negative-reactions">Likes</label>
+                    <label class="form-label" for="negative-reactions">Dislikes</label>
                     <input name="negative" class="form-control" type="number" min="0" id="negative-reactions" />
                 </div>
-                <div class="mb-3 row">
+                <div class="row">
                     <div class="col-auto">
                         <label class="form-label" for="dests">Add a Destination</label>
                     </div>
                 </div>
                 <div class="mb-3 row">
-                    <div class="col-10">
-                        <input type="text" class="form-control" id="dests" placeholder="Use @ for users and § for channels" />
+                    <div class="col-11">
+                        <input type="text" class="form-control" id="dests" placeholder="Use @ for handles and § for channels" />
                     </div>
-                    <div class="col-2">
+                    <div class="col-1 d-flex flex-row-reverse">
                         <button id="add-dest-btn" class="btn btn-primary">Add</button>
                     </div>
                 </div>
-                <div class="d-flex flex-row-reverse">
+                <div class="my-1">
+                    <label class="form-label" for="dests-list">Current Destinations</label>
+                    <ul class="list-group overflow-auto" id="dests-list" style="max-height: 25vh;"></ul>
+                </div>
+                <div class="mt-1 d-flex flex-row-reverse">
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         `);
+
+        let make_dest_li = d => {
+            let li = $("<li>", {
+                'class': "list-group-item d-flex justify-content-between"
+            });
+
+            li.append($("<div>", { text: d }));
+
+            let icon = $('<i>', {
+                "class": "bi bi-trash text-danger",
+                'aria-label': 'Remove from destinations',
+            })
+
+            icon.click(function(event){
+                event.preventDefault();
+                $(this).parent().remove();
+            })
+
+            li.append(icon);
+
+            return li;
+        };
+
+        form.find("#add-dest-btn").click(event => {
+            //console.log('fired')
+            event.preventDefault();
+
+            let val = $('#dests').val();
+
+            if ((val.charAt(0) === '@') || (val.charAt(0) === '§')) {
+                $('#dests-list').prepend(make_dest_li(val));
+
+                $('#dests').val("")
+            } else {
+                alert('Dests have to start with either @ or §.')
+            }
+        })
 
         let onSohw = event => {
 
@@ -229,6 +270,9 @@ class MessageContent{
             $('.modal-title').text(`Edit Message from @${message.author}`);
             $('#positive-reactions').attr('value', message?.reactions.positive);
             $('#negative-reactions').attr('value', message?.reactions.negative);
+            if (message?.dest.length){
+                $('#dests-list').append(message.dest.map(make_dest_li));
+            }
         };
 
         let onHide = event => {
