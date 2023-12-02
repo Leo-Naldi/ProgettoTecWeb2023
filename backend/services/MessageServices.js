@@ -778,7 +778,7 @@ class MessageService {
     /**
      * Modifies a message.
      */
-    static async postMessage({ id, reactions=null, text=null, socket }) {
+    static async postMessage({ id, reactions=null, text=null, dest, socket }) {
         
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
@@ -810,6 +810,18 @@ class MessageService {
             ebody.content = {
                 text: text,
             };
+        }
+
+        if ((dest) && (dest?.length)) {
+
+            let dest_users = dest.filter(d => d.charAt(0) === '@').map(d => d.slice(1));
+            let dest_channel = dest.filter(d => d.charAt(0) === '§').map(d => d.slice(1));
+
+            let users = await User.find({ handle: { $in: dest_users } });
+            let channels = await Channel.find({ handle: { $in: dest_channel } });
+
+            message.destUser = _.pluck(users, '_id');
+            message.destChannel = _.pluck(channels, '_id');
         }
 
         ebody.id = id;
