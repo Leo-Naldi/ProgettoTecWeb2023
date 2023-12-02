@@ -42,7 +42,7 @@ class MessageContent{
                 }
             } else if (header == 'Geo') {
                 if (d.content.geo) {
-                    console.log(d.content.geo)
+                    //console.log(d.content.geo)
                     return $("<a>", {
                         href: `https://www.google.com/maps/search/?api=1&query=${d.content.geo.coordinates[1]},${d.content.geo.coordinates[0]}`,
                         text: 'Location',
@@ -53,7 +53,7 @@ class MessageContent{
                 }
             } else if (header == 'Published') {
                 let val = new dayjs(d.meta.created);
-                return val.format('DD/MM/YYYY, H:m')
+                return val.format('DD/MM/YYYY, H:mm')
             }
             
             let res = d[header.toLowerCase()];
@@ -177,7 +177,6 @@ class MessageContent{
 
     #makeModal(id) {
 
-        // TODO add list items
         let modal_headers = [
             $('<h1>', {
                 'text': 'Edit Message ' + this.data_table?.selected_item?.id,
@@ -271,12 +270,13 @@ class MessageContent{
             $('#positive-reactions').attr('value', message?.reactions.positive);
             $('#negative-reactions').attr('value', message?.reactions.negative);
             if (message?.dest.length){
+                $('#dests-list').empty();
                 $('#dests-list').append(message.dest.map(make_dest_li));
             }
         };
 
         let onHide = event => {
-            form.trigger('reset')
+            form.trigger('reset');
         };
 
         let modal = makeModDashboardModal(id, modal_headers, form, onSohw, onHide);
@@ -299,6 +299,17 @@ class MessageContent{
             body.reactions = _.mapObject(reactions, function (val, key) { return parseInt(val) });
 
             delete body.positive; delete body.negative;
+
+            let dests = [];
+            $('#dests-list').children().each(function(c){
+                dests.push($(this).children('div').text());
+            })
+
+            //console.log(dests);
+            //console.log(message);
+            if (_.difference(dests, message.dest).length) {
+                body.dest = dests;
+            }
 
             authorizedRequest({
                 endpoint: `/users/${message.author}/messages/${message.id}`,
