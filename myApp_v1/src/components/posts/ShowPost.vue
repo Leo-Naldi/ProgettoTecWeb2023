@@ -1,10 +1,14 @@
 <template>
   <q-item class="my-posts q-py-md" @click="goToDetails(id)">
     <q-item-section avatar top>
-      <q-avatar color="blue-6" text-color="white" size="xl" @click.stop.prevent="gotoAuthor(author)">
+      <q-avatar color="lime-6" text-color="white" size="xl" @click.stop.prevent="gotoAuthor(author)">
         {{ author ? author[0] + author[1] : "Null" }}
+        <div v-if="userVerified===true">
+              <q-icon name="fa-solid fa-circle-check" class="verified" size="1rem"/>
+            </div>
       </q-avatar>
     </q-item-section>
+
 
     <q-item-section>
       <q-item-label class="my-post-info text-subtitle1">
@@ -251,10 +255,13 @@ const userLikes = reactive({
   userDisliked: null
 })
 
+const userVerified = ref(false)
+
 const postReplies = ref([])
 
 const fetchUserData = async (author) => {
   const data = await userStore.findUser(author)
+  userVerified.value = data.verified
   userLikes.userLiked = data.liked
   userLikes.userDisliked = data.disliked
   if (userLikes.userLiked.includes(props.id)) {

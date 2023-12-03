@@ -6,6 +6,7 @@ import { toRaw } from "vue";
 import { LocalStorage } from "quasar";
 
 const USER_KEY = "user";
+const TOKEN_KEY = "token";
 
 export const useUserStore = defineStore("User", {
   state: () => ({
@@ -23,7 +24,7 @@ export const useUserStore = defineStore("User", {
       }
       return "Error";
     },
-    getUserJson (state){
+    getUserJson(state) {
       if (state.user.user != "") {
         return state.user.user;
       } else if (LocalStorage.getItem(USER_KEY)) {
@@ -31,7 +32,14 @@ export const useUserStore = defineStore("User", {
       }
       return "Error";
     },
-    getUserToken: (state) => state.user.token,
+    getUserToken(state) {
+      if (state.user.token != "") {
+        return state.user.token;
+      } else if (LocalStorage.getItem(TOKEN_KEY)) {
+        return JSON.parse(LocalStorage.getItem(TOKEN_KEY));
+      }
+      return "Error";
+    },
     getUsers: (state) => state.allUser,
     getAutoComplateAllUser: (state) => state.autoComplateAllUser,
   },
@@ -41,7 +49,7 @@ export const useUserStore = defineStore("User", {
       return await API.all_users()
         .then((response) => {
           if (response.status === 200) {
-            const userArr = response.data.results
+            const userArr = response.data.results;
             // console.log("fetchAutoComplete user res: ", userArr)
             for (var element in userArr) {
               var tmp_res2 = { value: "", username: "" };
@@ -276,8 +284,8 @@ export const useUserStore = defineStore("User", {
       this.user.user = userJson;
       this.user.token = token;
     },
-    modifyUser(userJson){
-      this.user.user = userJson
+    modifyUser(userJson) {
+      this.user.user = userJson;
     },
     unfollowChannel(channel_name) {
       const authStore = useAuthStore();
@@ -303,6 +311,58 @@ export const useUserStore = defineStore("User", {
         "cancel join request! ",
         authStore.getUser().joinChannelRequests
       );
+    },
+    async verifyAccount(email, handle, token) {
+      // 从 localStorage 获得 handle, token
+      var submitionForm = { email: email, handle: handle, token: token }
+
+      return await API.verifyAccount(submitionForm)
+        .then((response) => {
+          if (response.status === 200) {
+            console.log(
+              "send verify account mail: ",
+              response,
+              "【"+
+              email+" , "+
+              handle+" , "+
+              token+
+              "】"
+            );
+            useNotificationsStore().showPositive(
+              "Verification mail has already send to your mail address, please check your mailbox!"
+            );
+            return response.status;
+          }
+        })
+        .catch((err) => {
+          console.log("send verify account mail failed: ", err);
+          useNotificationsStore().showNegative(
+            "send verify account mail failed with error:" + err
+          );
+          return err.response.status;
+        });
+    },
+    async verifyAccountFeedBack(handle, email, verification_url ) {
+
+      var submitionForm = {handle:handle, email: email, verification_url:verification_url }
+      return await API.verifyAccountFeedback(submitionForm)
+        .then((response) => {
+          if (response.status === 200) {
+            console.log("verified con success!", response);
+            useNotificationsStore().showPositive(
+              "You've already verified your account!"
+            );
+            return response.status;
+          }
+        })
+        .catch((err) => {
+          if (err.response.status === 409) {
+            useNotificationsStore().showNegative("verify account failed!<br/>Please get retry!");
+            return err.response.status;
+          } else {
+            console.log("verify account failed: ", err);
+          }
+        });
     },
   },
 });

@@ -61,7 +61,7 @@
               </div> -->
             </q-tab-panel>
             <q-tab-panel name="planSettings" class="q-pt-sm">
-              <div class="text-h5 col-12 q-mb-md">Security Settings</div>
+              <div class="text-h5 col-12 q-mb-md">Plan Settings</div>
               <q-list class="text-body2">
                 <q-item>
                   <q-item-section>
@@ -141,7 +141,7 @@
                     </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
-                    <q-btn flat unelevated color="primary" label="Modify" @click="resetPassword = true">
+                    <q-btn flat unelevated color="primary" label="Reset" @click="resetPassword = true">
                       <q-dialog v-model="resetPassword" persistent>
 
                         <ConfirmPopup :confirm-data="1">{{ resetPopup }}</ConfirmPopup>
@@ -193,6 +193,29 @@
                   </q-item-section>
                 </q-item>
                 <q-separator inset="" spaced="10px" /> -->
+                <q-item>
+                  <q-item-section>
+                    <q-item-label>verify</q-item-label>
+                    <q-item-label class="text-grey-6">
+                      verify your account with your mail
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <!-- TODO: 在这里输入邮箱，如果和用户注册的邮箱不同就顺便修改用户的邮箱，然后往这个邮箱发送验证邮件 -->
+                     <!-- TODO: 如果邮箱与用户的不同就弹出提示：你输入了与注册的邮箱不同的邮箱！点击确认将修改邮箱，同时会往新邮箱发送验证网址；
+                          如果相同就弹出提示：验证网址已经发送到你的邮箱！点击网址验证你的账户 -->
+                    <q-btn flat unelevated color="primary" label="Verify" @click="verifyAccount = true">
+                      <q-popup-proxy>
+                        <div class="flex flex-center" style="width: 400px;position:absolute;">
+                          <q-dialog v-model="verifyAccount" persistent>
+                            <InsertPopup :insertData="3">{{ verifyHeader }}</InsertPopup>
+                          </q-dialog>
+                        </div>
+                      </q-popup-proxy>
+                    </q-btn>
+                  </q-item-section>
+                </q-item>
+                <q-separator inset="" spaced="10px" />
               </q-list>
             </q-tab-panel>
             <q-tab-panel name="privacySettings" class="q-pt-sm">
@@ -285,7 +308,7 @@ export default {
       userStore,
       storedUser,
       isMember,
-      hided_posts
+      hided_posts,
     }
   },
   data() {
@@ -306,8 +329,10 @@ export default {
       cancelPlan: ref(false),
       deleteAccountProps: ref(false),
       insertHeader: "Modify your email!",
+      verifyHeader: "Insert your mail to send verification url!",
       modifyTelephone: ref(false),
       modifyEmail: ref(false),
+      verifyAccount: ref(false),
       confirmDelete: ref(false),
       userData: reactive({
         username: "",

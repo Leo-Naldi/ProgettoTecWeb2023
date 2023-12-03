@@ -136,6 +136,7 @@ export const useSocketStore = defineStore("socket", {
       });
 
       mysocket.on("user:changed", (message)=>{
+
         console.log("user changed: ", message)
         userStore.modifyUser(message)
         authStore.setUser(message)

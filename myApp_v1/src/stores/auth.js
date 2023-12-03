@@ -206,11 +206,12 @@ export const useAuthStore = defineStore("auth", {
       })
       .catch((err) => {
         if(err.response.status===409){
-          return err.response.status
+          useNotificationsStore().showNegative(
+            "Error code!")
 
-        useNotificationsStore().showNegative(
-          "Error code!"
-        )}
+          return err.response.status
+          }
+
 
         else{
         console.log("verify 6-digit code failed: ",err)}})

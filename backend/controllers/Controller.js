@@ -113,6 +113,10 @@ class Controller {
             requestParams.blocked = Controller.handleBoolean(requestParams.blocked);
         }
 
+        if (requestParams.verified) {
+            requestParams.verified = Controller.handleBoolean(requestParams.verified);
+        }
+
         if (requestParams.publicMessage) {
             requestParams.publicMessage = Controller.handleBoolean(requestParams.publicMessage);
         }

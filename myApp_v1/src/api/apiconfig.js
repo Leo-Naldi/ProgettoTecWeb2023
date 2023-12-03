@@ -10,6 +10,8 @@ export default {
   checkAvailability:(data)=>api.get("public/registration", {params: data}),
   forgetPassword:(email)=>api.post("mail/verfication-code", email),
   verifyCode:(code)=>api.post("mail/verifycode",code),
+  verifyAccount: (data)=>api.post("mail/verify-account", data),
+  verifyAccountFeedback: (data)=>api.post("mail/verifyAccount", data), //TODO: or, email,url ?
 
   login: (credentials) => api.post("auth/login", credentials),
   register: (handle,data) => api.put('/users/'+handle, data),

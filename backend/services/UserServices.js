@@ -150,7 +150,7 @@ class UserService {
 
     static async createUser({ handle, email, description, password,
             username, name, lastName, phone, gender, urlAvatar,
-            blocked=false, accountType='user',
+            blocked=false,verified=false, accountType='user',
             meta }) {
         
         let creation_error = null;
@@ -174,6 +174,7 @@ class UserService {
             accountType: accountType,
             smm: null,
             blocked: blocked,
+            verified: verified,
             ...extra,
         });
 
@@ -225,7 +226,7 @@ class UserService {
 
     static async writeUser({ handle, username,
         email, password, name, lastName, 
-        phone, gender, description,  blocked, charLeft, addMemberRequest, 
+        phone, gender, description,  blocked, verified, charLeft, addMemberRequest, 
         addEditorRequest, removeMember, removeEditor, admin, socket
     }) {
 
@@ -247,6 +248,8 @@ class UserService {
         });
 
         if ((blocked === true) || (blocked === false)) user.blocked = blocked;
+        if ((verified === true) || (verified === false)) user.verified = verified;  
+
 
         // Maybe protects charLeft from getting extra fields but not sure
 

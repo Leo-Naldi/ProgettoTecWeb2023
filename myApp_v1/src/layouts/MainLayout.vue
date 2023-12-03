@@ -42,7 +42,11 @@
         <q-item class="cursor-pointer flex justify-between items-center  ">
           <q-avatar avatar>
             <img src="https://cdn.quasar.dev/img/avatar2.jpg">
+            <div v-if="JSON.parse(user).verified">
+              <q-icon name="fa-solid fa-circle-check" class="verified" size="1rem"/>
+            </div>
           </q-avatar>
+
           <q-item-section class="my-avatar">
             <q-item-label class="text-weight-medium">{{ user ? JSON.parse(user).username : "Null" }}</q-item-label>
             <q-item-label caption>@{{ user ? JSON.parse(user).handle : "Null" }}</q-item-label>
@@ -456,7 +460,7 @@ export default defineComponent({
         id: "655b70e7a1062e68f7250714",
       },
     ]
-    const trendList=ref([])
+    const trendList = ref([])
 
     const whichRoute = computed(() => router.currentRoute.value)
 
@@ -474,7 +478,7 @@ export default defineComponent({
       }
 
       const origin_trend = postStore.getHashtagCountry
-      const array_proxy= JSON.parse(JSON.stringify(origin_trend))
+      const array_proxy = JSON.parse(JSON.stringify(origin_trend))
       const toRaw_proxy = toRaw(origin_trend)
 
       // console.log("getTredList proxy: ", origin_trend)
@@ -501,7 +505,7 @@ export default defineComponent({
       } */
       await postStore.makeTrendObject(toRaw_proxy)
       // const final_trend = postStore.makeTrendObject(toRaw_proxy)
-      console.log("getTredList2: ",  trendList.value)
+      console.log("getTredList2: ", trendList.value)
 
 
     })
@@ -589,7 +593,17 @@ export default defineComponent({
 });
 </script>
 
+<style lang="sass">
+.verified
+  position: absolute
+  bottom: 0rem
+  right: 0rem
+  color: $light-blue-6
+</style>
+
 <style lang="sass" scoped>
+
+
 .my-headerbar
   background-color: #ffffff
   color:#000000

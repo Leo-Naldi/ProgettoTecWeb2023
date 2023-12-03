@@ -54,7 +54,9 @@ const routes = [
       { path: "/tag/:tagName", name: "tagPage", component: () => import("pages/TagPage.vue") },
       { path: "/displore/channels", name: "disploreChannel", component: () => import("pages/followSideBarFull.vue") },
       { path: "/displore/hashtags", name: "disploreHashtag", component: () => import("pages/hashtagSideBarFull.vue") },
-
+      { path: '/verifyAccount', name: "verifyAccount", component: () => import("pages/VerifyAccount.vue"),
+        props: route => ({ email: route.query.email, handle: route.query.handle, token: route.query.token })
+      },
       { path: '/test2', name: 'test2', component: () => import('pages/HomePage.vue') },
 
 

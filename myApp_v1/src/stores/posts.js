@@ -35,7 +35,9 @@ export const usePostStore = defineStore("post", {
     async getCountryFromLocation(location) {
       // const test1= "https://maps.googleapis.com/maps/api/geocode/json?latlng=40.714224,-73.961452&key="+process.env.GOOGLEKEY
       // const response = await fetch(test1)
-      const response = await fetch(
+      /*
+        //TODO: below are ok
+        const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${location[0]},${location[1]}&key=${process.env.GOOGLEKEY}`
       );
       const data = await response.json();
@@ -48,6 +50,7 @@ export const usePostStore = defineStore("post", {
         return country ? country.short_name : "";
       }
       return "";
+      */
     },
 /*     getHashtagTrendCountry(country) {
       return this.hashtagCountry[country] || {};

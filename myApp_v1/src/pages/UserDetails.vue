@@ -8,6 +8,11 @@
         <div class="avatar">
           <q-avatar size="9rem" color="blue-6" text-color="white">
             <img src="https://cdn.quasar.dev/img/avatar2.jpg" />
+            <!-- <q-badge class="verified" > -->
+            <div v-if="userDetails.verified">
+              <q-icon name="fa-solid fa-circle-check" class="verified" size="3.5rem"/>
+            </div>
+            <!-- </q-badge> -->
             <!-- {{ paramId[0] }} -->
           </q-avatar>
         </div>
@@ -110,6 +115,7 @@ const onActive = (nameLink) => {
 const userDetails = reactive({
   userName: null,
   handle: null,
+  verified: false,
   description: "Hi~",
   joined_channels: 0,
   co_edited_channels: 0,
@@ -136,6 +142,7 @@ const fetchUserData = async (paramId) => {
   const data = await userStore.findUser(paramId)
   userDetails.handle=data.handle
   userDetails.userName=data.username
+  userDetails.verified=data.verified
   userDetails.description=data.description
   userDetails.joined_channels=data.joinedChannels
   userDetails.co_edited_channels=data.editorChannels
