@@ -103,21 +103,28 @@ class MessageService {
             
             let users = [], channels =[];
 
-            // only private messages you can see are the ones addressed to you or a channel you
-            // are a member of
-
             if (handles?.length) {
+                // some of the given handles did not exist
 
                 users = await User.find({ handle: { $in: handles.map(h => h.slice(1)) } });
+                
+                if (users.length !== handles.length) {
+                    return Message.find({ _id: null }); // will always return []
+                }
             }
 
             if (names?.length) {
+                // some of the given names did not exist
+
                 channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } });
+                if (channels.length !== names.length) {
+                    return Message.find({ _id: null }); // will always return []
+                }
             }
 
             if (channels?.length) {
 
-                 query.where('destChannel').in(_.pluck(channels, '_id'));
+                query.where('destChannel').in(_.pluck(channels, '_id'));
 
             }
             

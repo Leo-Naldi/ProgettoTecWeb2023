@@ -1129,9 +1129,10 @@ paths:
         - name: dest
           in: query
           description: Get only messages addressed to values. If value starts with @ it will be interpreted
-            as a handle, if it starts with a § it will be interpreted as a channel name. Otherwise this field will be ignored.
-            Will only returned messages addressed to ALL valid destinations provided. If one of the given values 
-            has no matching user/channel, it will be ignored.
+            as a handle, if it starts with a § it will be interpreted as a channel name. 
+            Entries starting with neither will be ignored. Will only returned messages addressed 
+            to ALL valid destinations provided. If a non existant handle/name is provided, it will 
+            always result in an empty array.
           schema:
             type: string 
             example: ['@feltri', '§canalebello67']
