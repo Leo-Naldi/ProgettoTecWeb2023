@@ -105,7 +105,7 @@ class MessageContent{
                 </div>
                 <div class="form-group my-2">
                     <label class="form-label" for="destField">Destined To</label>
-                    <input name="dest" type="text" class="form-control" id="destField">
+                    <input name="dest" type="text" class="form-control" id="destField" placeholder="e.g. @handle, §channel...">
                 </div>
                 <div class="form-group my-2">
                     <label class="form-label" for="before-filter">Before</label>
@@ -164,6 +164,11 @@ class MessageContent{
 
             if (query.after) {
                 query.after = (new dayjs(query.after)).toISOString();
+            }
+
+            if (query.dest) {
+                query.dest = query.dest.split(/\s*(?:,|$|\s)\s*/);
+                console.log(query.dest);
             }
 
             dt.filter = query;
