@@ -633,7 +633,8 @@ paths:
       tags:
         - User
         - Message
-      description: Change message data. Currently only the reactions can be changed by an admin.
+      description: Change message data. Users can only change their own squeals, admins can 
+        change any squeal. Reactions can only be changed by an admin.
       operationId: postMessage
       security:
         - adminAuth: []
@@ -658,20 +659,50 @@ paths:
         content:
           application/json:
             schema:
-              anyOf:
-                - $ref: '#/components/schemas/MessageImpressions'
-                - type: object 
+              type: object 
+              properties:
+                text:
+                  type: string 
+                  example: New text content 
+                  description: Text that will replace the squeal's text content
+                dest:
+                  type: array
+                  items:
+                    type: string 
+                    example: '@fvPro'
+                  description: array of the new squeal destinations. Channel names should be prefixed with
+                    § and user handles with an @. Non existant users/channels will be ignored, as well 
+                    as items not starting with either @ or §. Destinations can be removed by giving 
+                    an empty array as a value. Admins can set the destination channels to any channel, 
+                    users can only give channels to which they have editor priviledges (any other channel 
+                    given in this field will be ignored). 
+                reactions: 
+                  type: object 
                   properties:
-                    text: 
-                      type: string 
-                      description: Edited Message's text,
+                    positive: 
+                      type: integer
+                      minimum: 0
+                      description: The new amount of positive reactions the squeal has. Can only be set 
+                        by an admin. 
+                      example: 42
+                    negative: 
+                      type: integer
+                      minimum: 0
+                      description: The new amount of negative reactions the squeal has. Can only be set 
+                        by an admin.
+                      example: 42
+
       responses:
         '200':
-          description: Message Modified
+          description: Message Modified. The updated message is in the res body.
+          content:
+            application/json:
+                schema: 
+                  $ref: '#/components/schemas/Message'
         '401':
           description: Unauthorized operation
         '409':
-          description: Invalid handle
+          description: Invalid handle or message id.
 
   /messages/up/{id}:
   
@@ -1164,6 +1195,56 @@ paths:
                 type: array 
                 items:
                   $ref: '#/components/schemas/Message'
+
+  /messages/{id}:
+    delete:
+      tags:
+        - User
+        - Message
+      description: Delete the message with the given id.
+      operationId: deleteMessage
+      security:
+        - adminAuth: []
+        - userAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Message Deleted
+        '401':
+          description: Unauthorized operation
+        '409':
+          description: Invalid id.
+    get:
+      tags:
+        - Message
+      description: Get message.
+      operationId: getMessage
+      parameters:
+        - name: id
+          in: path
+          description: The message's id
+          required: True
+          schema:
+            type: integer
+            format: int128
+      responses:
+        200: 
+          description: Ok 
+          content:
+            application/json:
+              schema: 
+                  $ref: '#/components/schemas/Message'
+        401: 
+          description: Unauthorized.
+        409: 
+          description: Invalid id.
+
 
   /messages/user/{handle}/: 
     get:
