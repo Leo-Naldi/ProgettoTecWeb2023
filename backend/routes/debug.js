@@ -4,8 +4,6 @@ const User = require('../models/User');
 const { logger } = require('../config/logging');
 const Channel = require('../models/Channel');
 const _ = require('underscore');
-const Controller = require('../controllers/Controller');
-const MessageService = require('../services/MessageServices');
 const Reaction = require('../models/Reactions');
 
 
@@ -35,12 +33,14 @@ DebugRouter.get('/public_message', async (req, res) => {
         if (!author) return res.status(409).json({ message: `No user named @${req.query.author}` });
 
         filter.author = author._id;
+        logger.debug(req.query.author)
     }
+
 
     const message = await Message.findOne(filter);
 
     if (!message) {
-        return res.status(500).json({ message: 'No public message' });
+        return res.status(409).json({ message: 'No public message' });
     }
 
     return res.status(200).json({ id: message._id.toString() });

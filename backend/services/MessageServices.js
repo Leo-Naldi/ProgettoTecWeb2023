@@ -722,12 +722,15 @@ class MessageService {
     /**
      * Deletes a message
      */
-    static async deleteMessage({ id, socket }) {
+    static async deleteMessage({ reqUser, id, socket }) {
 
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
 
-        const message = await MessageService.#populateMessageQuery(Message.findById(id));
+        const message = await MessageService.#populateMessageQuery(Message.findOne({
+            _id: id,
+            author: reqUser._id,
+        }));
 
         if (message) {
 
@@ -771,22 +774,35 @@ class MessageService {
             return Service.successResponse();
         }
 
-        return Service.rejectResponse({ message: `No message with id ${id}` });
-
+        return Service.rejectResponse({ message: `No message with id ${id} from user @${reqUser.handle}` });
     }
 
     /**
      * Modifies a message.
      */
-    static async postMessage({ id, reactions=null, text=null, dest, socket }) {
+    static async postMessage({ reqUser, handle, id, reactions=null, text=null, dest=null, socket }) {
         
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
     
-        let message = await Message.findById(id);
-        let ebody = new Object()
+        let message = await Message.findById(id).populate({
+            path: 'author',
+            select: 'handle _id editorChannels',
+            populate: {
+                path: 'editorChannels',
+                select: 'name _id',
+            }
+        });
 
-        if (!message) return Service.rejectResponse({ message: 'Message not found' })
+        if ((!message) || (message.author.handle !== handle)) {
+            return Service.rejectResponse({ message: `No message with id ${id} from user @${handle}` });
+        }
+        
+
+        let editor = _.pluck(message.author.editorChannels, "name");
+        message.author = message.author._id;
+        
+        let ebody = new Object()
 
         if ((reactions) && (('positive' in reactions) || ('negative' in reactions))) {
 
@@ -812,16 +828,25 @@ class MessageService {
             };
         }
 
-        if ((dest) && (dest?.length)) {
+        if (_.isArray(dest)) {
 
             let dest_users = dest.filter(d => d.charAt(0) === '@').map(d => d.slice(1));
             let dest_channel = dest.filter(d => d.charAt(0) === '§').map(d => d.slice(1));
 
             let users = await User.find({ handle: { $in: dest_users } });
-            let channels = await Channel.find({ handle: { $in: dest_channel } });
+            let channels = await Channel.find({ name: { $in: dest_channel } });
+
+            if (!reqUser.admin) {
+                channels = channels.filter(c => editor.some(ec => ec.name === c));
+            }
 
             message.destUser = _.pluck(users, '_id');
             message.destChannel = _.pluck(channels, '_id');
+
+            ebody.dest = [
+                ..._.pluck(users, 'handle').map(h => `@${h}`),
+                ..._.pluck(channels, 'name').map(n => `§${n}`)
+            ];
         }
 
         ebody.id = id;
@@ -844,7 +869,7 @@ class MessageService {
         if (err) 
             return Service.rejectResponse({ message: 'Reaction object not valid' });
         
-        return Service.successResponse();
+        return Service.successResponse(MessageService.#makeMessageObject(message_record));
     }
 
     /**

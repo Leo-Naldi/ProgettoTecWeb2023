@@ -19,7 +19,15 @@ MessageRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
 MessageRouter.get('/:id', getAuthMiddleware('basicAuth'), async (req, res) => {
 
     await Controller.handleRequest(req, res, MessageServices.getMessage);
-})
+});
+
+//delete post of a user
+MessageRouter.delete('/:id', getAuthMiddleware('basicAuth'),
+    async (req, res) => {
+
+        await Controller.handleRequest(req, res, MessageServices.deleteMessage);
+    }
+);
 
 MessageRouter.get('/channel/:name/', getAuthMiddleware('basicAuth'), checkNameMember, async (req, res) => {
     
@@ -30,6 +38,7 @@ MessageRouter.delete('/channel/:name', getAuthMiddleware('basicAuth'), checkName
 
     await Controller.handleRequest(req, res, MessageServices.deleteChannelMessages);
 })
+
 
 MessageRouter.post('/user/:handle/', getAuthMiddleware('basicAuth'), checkOwnUserOrSMM,
     async (req, res) => {
@@ -55,26 +64,6 @@ MessageRouter.get('/user/:handle/down/', getAuthMiddleware('basicAuth'),
 
         await Controller.handleRequest(req, res, MessageServices.getDislikedMessages);
     });
-
-//delete post of a user
-MessageRouter.delete('/:id', getAuthMiddleware('basicAuth'), 
-    async (req, res) => {
-
-        let message = await Message.findById(req.params.id).populate('author', 'handle');
-
-        if (!message) return res.status(409).json({ message: `No message with id ${req.params.id}` });
-
-        if (req.user.handle !== message.author.handle) {
-            return res.status(401).json(
-                {
-                    message: 'Only the author can delete a message',
-                }
-            )
-        }
-
-        await Controller.handleRequest(req, res, MessageServices.deleteMessage);
-    }
-);
 
 // user add positive reactions
 MessageRouter.post('/up/:id', getAuthMiddleware('basicAuth'),
@@ -114,7 +103,6 @@ MessageRouter.delete('/up/:id', getAuthMiddleware('basicAuth'),
         await Controller.handleRequest(req, res, MessageServices.deletePositiveReaction);
     }
 );
-
 
 MessageRouter.delete('/down/:id', getAuthMiddleware('basicAuth'),
     async (req, res) => {
