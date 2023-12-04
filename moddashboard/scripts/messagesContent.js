@@ -307,8 +307,9 @@ class MessageContent{
 
             //console.log(dests);
             //console.log(message);
-            if (_.difference(dests, message.dest).length) {
+            if (_.intersection(dests, message.dest).length !== message.dest.length) {
                 body.dest = dests;
+                console.log(body.dest);
             }
 
             authorizedRequest({
