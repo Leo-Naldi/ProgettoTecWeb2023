@@ -283,6 +283,37 @@ function makeTestData() {
     channel = test_env.channels[channel_indexes[i]]
     test_env.users[test_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
     test_env.users[test_pro_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
+
+    //post message
+    i = 26
+    test_env.addRandomMessages({
+        authorIndex: creator_indexes[i],
+        allTime: 1
+    });
+
+    _.last(test_env.messages).publicMessage = true;
+    _.last(test_env.messages).destUser = [];
+    _.last(test_env.messages).destChannel = [];
+
+    //post message as admin
+    i=27
+    test_env.addRandomMessages({
+        authorIndex: creator_indexes[i],
+        allTime: 1
+    });
+
+    _.last(test_env.messages).publicMessage = true;
+    _.last(test_env.messages).destUser = [];
+    _.last(test_env.messages).destChannel = [];
+
+    // remove all dests
+    i = 28
+    test_env.addMessage({
+        authorIndex: creator_indexes[i],
+        destChannelIndexes: [channel_indexes[i]],
+        destUserIndexes: [test_user_indexes[i], test_pro_user_indexes[i]],
+        text: TestEnv.lorem.generateSentences(1),
+    })
 }
 
 

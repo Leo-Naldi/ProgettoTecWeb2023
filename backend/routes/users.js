@@ -123,7 +123,7 @@ UserRouter.delete('/:handle/messages/:id', getAuthMiddleware('basicAuth'), check
 })
 
 UserRouter.post('/:handle/messages/:id', getAuthMiddleware('basicAuth'), checkOwnUserOrAdmin, async (req, res) => {
-    
+    //logger.debug('hello');
     await Controller.handleRequest(req, res, MessageServices.postMessage);
 })
 

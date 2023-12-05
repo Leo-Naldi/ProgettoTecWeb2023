@@ -807,6 +807,8 @@ class MessageService {
         
 
         let editor = _.pluck(message.author.editorChannels, "name");
+        logger.debug(JSON.stringify(editor));
+
         message.author = message.author._id;
         
         let ebody = new Object()
@@ -839,12 +841,13 @@ class MessageService {
 
             let dest_users = dest.filter(d => d.charAt(0) === '@').map(d => d.slice(1));
             let dest_channel = dest.filter(d => d.charAt(0) === '§').map(d => d.slice(1));
+            logger.debug(dest_channel)
 
             let users = await User.find({ handle: { $in: dest_users } });
             let channels = await Channel.find({ name: { $in: dest_channel } });
 
             if (!reqUser.admin) {
-                channels = channels.filter(c => editor.some(ec => ec.name === c));
+                channels = channels.filter(c => editor.some(cn => cn === c.name));
             }
 
             message.destUser = _.pluck(users, '_id');
