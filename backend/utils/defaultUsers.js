@@ -323,6 +323,12 @@ function makeTestData() {
     channel.official = true;
     channel.name = channel.name.toUpperCase();
 
+    // delete official channel as admin
+    i = 30
+    channel = test_env.channels[channel_indexes[i]];
+    channel.official = true;
+    channel.name = channel.name.toUpperCase();
+
 }
 
 

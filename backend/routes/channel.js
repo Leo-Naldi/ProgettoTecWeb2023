@@ -63,7 +63,7 @@ ChannelRouter.put('/:name', getAuthMiddleware('basicAuth'), checkNameCreatorOrAd
 })
 
 
-ChannelRouter.delete('/:name', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+ChannelRouter.delete('/:name', getAuthMiddleware('basicAuth'), checkNameCreatorOrAdmin, async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.deleteChannel);
 })
