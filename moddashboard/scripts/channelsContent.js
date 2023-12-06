@@ -68,7 +68,7 @@ class ChannelsContent {
             <form id="message-search">     
                 <div class="my-3 row form-group">
                     <div class="col-md-8">
-                        <input class="form-control" name="name" type="text" placeholder="Author..." id="authorSearchInput"> 
+                        <input class="form-control" name="name" type="text" placeholder="Channel Name..." id="name-search-input"> 
                     </div>
                     <div id="message-search-buttons" class="col-auto d-flex">
                         <button type="submit" class="btn btn-primary" class="mx-1">Search</button>
@@ -120,17 +120,16 @@ class ChannelsContent {
             }, {});
 
 
-            dt.filter = query;
+            dt.filter = { ...query, official: true };
         })
-
         this.delete_button.on('click', (event) => {
             event.preventDefault();
             authorizedRequest({
-                endpoint: `/channels/${channel.name}`,
+                endpoint: `/channels/${this.data_table.selected_item.name}`,
                 method: 'delete',
-                body: body,
             }).then(() => {
-                this.data_table.mount();
+                $('#name-search-input').val('')
+                this.data_table.filter = { official: true }
             });
 
             this.edit_button?.attr('disabled', true);
@@ -165,7 +164,7 @@ class ChannelsContent {
         let form = $(`
             <form id="edit-channel-form">
                 <div class="mb-3">
-                    <input id="description" name="description" class="form-control" type="text" />
+                    <textarea id="description" name="description" class="form-control" type="text"></textarea>
                 </div>
                 <div class="mt-1 d-flex flex-row-reverse">
                     <button type="submit" class="btn btn-primary">Save</button>
