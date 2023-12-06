@@ -357,7 +357,7 @@ class ChannelServices{
     static async writeChannel({ name, newName=null, 
         owner=null, description=null, publicChannel=null, socket }) {
         
-        if (!(newName || owner || description || (publicChannel === true) || (publicChannel === false))) 
+        if (!(newName || owner || description || (_.isBoolean(publicChannel)))) 
             return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
         
         let channel = await Channel.findOne({ name: name });
