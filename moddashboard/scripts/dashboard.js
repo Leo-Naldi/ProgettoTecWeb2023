@@ -169,37 +169,18 @@ function makeMessagesContent() {
     messages_content.mount();
 
     return result;
-    
-    return $(`
-        <div id="messagesContent">
-            <div class="row my-3 d-flex justify-content-center" id="message-search-widgets">     
-                <div class="col-md-5" id="filter-dropdowns">
-                    <div class="form-group">
-                        <label for="authorSearchInput">Author:</label>
-                        <input type="text" class="form-control" placeholder="Author..." id="authorSearchInput"> 
-                    </div>
-                    <div class="form-group">
-                        <label for="destField">Destined To:</label>
-                        <input type="text" class="form-control" id="destField">
-                    </div>
-                    <div class="form-group">
-                        <label for="dateFilter">Date:</label>
-                        <input type="date" class="form-control" id="dateFilter">
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    `)
 }
 
 function makeChannelsContent() {
-    return $(`
-        <div id="channelsContent">
-            <!-- Channels content goes here -->
-            <h2>Channels Content</h2>
-        </div>
-    `)
+    let result = $("<div>", {
+        'class': 'container',
+        id: 'channelsContent',
+    })
+
+    let channels_content = new ChannelsContent(result);
+    channels_content.mount();
+
+    return result;
 }
 
 function addTabClickListeners() {

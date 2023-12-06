@@ -167,7 +167,7 @@ class MessageContent{
             }
 
             if (query.dest) {
-                query.dest = query.dest.split(/\s*(?:,|$|\s)\s*/);
+                query.dest = query.dest.split(/\s*(?:,|$)\s*/);
                 console.log(query.dest);
             }
 
@@ -310,8 +310,6 @@ class MessageContent{
                 dests.push($(this).children('div').text());
             })
 
-            //console.log(dests);
-            //console.log(message);
             if (_.intersection(dests, message.dest).length !== message.dest.length) {
                 body.dest = dests;
                 console.log(body.dest);
@@ -321,10 +319,11 @@ class MessageContent{
                 endpoint: `/users/${message.author}/messages/${message.id}`,
                 method: 'post',
                 body: body,
+            }).then(() => {
+                modal.modal('hide');
+                dt.mount();
             });
 
-            modal.modal('hide');
-            dt.mount();
             message_cont.edit_button?.attr('disabled', true);
         })
 

@@ -20,7 +20,11 @@ class DataTable {
     #pagination = null;
     #filter = {};
 
-    constructor(container, headers, endpoint, after_row_select, data_transform = _.identity, data_display = data_display_default, results_per_page = 25) {
+    constructor(container, headers, endpoint, 
+        after_row_select, data_transform = _.identity, 
+        data_display = data_display_default, results_per_page = 25,
+        default_filter={}) {
+        
         this.#headers = headers;
         this.#container = container;
         this.#endpoint = endpoint;
@@ -29,6 +33,7 @@ class DataTable {
         this.#after_row_select = after_row_select;
         
         this.#results_per_page = results_per_page;
+        this.#filter = default_filter;
     }
 
     get selected_item() {
