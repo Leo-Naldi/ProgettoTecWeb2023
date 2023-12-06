@@ -5,7 +5,7 @@ const Controller = require('../controllers/Controller');
 const ChannelServices = require('../services/ChannelServices');
 const MessageServices = require('../services/MessageServices');
 const Channel = require('../models/Channel');
-const { getAuthMiddleware, checkNameCreator } = require('../middleware/auth');
+const { getAuthMiddleware, checkNameCreator, checkNameCreatorOrAdmin } = require('../middleware/auth');
 
 
 const ChannelRouter = express.Router();
@@ -57,7 +57,7 @@ ChannelRouter.post('/:name', getAuthMiddleware('basicAuth'), async (req, res) =>
 
 
 // modify a channel
-ChannelRouter.put('/:name', getAuthMiddleware('basicAuth'), checkNameCreator, async (req, res) => {
+ChannelRouter.put('/:name', getAuthMiddleware('basicAuth'), checkNameCreatorOrAdmin, async (req, res) => {
 
     await Controller.handleRequest(req, res, ChannelServices.writeChannel);
 })

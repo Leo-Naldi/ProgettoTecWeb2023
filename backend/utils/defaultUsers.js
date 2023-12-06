@@ -8,6 +8,7 @@ const TestEnv = require('./DataCreation');
 
 const fs = require('fs');
 const _ = require('underscore');
+const { logger } = require('../config/logging');
 
 
 const pw = '12345678';
@@ -133,8 +134,9 @@ function makeTestData() {
     const test_pro_user_indexes = _.range(l).map(i =>
         test_env.addTestUser({ handle: `test_pro_user${i}`, pro: true }));
 
-    const channel_indexes = _.range(l).map(i =>
-        test_env.addTestChannel({ name: `test_channel${i}`, creatorIndex: creator_indexes[i] }));
+    const channel_indexes = _.range(l).map(i => {  
+        return test_env.addTestChannel({ name: `test_channel${i}`, creatorIndex: creator_indexes[i] });
+    });
 
     // add members test
     let i = 0
@@ -200,7 +202,7 @@ function makeTestData() {
     // delete user 
     i = 13
 
-    // change smm
+    // clogger.debug(`test_channel${i}`) hange smm
     i = 13
 
     // remove smm
@@ -314,6 +316,13 @@ function makeTestData() {
         destUserIndexes: [test_user_indexes[i], test_pro_user_indexes[i]],
         text: TestEnv.lorem.generateSentences(1),
     })
+
+    // edit official channel as admin
+    i = 29
+    channel = test_env.channels[channel_indexes[i]];
+    channel.official = true;
+    channel.name = channel.name.toUpperCase();
+
 }
 
 
