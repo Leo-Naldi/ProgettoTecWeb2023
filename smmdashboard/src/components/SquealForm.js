@@ -43,12 +43,12 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const managedAccounts = useManagedAccounts()
     const managedAccountsDispatch = useManagedAccountsDispatch()
 
-    console.log(`SquealFormModal managed: ${managed}`);
+    //console.log(`SquealFormModal managed: ${managed}`);
     
     
     const managedAccount = managedAccounts.find(u => u.handle === managed);
-    console.log(`SquealFormModal managedAccount: ${!!managedAccount}`);
-    console.log(`Managed handles: ${managedAccounts.map(m => m.handle).join(',')}`)
+    //console.log(`SquealFormModal managedAccount: ${!!managedAccount}`);
+    //console.log(`Managed handles: ${managedAccounts.map(m => m.handle).join(',')}`)
     const maxLength = Math.min(...Object.values(managedAccount.charLeft));
     
 
@@ -78,15 +78,13 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         };
 
         if (geolocate && position) {
-            body.meta = {
-                geo: {
-                    type: 'Point',
-                    coordinates: [position.lng, position.lat]
-                }
+            body.content.geo = {
+                type: 'Point',
+                coordinates: [position.lng, position.lat]
             }
         }
 
-        console.log(body);
+        //console.log(body);
 
         setPosting(true);
         const baseUrl = `http://localhost:8000/messages/user/${managed}`;

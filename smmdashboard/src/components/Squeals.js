@@ -9,22 +9,40 @@ import Typography from '@mui/material/Typography';
 import Title from './Title';
 import { useAccount } from '../context/CurrentAccountContext';
 
+import { MapContainer, TileLayer, Marker, useMapEvents, Tooltip } from 'react-leaflet';
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 import dayjs from 'dayjs';
 import Spinner from './Spinner';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Pagination } from '@mui/material';
-import fetchCheckPointData from '../utils/fetchStats';
 import { useManagedAccounts } from '../context/ManagedAccountsContext';
 import { useSocket } from '../context/SocketContext';
 import authorizedRequest from '../utils/authorizedRequest';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import ImageIcon from '@mui/icons-material/Image';
 import HideImageOutlinedIcon from '@mui/icons-material/HideImageOutlined';
+import MapIcon from '@mui/icons-material/Map';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import LocationOffOutlinedIcon from '@mui/icons-material/LocationOffOutlined';
 
 import _ from 'underscore';
-import ImageModal from './ImageModal';
 
+function LocationMarker({ point }) {
+    const map = useMapEvents({
+        load: () => {
+            map.locate();
+        },
+        locationfound: (loc) => {
+            map.flyTo(loc, map.getZoom())
+        }
+    });
+
+    return (
+        <Marker
+            position={[point.coordinates[1], point.coordinates[0]]}>
+        </Marker>
+    )
+}
 
 function parseMessage (message) {
     message.meta = {
@@ -49,6 +67,9 @@ export default function Squeals({ managed }) {
 
     const [openImageModal, setOpenImageModal] = useState(false);
     const [imageUrl, setImageUrl] = useState(null);
+
+    const [openGeoModal, setOpenGeoModal] = useState(false);
+    const [geo, setGeo] = useState(null);
 
     const smm = useAccount();
     const managedUsers = useManagedAccounts();
@@ -133,12 +154,16 @@ export default function Squeals({ managed }) {
         setOpenImageModal(false);
     }
 
+    const handleCloseGeoModal = () => {
+        setOpenGeoModal(false);
+    }
+
     return (
         <Fragment>
 
             <Dialog
                 fullWidth={true}
-                maxWidth={'sm'}
+                maxWidth={'md'}
                 open={openImageModal}
                 onClose={handleCloseImageModal}
             >
@@ -163,6 +188,45 @@ export default function Squeals({ managed }) {
                 <Divider />
                 <DialogActions>
                     <Button onClick={handleCloseImageModal}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                fullWidth={true}
+                maxWidth={'md'}
+                open={openGeoModal}
+                onClose={handleCloseGeoModal}
+            >
+                <DialogContent>
+
+                    <Box
+                        display={'flex'}
+                        justifyContent={'center'}
+                        sx={{ mt: 1 }}
+                    >
+                            <MapContainer
+                                center={[geo?.coordinates[1], geo?.coordinates[0]]}
+                                zoom={13}
+                                style={{ height: '50vh' }}
+                                touchZoom
+                                doubleClickZoom={false}
+                            >
+                                <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                />
+                                <Marker
+                                    position={[geo?.coordinates[1], geo?.coordinates[0]]}>
+                                </Marker>
+                            </MapContainer>
+
+                    </Box>
+
+
+                </DialogContent>
+                <Divider />
+                <DialogActions>
+                    <Button onClick={handleCloseGeoModal}>Close</Button>
                 </DialogActions>
             </Dialog>
 
@@ -193,7 +257,7 @@ export default function Squeals({ managed }) {
                     <TableHead>
                         <TableRow>
                             <TableCell>Published</TableCell>
-                            <TableCell>Content</TableCell>
+                            <TableCell>Text</TableCell>
                             <TableCell>Channels</TableCell>
                             <TableCell>Users</TableCell>
                             <TableCell>
@@ -204,6 +268,9 @@ export default function Squeals({ managed }) {
                             </TableCell>
                             <TableCell>
                                 <PhotoLibraryIcon />
+                            </TableCell>
+                            <TableCell>
+                                <MapIcon />
                             </TableCell>
                         </TableRow>
                     </TableHead>
@@ -224,7 +291,7 @@ export default function Squeals({ managed }) {
         return (
             <Fragment>
                 <TableRow key={`squeal-${m.id}`}>
-                    <TableCell>{m.meta.created.format('YYYY/MM/DD')}</TableCell>
+                    <TableCell>{m.meta.created.format('YYYY/MM/DD, HH:mm')}</TableCell>
                     <TableCell>
                         <Typography
                             sx={{
@@ -238,7 +305,7 @@ export default function Squeals({ managed }) {
                     <TableCell>{(destUser.length) ? destUser.join(', ') : "-"}</TableCell>
                     <TableCell>{m.reactions.positive}</TableCell>
                     <TableCell>{m.reactions.negative}</TableCell>
-                    <TableCell>{(_.isString( m.content.image)) ?
+                    <TableCell>{(_.isString( m.content.image) && (m.content.image?.length)) ?
                         (<IconButton
                             aria-label='Show Squeal Image'
                             onClick={() => {
@@ -249,7 +316,27 @@ export default function Squeals({ managed }) {
                             <ImageIcon />
                         </IconButton>
                         ) :
-                        (<HideImageOutlinedIcon />)}</TableCell>
+                        (<HideImageOutlinedIcon 
+                            aria-label='No Squeal Image'
+                            sx={{
+                                ml: 1,
+                            }} />)}</TableCell>
+
+                    <TableCell>{(m.content.geo) ?
+                        (<IconButton
+                            aria-label='Show Squeal Geolocalization'
+                            onClick={() => {
+                                setGeo(m.content.geo);
+                                setOpenGeoModal(true);
+                            }}>
+                            <LocationOnOutlinedIcon />
+                        </IconButton>
+                        ) :
+                        (<LocationOffOutlinedIcon
+                            aria-label='No Squeal Image'
+                            sx={{
+                                ml: 1,
+                            }} />)}</TableCell>
                     </TableRow>
                 </Fragment>
             );
