@@ -13,6 +13,7 @@ const SquealSocket = require('../socket/Socket');
 const Reaction = require('../models/Reactions');
 const dayjs = require('dayjs');
 const UserService = require('./UserServices');
+const { makeGetResBody } = require('../utils/serviceUtils');
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -313,26 +314,6 @@ class MessageService {
             { $inc: { 'meta.impressions': 1 } });
     }
 
-    static #makeGetResBody({ message_docs, page, results_per_page, deleteAuthor=false }) {
-
-        let res = {}
-
-        if (page > 0) {
-            res.results = message_docs
-                .slice((page - 1) * results_per_page, page * results_per_page)
-                .map(m => MessageService.#makeMessageObject(m, deleteAuthor));
-            
-                res.pages = Math.ceil(message_docs.length / results_per_page);
-        } else {
-            res.results = message_docs.map(m => MessageService.#makeMessageObject(m, deleteAuthor));
-            res.pages = 1;
-        }
-
-        res.results.map(m => m.meta.impressions += 1)
-
-        return res;
-    }
-
     /**
      * Generic Read operation for messages. A non logged-in user can only read official
      * messages. A logged-in user can read:
@@ -373,10 +354,11 @@ class MessageService {
 
         await MessageService.#updateImpressions(updates, reqUser);
 
-        return Service.successResponse(MessageService.#makeGetResBody({
-            message_docs: res,
+        return Service.successResponse(makeGetResBody({
+            docs: res,
             page: page,
             results_per_page: results_per_page,
+            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
         }));
     }
 
@@ -411,10 +393,11 @@ class MessageService {
 
         await MessageService.#updateImpressions(updates, reqUser);
 
-        return Service.successResponse(MessageService.#makeGetResBody({
-            message_docs: res,
+        return Service.successResponse(makeGetResBody({
+            docs: res,
             page: page,
             results_per_page: results_per_page,
+            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
         }));
     }
 
@@ -456,10 +439,11 @@ class MessageService {
 
         await MessageService.#updateImpressions(updates, reqUser);
 
-        return Service.successResponse(MessageService.#makeGetResBody({
-            message_docs: res,
+        return Service.successResponse(makeGetResBody({
+            docs: res,
             page: page,
             results_per_page: results_per_page,
+            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
         }));
     }
 
@@ -1244,10 +1228,11 @@ class MessageService {
 
         await MessageService.#updateImpressions(updates, reqUser);
 
-        return Service.successResponse(MessageService.#makeGetResBody({
-            message_docs: res,
+        return Service.successResponse(makeGetResBody({
+            docs: res,
             page: page,
             results_per_page: results_per_page,
+            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
         }));
     }
 

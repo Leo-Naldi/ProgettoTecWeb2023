@@ -9,6 +9,7 @@ const { logger } = require("../config/logging");
 const dayjs = require("dayjs");
 
 const _ = require('underscore');
+const { makeGetResBody } = require('../utils/serviceUtils');
 
 class UserService {
 
@@ -73,26 +74,9 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
-    static #makeGetResBody({ user_docs, page, results_per_page }) {
-        
-        let res = {}
-
-        if (page > 0) {
-            res.results = user_docs
-                .slice((page - 1) * results_per_page, page * results_per_page)
-                .map(u => UserService.makeUserObject(u));
-            res.pages = Math.ceil(user_docs.length / results_per_page);
-        } else {
-            res.results = user_docs.map(u => UserService.makeUserObject(u));
-            res.pages = 1;
-        } 
-        
-        return res;
-    }
-
-    static async getUsers({ handle, admin, accountType, handleOnly=false, page = 1, 
-        results_per_page=config.results_per_page,
-     } = { page: 1, results_per_page: config.results_per_page }){
+    static async getUsers({ handle, admin, accountType, handleOnly = false, page = 1,
+        results_per_page = config.results_per_page,
+    } = { page: 1, results_per_page: config.results_per_page }) {
 
         let old_rpp = results_per_page;
         results_per_page = parseInt(results_per_page);
@@ -109,22 +93,29 @@ class UserService {
 
         let users;
         if ((_.isBoolean(handleOnly)) && handleOnly) {
+
             users = await UserService.getSecureUserRecords(filter)
                 .sort('meta.created')
                 .select('handle');
-            
-            return Service.successResponse(users.map(u => u.handle));
+
+            return Service.successResponse(makeGetResBody({
+                docs: users,
+                page: page,
+                results_per_page: results_per_page,
+                results_f: r => _.pluck(r, 'handle'),
+            }));
         } else {
 
             let query = UserService.getSecureUserRecords(filter)
-                            .sort('meta.created');
+                .sort('meta.created');
 
             users = await query
 
-            return Service.successResponse(UserService.#makeGetResBody({
-                user_docs: users,
+            return Service.successResponse(makeGetResBody({
+                docs: users,
                 page: page,
                 results_per_page: results_per_page,
+                results_f: r => r.map(UserService.makeUserObject)
             }));
         }
 
@@ -133,6 +124,13 @@ class UserService {
     static async getUsersByPopularity({ handle, admin, accountType, handleOnly = false, page = 1,
         results_per_page = config.results_per_page, popularity=null,
     } = { page: 1, results_per_page: config.results_per_page }) {
+
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
 
         if (popularity === null) {
             return UserService.getUsers({
@@ -223,8 +221,6 @@ class UserService {
             aggregation.sort('-positive')
         } else aggregation.sort('-negative');
 
-        aggregation.skip((page -1 ) * results_per_page).limit(results_per_page);
-
         users = await aggregation;
 
         users = users.map(u => {
@@ -247,7 +243,11 @@ class UserService {
             return u;
         })
 
-        return Service.successResponse(users);
+        return Service.successResponse(makeGetResBody({
+            docs: users,
+            page: page,
+            results_per_page: results_per_page,
+        }));
     }
 
     static async getUser({ handle, includeReactions=true }) {

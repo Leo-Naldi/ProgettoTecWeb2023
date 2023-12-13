@@ -6,6 +6,7 @@ const config = require('../config');
 const { logger } = require('../config/logging');
 const SquealSocket = require('../socket/Socket');
 const _ = require('underscore');
+const { makeGetResBody } = require('../utils/serviceUtils');
 
 class ChannelServices{
 
@@ -77,25 +78,6 @@ class ChannelServices{
 
     static #trimChannelArray(arr, reqUser) {
         return arr.map(c => ChannelServices.#trimChannelObject(c, reqUser));
-    }
-
-    static #makeGetResBody({ channel_docs, page, results_per_page, reqUser }) {
-
-        let res = {}
-
-        if (page > 0) {
-            res.results = ChannelServices.#trimChannelArray(channel_docs
-                .slice((page - 1) * results_per_page, page * results_per_page)
-                .map(c => ChannelServices.#makeChannelObject(c)), reqUser);
-
-            res.pages = Math.ceil(channel_docs.length / results_per_page);
-        } else {
-            res.results = ChannelServices.#trimChannelArray(channel_docs
-                .map(c => ChannelServices.#makeChannelObject(c)), reqUser);
-            res.pages = 1;
-        }
-
-        return res;
     }
 
     // Get all channels created by the user
@@ -243,17 +225,26 @@ class ChannelServices{
 
         if (namesOnly) {
             const res = await query.select('name');
-            return Service.successResponse(res.map(c => c.name));
+
+            return Service.successResponse(makeGetResBody({
+                docs: res,
+                results_per_page: results_per_page,
+                page: page,
+                results_f: r => _.pluck(r, 'name'),
+            }));
         }
 
         const res = await query;
 
         return Service.successResponse(
-                ChannelServices.#makeGetResBody({
-                    channel_docs: res,
+                makeGetResBody({
+                    docs: res,
                     results_per_page: results_per_page,
                     page: page,
-                    reqUser: reqUser,
+                    results_f: r => ChannelServices.#trimChannelArray(
+                            r.map(c => ChannelServices.#makeChannelObject(c)),
+                            reqUser,
+                        ),
                 })
         );
 
