@@ -44,8 +44,12 @@ export default function FetchOptionsAutocomplete({ optionsPromise, onChange, id,
             onClose={() => {
                 setOpen(false);
             }}
+            onInputChange={(e, val) => {
+                optionsPromise(val).then(res => setOptions(res))
+            }}
             options={options}
             loading={loading}
+            filterOptions={x => x}
             renderInput={(params) => (
                 <TextField
                     {...params}
