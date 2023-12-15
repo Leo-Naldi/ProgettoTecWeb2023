@@ -7,26 +7,29 @@ import CircularProgress from '@mui/material/CircularProgress';
 export default function FetchOptionsAutocomplete({ optionsPromise, onChange, id, getOptionLabel, textLabel }) {
     const [open, setOpen] = useState(false);
     const [options, setOptions] = useState([]);
-    
-    const loading = open && options.length === 0;
+    const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        let active = true;
+    const handle_open = () => {
+        setOpen(true);
+        setLoading(true);
+        optionsPromise().then(res => {
+            setOptions(res);
+            setLoading(false);
+        })
+    }
 
-        if (!loading) {
-            return undefined;
-        }
+    const handle_close = () => {
+        setOpen(true);
+        setLoading(false);
+    }
 
-        (async () => {
-            const res = await optionsPromise();
-            if (active)
-                setOptions(res);
-        })();
-    
-        return () => {
-            active = false;
-        };
-    }, [loading]);
+    const handle_value_changed = (e, val) => {
+        setLoading(true);
+        optionsPromise(val).then(res => {
+            setOptions(res);
+            setLoading(false);
+        });
+    }
 
     return (
         <Autocomplete
@@ -38,15 +41,9 @@ export default function FetchOptionsAutocomplete({ optionsPromise, onChange, id,
                 mt: 1
             }}
             onChange={onChange}
-            onOpen={() => {
-                setOpen(true);
-            }}
-            onClose={() => {
-                setOpen(false);
-            }}
-            onInputChange={(e, val) => {
-                optionsPromise(val).then(res => setOptions(res))
-            }}
+            onOpen={handle_open}
+            onClose={handle_close}
+            onInputChange={handle_value_changed}
             options={options}
             loading={loading}
             filterOptions={x => x}
