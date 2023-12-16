@@ -6,13 +6,16 @@
 
 require("dotenv").config();
 const path = require("path");
- 
+
+const env = process.env.ENVIRONMENT || 'local';
+
 /** Database connection values */
 const db_host = process.env.DB_HOST || "127.0.0.1",
   db_port = process.env.DB_PORT || "27017",
   db_name = process.env.DB_NAME || "TecWebDB",
   db_username = process.env.DB_USERNAME || null,
-  db_password = process.env.DB_USERNAME || null;
+  db_password = process.env.DB_USERNAME || null,
+  db_site = process.env.DB_SITE || null;
  
 /**
  * Tests use a different db as to not disturb the main database.
@@ -31,6 +34,13 @@ const folder = path.join(rootPath, "files"); // static folder: backend/files
  * @constant
  */
 const config = {
+
+  /**
+   * Environment type
+   * @type {('local'|'deploy')}
+   */
+  env: env,
+
   /**
    * Server secret, used to create and validate tokens
    * @type {number}
@@ -43,11 +53,20 @@ const config = {
    */
   port: process.env.PORT || 8000,
   /**
+   * MongoDB docker credentials
+   * @type {object}
+   */
+  db_credentials: {
+    username: db_username,
+    site: db_site,
+    password: db_password,
+  },
+  /**
    * DB url
    * @type {string}
    */
-  db_url: (db_username) ? 
-    `mongodb://${db_username}:${db_password}@${db_host}/${db_name}`: 
+  db_url: (env === 'deploy') ? 
+    `mongodb://${db_username}:${db_password}@${db_site}/${db_name}?authSource=admin&writeConcern=majority`: 
     `mongodb://${db_host}:${db_port}/${db_name}`,
   /**
    * Test DB url

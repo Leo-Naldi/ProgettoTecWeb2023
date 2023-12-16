@@ -30,7 +30,14 @@ class ExpressServer {
             extended: false,
             limit: '50mb'
         }))
-        app.use('*', cors());
+
+        if (config.env === 'deploy') {
+            app.use(cors());
+            app.enable('trust proxy');
+        } else {
+            app.use('*', cors());
+        }
+        
         app.use((req, res, next) => {
             res.header('X-Requested-With')
             next()
