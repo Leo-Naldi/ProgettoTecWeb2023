@@ -60,7 +60,7 @@ let image_urls = [
 const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan, monthly_plan_not_pro], image_urls);
 
 function makeMessagesWithImages() {
-    fs.readdirSync('./files').map(h => {
+    fs.readdirSync(config.folder).map(h => {
         let author_index = test_env.uhti(h);
         
         if (author_index) {

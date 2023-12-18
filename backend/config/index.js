@@ -4,8 +4,12 @@
 * @module config/index
 */
 
-require("dotenv").config();
 const path = require("path");
+
+let rootPath = path.resolve(__dirname, "..");
+
+
+require("dotenv").config({ path: path.join(rootPath, '.env') });
 
 const env = process.env.ENVIRONMENT || 'local';
 
@@ -26,7 +30,6 @@ const crit_mass_base = 200;
 const danger_zone = 0.2;
 const fame_zone = 0.25;
 
-let rootPath = path.resolve(__dirname, "..");
 const folder = path.join(rootPath, "files"); // static folder: backend/files
 
 /**
@@ -126,7 +129,7 @@ const config = {
    * Log files directory
    * @type {string}
    */
-  logs_dir: process.env.LOGS_DIR,
+  logs_dir: path.join(rootPath, 'logs'),
 };
 
 module.exports = config;
