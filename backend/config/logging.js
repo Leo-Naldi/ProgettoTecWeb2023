@@ -46,7 +46,9 @@ let console = new winston.transports.Console({
     ) 
 });
 
-let transports = [
+let transports = (config.env === 'deploy') ? [
+    console,
+] : [
     combinedFileRotateTransport,
     errorFileRotateTransport,
     console,
