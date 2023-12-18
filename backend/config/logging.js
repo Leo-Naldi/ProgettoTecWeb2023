@@ -11,48 +11,52 @@ const config = require('./index');
 
 const { combine, timestamp, json, colorize, printf } = winston.format;
 
-/**
- * Default logs file, files older than  5 days are rotated out daily
- * @type {winston.transports.DailyRotateFile}
- */
-const combinedFileRotateTransport = new winston.transports.DailyRotateFile({
-    filename: 'combined-%DATE%.log',
-    datePattern: 'YYYY-MM-DD',
-    maxFiles: '5d',  // Logs older than 5 days are deleted
-    maxSize: '10m',  // 10MB
-    dirname: config.logs_dir,
-});
-
-/**
- * Error logs file, files older than  5 days are rotated out daily
- * @type {winston.transports.DailyRotateFile}
- */
-const errorFileRotateTransport = new winston.transports.DailyRotateFile({
-    filename: 'error-%DATE%.log',
-    datePattern: 'YYYY-MM-DD',
-    maxFiles: '5d',  // Logs older than 5 days are deleted
-    maxSize: '10m',  // 10MB
-    dirname: config.logs_dir,
-    level: 'error',
-});
-
-let console = new winston.transports.Console({
-    format: combine(
-        colorize({ level: true, colors: { http: 'magenta' } }),
-        timestamp({
-            format: 'YYYY-MM-DD hh:mm:ss.SSS A',  // A is PM/AM
-        }),
-        printf((info) => `[${info.timestamp}] ${info.level}: ${info.message}`)
-    ) 
-});
-
-let transports = (config.env === 'deploy') ? [
-    console,
-] : [
-    combinedFileRotateTransport,
-    errorFileRotateTransport,
-    console,
-]
+let transports = (() => {
+    if (config.env === 'deploy') {
+        return [
+            // console log
+            new winston.transports.Console({
+                format: combine(
+                    colorize({ level: true, colors: { http: 'magenta' } }),
+                    timestamp({
+                        format: 'YYYY-MM-DD hh:mm:ss.SSS A',  // A is PM/AM
+                    }),
+                    printf((info) => `[${info.timestamp}] ${info.level}: ${info.message}`)
+                )
+            })
+        ]
+    } else {
+        return [
+            // console log
+            new winston.transports.Console({
+                format: combine(
+                    colorize({ level: true, colors: { http: 'magenta' } }),
+                    timestamp({
+                        format: 'YYYY-MM-DD hh:mm:ss.SSS A',  // A is PM/AM
+                    }),
+                    printf((info) => `[${info.timestamp}] ${info.level}: ${info.message}`)
+                )
+            }),
+            // combined logs file
+            new winston.transports.DailyRotateFile({
+                filename: 'combined-%DATE%.log',
+                datePattern: 'YYYY-MM-DD',
+                maxFiles: '5d',  // Logs older than 5 days are deleted
+                maxSize: '10m',  // 10MB
+                dirname: config.logs_dir,
+            }),
+            // error logs file
+            new winston.transports.DailyRotateFile({
+                filename: 'error-%DATE%.log',
+                datePattern: 'YYYY-MM-DD',
+                maxFiles: '5d',  // Logs older than 5 days are deleted
+                maxSize: '10m',  // 10MB
+                dirname: config.logs_dir,
+                level: 'error',
+            }),
+        ]
+    }
+})();
 
 /**
  * Logger
