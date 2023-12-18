@@ -14,7 +14,7 @@ const db_host = process.env.DB_HOST || "127.0.0.1",
   db_port = process.env.DB_PORT || "27017",
   db_name = process.env.DB_NAME || "TecWebDB",
   db_username = process.env.DB_USERNAME || null,
-  db_password = process.env.DB_USERNAME || null,
+  db_password = process.env.DB_PASSWORD || null,
   db_site = process.env.DB_SITE || null;
  
 /**
