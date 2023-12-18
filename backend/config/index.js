@@ -107,7 +107,7 @@ const config = {
    */
   default_success_code: 200,
   /**
-   * Number of messages returned in each page of results, see {@link }
+   * Number of messages returned in each page of GET results
    * @type {number}
    */
   results_per_page: 100,
@@ -122,6 +122,11 @@ const config = {
   mail_password: process.env.MAIL_PASSWORD, // your mail account password
   mail_service: process.env.MAIL_SERVICE, // nodemailer default supported mail: [Well-known services – Nodemailer](https://community.nodemailer.com/2-0-0-beta/setup-smtp/well-known-services/)
   mail_host: process.env.MAIL_HOST, // if not listed in mail_service
+  /**
+   * Log files directory
+   * @type {string}
+   */
+  logs_dir: process.env.LOGS_DIR,
 };
 
 module.exports = config;
