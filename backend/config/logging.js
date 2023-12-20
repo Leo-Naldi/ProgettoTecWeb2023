@@ -11,31 +11,6 @@ const config = require('./index');
 
 const { combine, timestamp, json, colorize, printf } = winston.format;
 
-/**
- * Default logs file, files older than  5 days are rotated out daily
- * @type {winston.transports.DailyRotateFile}
- */
-const combinedFileRotateTransport = new winston.transports.DailyRotateFile({
-    filename: 'combined-%DATE%.log',
-    datePattern: 'YYYY-MM-DD',
-    maxFiles: '5d',  // Logs older than 5 days are deleted
-    maxSize: '10m',  // 10MB
-    dirname: config.logs_dir,
-});
-
-/**
- * Error logs file, files older than  5 days are rotated out daily
- * @type {winston.transports.DailyRotateFile}
- */
-const errorFileRotateTransport = new winston.transports.DailyRotateFile({
-    filename: 'error-%DATE%.log',
-    datePattern: 'YYYY-MM-DD',
-    maxFiles: '5d',  // Logs older than 5 days are deleted
-    maxSize: '10m',  // 10MB
-    dirname: config.logs_dir,
-    level: 'error',
-});
-
 let console = new winston.transports.Console({
     format: combine(
         colorize({ level: true, colors: { http: 'magenta' } }),
@@ -46,11 +21,7 @@ let console = new winston.transports.Console({
     ) 
 });
 
-let transports = (config.env === 'deploy') ? [
-    console,
-] : [
-    combinedFileRotateTransport,
-    errorFileRotateTransport,
+let transports =[
     console,
 ]
 
