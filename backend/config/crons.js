@@ -145,6 +145,7 @@ async function renewSubscriptions(socket) {
 }
 
 /**
+ * Function to reset all users's daily/weekly/montly characters.
  * 
  * @param {('day'|'week'|'month')} field the character field to update
  */
@@ -170,6 +171,10 @@ async function resetChars(field, socket) {
 
     await Promise.all(users.map(u => {
         u.charLeft[field] = quote + (u.subscription?.proPlan.extraCharacters[field] || 0)
+
+        if (u.handle === '__cron') {
+            u.charLeft[field] = 999999999;
+        }
 
         if (socket) {
             SquealSocket.userChanged({
