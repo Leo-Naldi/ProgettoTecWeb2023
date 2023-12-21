@@ -730,6 +730,8 @@ async function makeDefaultUsers() {
         u5startMessages++;
     }
 
+    
+
     while (u6startMessages % (config.num_messages_reward - 2) !== 0) {
 
         test_env.addRandomMessages({
@@ -826,7 +828,6 @@ async function makeDefaultUsers() {
             text: TestEnv.lorem.generateSentences(TestEnv.getRandom(1, 4))
         })
     }
-
 
     channel_requests_user.joinChannelRequests = [channel1._id, channel5._id, channel6._id];
     channel_requests_user.editorChannelRequests = [channel1._id, channel5._id, channel6._id];
@@ -934,8 +935,8 @@ async function makeDefaultUsers() {
     makeLocalTestData();
     makeRandomGeoMessages();
     makeRandomGeoMessages(u2_index, 3, 6);
-
-
+    
+    
     await test_env.saveAll();
 
     // Canali automatici

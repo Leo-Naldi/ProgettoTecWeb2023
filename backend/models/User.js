@@ -172,7 +172,8 @@ UserSchema.virtual('disliked', {
 
 UserSchema.pre('deleteOne', { document: true }, async function(){
     
-    const updates = (await this.constructor.find({ smm: this._id })).map(async u => {
+    let users = await this.constructor.find({ smm: this._id })
+    const updates = users.map(async u => {
         u.smm = null;
         return u.save();
     })

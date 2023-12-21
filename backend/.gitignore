@@ -3,3 +3,4 @@ logs
 out
 files
 files/*
+restart.sh

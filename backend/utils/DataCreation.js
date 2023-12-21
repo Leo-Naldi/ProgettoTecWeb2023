@@ -17,6 +17,7 @@ const LoremIpsum = require("lorem-ipsum").LoremIpsum;
 
 const _ = require('underscore');
 const Reaction = require('../models/Reactions');
+const { logger } = require('../config/logging');
 
 
 /**
@@ -554,9 +555,10 @@ class TestEnv {
      * @async
      */
     async saveAll() {
+
         await Promise.all([
-            ...this.users.map(u => u.save()),
             ...this.channels.map(c => c.save()),
+            ...this.users.map(u => u.save()),
             ...this.messages.map(m => m.save()),
             ...this.proPlans.map(p => p.save()),
             ...this.reactions.map(r => r.save()),

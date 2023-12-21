@@ -198,16 +198,5 @@ DebugRouter.get('/:handle/reacted', async (req, res) => {
     })
 });
 
-DebugRouter.post('/restartdb', async (req, res) => {
-    await User.deleteMany({});
-    await Message.deleteMany({});
-    await Channel.deleteMany({});
-    await Plan.deleteMany({});
-
-    await makeDefaultUsers();
-    logger.debug("Database Rebuilt Successfully");
-
-    res.sendStatus(200);
-})
 
 module.exports = DebugRouter;
