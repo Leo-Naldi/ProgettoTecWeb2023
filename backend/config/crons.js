@@ -214,8 +214,7 @@ class SquealCrons {
     constructor(socket) {
 
         this.cat_cron = new CronJob(
-            '0 */10 * * * *', // every 10 minutes
-            // '*/10 * * * * *',
+            '0 0 * * * *', // every hour
             addSocketContext(getrandomCatFact, socket),
         )
 
@@ -223,8 +222,7 @@ class SquealCrons {
          * Cron job that runs every 10 minutes and executes {@link getRandomDogPicture}.
          */
         this.img_cron = new CronJob(
-            '0 */10 * * * *', // every 10 minutes
-            // '*/10 * * * * *',
+            '0 0 * * * *', // every hour
             addSocketContext(getRandomDogPicture, socket),
         )
 
