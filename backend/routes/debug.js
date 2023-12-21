@@ -5,6 +5,8 @@ const { logger } = require('../config/logging');
 const Channel = require('../models/Channel');
 const _ = require('underscore');
 const Reaction = require('../models/Reactions');
+const Plan = require('../models/Plan');
+const { makeDefaultUsers } = require('../utils/defaultUsers');
 
 
 /**
@@ -195,5 +197,17 @@ DebugRouter.get('/:handle/reacted', async (req, res) => {
         negative: reactions.filter(r => r.type === 'negative').map(r => r.message),
     })
 });
+
+DebugRouter.post('/restartdb', async (req, res) => {
+    await User.deleteMany({});
+    await Message.deleteMany({});
+    await Channel.deleteMany({});
+    await Plan.deleteMany({});
+
+    await makeDefaultUsers();
+    logger.debug("Database Rebuilt Successfully");
+
+    res.sendStatus(200);
+})
 
 module.exports = DebugRouter;
