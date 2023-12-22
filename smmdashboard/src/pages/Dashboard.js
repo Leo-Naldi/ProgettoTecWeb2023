@@ -18,6 +18,7 @@ import Spinner from "../components/Spinner";
 import { useSocket } from "../context/SocketContext";
 import SupervisedUserCircleIcon from '@mui/icons-material/SupervisedUserCircle';
 import PersonIcon from '@mui/icons-material/Person';
+import LogoutListButton from "../components/LogoutListButton";
 
 
 export default function DashboardPage() {
@@ -65,11 +66,19 @@ export default function DashboardPage() {
                 <Drawer open={toggleSideDrawer}>
                     <Box
                         role={'presentation'}
-                        width={'auto'}>
-                        <Typography variant="h6">
+                        width={'auto'}
+                        sx={{
+                            m: 1,
+                        }}>
+                        <Typography variant="h6" sx={{
+                            m:1,
+                        }}>
                             Managed Users
                         </Typography>
+                        <Divider sx={{ mt: 1 }}/>
                         {getManagedUserList()}
+                        <Divider />
+                        <LogoutListButton />
                     </Box>
                 </Drawer>
             {(managed) ? (<Dashboard managed={managed}/>): (

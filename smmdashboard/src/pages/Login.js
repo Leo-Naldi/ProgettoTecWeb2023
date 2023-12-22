@@ -50,8 +50,6 @@ export default function SignIn() {
         .catch(err => console.log(err));
     };
 
-    // TODO if user is already logged in redirect to homepage
-
     return (
         (fetching) ? 
             (<Spinner />) : ((smm.loggedIn) ? 
