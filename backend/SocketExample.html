@@ -31,7 +31,7 @@
 
         $(function() {
 
-            soc = io(`http://localhost:8000/public-io/`, { forceNew: true });
+            soc = io(`http://site222346.tw.cs.unibo.it/public-io/`, { forceNew: true });
             soc.onAny(add_li_node);
 
             $('#data').on('submit', (event) => {
@@ -39,7 +39,7 @@
 
                 switch ($('#acc-type').val()) {
                     case 'user':
-                        fetch(`http://localhost:8000/auth/login/`, {
+                        fetch(`http://site222346.tw.cs.unibo.it/auth/login/`, {
                             method: "post",
                             headers: {
                                 'Content-Type': 'application/json'
@@ -59,7 +59,7 @@
                                     soc = null;
                                 }
                                 // 64ac2760e9fbb645a50c3623
-                                var socket = io(`http://localhost:8000/user-io/${res.user.handle}`, {
+                                var socket = io(`http://site222346.tw.cs.unibo.it/user-io/${res.user.handle}`, {
                                     extraHeaders: {
                                         Authorization: `Bearer ${res.token}`
                                     },
@@ -83,7 +83,7 @@
                         break;
                     case 'pro':
 
-                        fetch(`http://localhost:8000/auth/login/smm`, {
+                        fetch(`http://site222346.tw.cs.unibo.it/auth/login/smm`, {
                             method: "post",
                             headers: {
                                 'Content-Type': 'application/json'
@@ -96,7 +96,7 @@
                             .then(res => res.json())
                             .then(res => {
 
-                                var socketPro = io(`http://localhost:8000/pro-io/${res.user.handle}`, {
+                                var socketPro = io(`http://site222346.tw.cs.unibo.it/pro-io/${res.user.handle}`, {
                                     extraHeaders: {
                                         Authorization: `Bearer ${res.token}`
                                     },
@@ -126,7 +126,7 @@
 
                         break;
                     case 'admin':
-                        fetch(`http://localhost:8000/auth/login/admin`, {
+                        fetch(`http://site222346.tw.cs.unibo.it/auth/login/admin`, {
                             method: "post",
                             headers: {
                                 'Content-Type': 'application/json'
@@ -139,7 +139,7 @@
                             .then(res => res.json())
                             .then(res => {
 
-                                var socketAdmin = io(`http://localhost:8000/admin-io/${res.user.handle}`, {
+                                var socketAdmin = io(`http://site222346.tw.cs.unibo.it/admin-io/${res.user.handle}`, {
                                     extraHeaders: {
                                         Authorization: `Bearer ${res.token}`
                                     },
