@@ -2,7 +2,7 @@
  *  Makes an authorized request
 */
 export default function authorizedRequest({ endpoint, token, method='get', query=null, body=null }) {
-    const baseUrl = `http://localhost:8000/`;
+    const baseUrl = `http://site222346.tw.cs.unibo.it/`;
 
     // Create a new URL object
     const url = new URL(endpoint, baseUrl);

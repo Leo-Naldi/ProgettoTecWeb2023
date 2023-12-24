@@ -21,7 +21,7 @@ export default function SignIn() {
 
         setFetching(true);
 
-        fetch(`http://localhost:8000/auth/login/smm`, {
+        fetch(`http://site222346.tw.cs.unibo.it/auth/login/smm`, {
             method: "post",
             headers: {
                 'Content-Type': 'application/json'

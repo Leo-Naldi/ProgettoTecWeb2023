@@ -6,6 +6,7 @@ const makeToken = require('../utils/makeToken.js');
 const config = require('./index.js');
 const { logger } = require('./logging.js');
 const dayjs = require('dayjs');
+const _ = require('underscore');
 
 const base = 'localhost:8000';
 const cron_handle = '__cron';
@@ -174,6 +175,10 @@ async function resetChars(field, socket) {
 
         if (u.handle === '__cron') {
             u.charLeft[field] = 999999999;
+        }
+
+        if (_.contains(['fvPro', 'Nome Buffo1', 'Nome Buffo2'], u.handle) && (field === 'day')) {
+            u.charLeft.day = 50;
         }
 
         if (socket) {

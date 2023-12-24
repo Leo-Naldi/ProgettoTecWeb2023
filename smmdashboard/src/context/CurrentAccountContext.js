@@ -76,7 +76,7 @@ export function AccountContextProvider({ children }) {
             refreshToken();
 
             // ... and every 60 minutes
-            const iid = setInterval(refreshToken, 1000*60*60);
+            const iid = setInterval(refreshToken, 3600000);
 
             return () => {
                 clearInterval(iid);

@@ -52,7 +52,6 @@ function addLoginFormListeners() {
             if (res.ok) {
                 return res.json().then(data => {
                     saveLogin(data);
-                    console.log('aaaaaaa')
                     mountDashboard();
                 })
             } else {

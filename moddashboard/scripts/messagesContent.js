@@ -79,7 +79,7 @@ class MessageContent{
         this.data_table = new DataTable(
             this.table_container,
             headers,
-            'http://localhost:8000/messages/',
+            'http://site222346.tw.cs.unibo.it/messages/',
             after_row_select,
             transform,
             display,

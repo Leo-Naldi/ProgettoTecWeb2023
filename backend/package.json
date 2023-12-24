@@ -19,6 +19,7 @@
     "express": "^4.18.2",
     "express-throttle-bandwidth": "^1.0.1",
     "formidable": "^2.1.1",
+    "gridfs-stream": "^1.1.1",
     "jsdoc": "^4.0.2",
     "jsonwebtoken": "^9.0.0",
     "lorem-ipsum": "^2.0.8",

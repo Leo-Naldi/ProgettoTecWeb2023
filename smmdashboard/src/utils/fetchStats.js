@@ -70,7 +70,7 @@ export function getCheckpoints(period, num, created=null) {
 export default function fetchCheckPointData(before, after, handle, token) {
 
     // Define the base URL
-    const baseUrl = `http://localhost:8000/users/${handle}/messages/stats`;
+    const baseUrl = `http://site222346.tw.cs.unibo.it/users/${handle}/messages/stats`;
 
     // Create a new URL object
     const url = new URL(baseUrl);

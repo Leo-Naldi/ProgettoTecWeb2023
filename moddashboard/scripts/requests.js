@@ -1,5 +1,5 @@
 function authorizedRequest({ endpoint, method = 'get', query = null, body = null }) {
-    const baseUrl = `http://localhost:8000/`;
+    const baseUrl = `http://site222346.tw.cs.unibo.it/`;
 
     const u = new URL(endpoint, baseUrl);
 
@@ -76,7 +76,7 @@ function authorizedRequest2({ endpoint, method = 'get', query = null, body = nul
 }
 
 function unauthorizedRequest({ endpoint, method = 'get', query = null, body = null }) {
-    const baseUrl = `http://localhost:8000/`;
+    const baseUrl = `http://site222346.tw.cs.unibo.it/`;
 
     // Create a new URL object
     const url = new URL(endpoint, baseUrl);

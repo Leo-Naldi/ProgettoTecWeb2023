@@ -35,7 +35,7 @@ class UserContent{
         this.data_table = new DataTable(
             this.table_container, 
             headers, 
-            'http://localhost:8000/users', 
+            'http://site222346.tw.cs.unibo.it/users', 
             after_row_select,
             transform
         );

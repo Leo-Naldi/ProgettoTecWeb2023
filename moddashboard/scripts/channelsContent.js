@@ -40,7 +40,7 @@ class ChannelsContent {
         this.data_table = new DataTable(
             this.table_container,
             headers,
-            'http://localhost:8000/channels/',
+            'http://site222346.tw.cs.unibo.it/channels/',
             after_row_select,
             transform,
             display,

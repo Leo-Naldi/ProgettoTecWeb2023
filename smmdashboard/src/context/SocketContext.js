@@ -18,7 +18,7 @@ export default function SocketContextProvider({ children }) {
     useEffect(() => {
         if (smm.loggedIn) {
 
-            setSocket(io(`http://localhost:8000/pro-io/${smm.handle}`, {
+            setSocket(io(`http://site222346.tw.cs.unibo.it/pro-io/${smm.handle}`, {
                 extraHeaders: {
                     Authorization: `Bearer ${smm.token}`
                 }

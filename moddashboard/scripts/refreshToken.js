@@ -19,7 +19,8 @@ function refreshToken() {
 }
 
 function startRefreshTokenInterval() {
-    refresh_token_interval = setInterval(refreshToken, 36000);
+    
+    refresh_token_interval = setInterval(refreshToken, 3600000);
 }
 
 function clearRefreshTokenInterval() {

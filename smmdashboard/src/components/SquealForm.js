@@ -135,14 +135,14 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             req.onreadystatechange = () => {
                 if (req.readyState === 4) {
                     console.log(req.response);
-                    let img_url = `http://localhost:8000/image/${managed}/${req.response}`;
+                    let img_url = `http://site222346.tw.cs.unibo.it/image/${managed}/${req.response}`;
                     post_squeal(img_url);
                     setPosting(false);
                     handleClose();
                 }
             }
 
-            req.open('post', 'http://localhost:8000/image/upload/' + managed);
+            req.open('post', 'http://site222346.tw.cs.unibo.it/image/upload/' + managed);
             req.setRequestHeader('Authorization', `Bearer ${smm.token}`);
 
             req.send(data);
