@@ -134,8 +134,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
 
             req.onreadystatechange = () => {
                 if (req.readyState === 4) {
-                    console.log(req.response);
-                    let img_url = `http://site222346.tw.cs.unibo.it/image/${managed}/${req.response}`;
+                    let img_url = `http://site222346.tw.cs.unibo.it/image/${managed}/${JSON.stringify(req.response).id}`;
                     post_squeal(img_url);
                     setPosting(false);
                     handleClose();

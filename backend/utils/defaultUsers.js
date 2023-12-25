@@ -59,29 +59,6 @@ let image_urls = [
 
 const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan, monthly_plan_not_pro], image_urls);
 
-function makeMessagesWithImages() {
-    fs.readdirSync(config.folder).map(h => {
-        let author_index = test_env.uhti(h);
-        
-        if (author_index) {
-            fs.readdirSync(`./files/${h}`, { withFileTypes: true }).map(img => {
-    
-                test_env.addRandomMessages({ 
-                    today: 1,
-                    authorIndex: author_index,
-                });
-
-                test_env.messages.at(-1).content.image = 
-                    `http://localhost:8000/image/${h}/${img.name}`;
-                test_env.messages.at(-1).publicMessage = true;
-                test_env.messages.at(-1).destUser = [];
-                test_env.messages.at(-1).destChannel = [];
-                test_env.messages.at(-1).meta.created = (new dayjs()).toDate();
-            });
-        }
-    })
-}
-
 
 function makeLocalTestData() {
     
@@ -931,7 +908,6 @@ async function makeDefaultUsers() {
     // add some messages with images
 
     makeTestData();
-    makeMessagesWithImages();
     makeLocalTestData();
     makeRandomGeoMessages();
     makeRandomGeoMessages(u2_index, 3, 6);

@@ -23,6 +23,12 @@ mongoose.connect(config.db_url).then(async () => {
     await Channel.deleteMany({});
     await Plan.deleteMany({});
 
+    let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'images',
+    })
+
+    await gridfs_bucket.drop(); // delete all images
+
     await makeDefaultUsers();
 
     const exp_server = new ExpressServer(crons);
