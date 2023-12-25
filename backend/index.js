@@ -27,7 +27,12 @@ mongoose.connect(config.db_url).then(async () => {
         bucketName: 'images',
     })
 
-    await gridfs_bucket.drop(); // delete all images
+    const cursor = gridfs_bucket.find({});
+    for await (const doc of cursor) {
+        await gridfs_bucket.delete(doc._id);
+    }
+
+    //await gridfs_bucket.drop(); // delete all images
 
     await makeDefaultUsers();
 

@@ -10,8 +10,6 @@ const Controller = require("../controllers/Controller");
 const ImageService = require("../services/ImageService");
 const { logger } = require("../config/logging");
 const mongoose = require("mongoose");
-let Grid = require('gridfs-stream');
-Grid.mongo = mongoose.mongo;
 
 const ImageRouter = express.Router();
 
