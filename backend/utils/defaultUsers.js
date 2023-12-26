@@ -306,6 +306,14 @@ function makeTestData() {
     channel.official = true;
     channel.name = channel.name.toUpperCase();
 
+    // delete user messages
+    i = 31
+    test_env.addRandomMessages({
+        authorIndex: test_user_indexes[i],
+        allTime: 10,
+        week: 10,
+        today: 10.
+    });
 }
 
 
