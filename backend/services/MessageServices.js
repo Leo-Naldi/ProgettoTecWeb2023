@@ -14,6 +14,7 @@ const Reaction = require('../models/Reactions');
 const dayjs = require('dayjs');
 const UserService = require('./UserServices');
 const { makeGetResBody } = require('../utils/serviceUtils');
+const deleteImage = require('../utils/deleteImage');
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -684,6 +685,8 @@ class MessageService {
         
         let messages = await MessageService.#populateMessageQuery(Message.find({ author: reqUser._id }))
 
+        let image_ids = [];
+
         messages.map(m => {
             let smm_handle = m.author.smm?.handle;
             let destHandles = new Set([
@@ -696,16 +699,30 @@ class MessageService {
                 })
             })
 
+            if (m.content.image) {
+                image_ids.push(m.content.image.split('/').pop());
+            }
+
             SquealSocket.messageDeleted({
                 id: m._id.toString(),
                 destHandles: destHandles,
                 socket: socket,
                 smm_handle: smm_handle,
             })
-        })
+        });
 
+        
         await Reaction.deleteMany({ message: { $in: messages.map(m => m._id) } })
         await Message.deleteMany({ author: reqUser._id });
+        
+        let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+            bucketName: 'images',
+        })
+        
+        await Promise.all(image_ids.map(async id => {
+            await gridfs_bucket.delete(id);
+            logger.debug(`Deleted image ${id}`);
+        }));
 
         return Service.successResponse();
     }
@@ -726,17 +743,12 @@ class MessageService {
         if (message) {
 
             // delete local image associated to the user's message
-            if (message.content.image && message.content.image!=""){
-    
-                const imgPath = message.content.image;
-                //http://localhost:8000/f_user3/be4caaa4722f46f0bcae54903_picture.png
-                // imgPath = "files/f_user3/be4caaa4722f46f0bcae54903_picture.png"
-                let paths = imgPath.split("/");
-                let paths1 = paths.slice(paths.length - 2, paths.length)
-                let final_path = 'files/'+paths1.join('/')
-                fs.unlink(final_path, (err) => {
-                    if(err) throw err;
-                });
+            if (message.content.image){
+                let id = message.content.image.split('/').pop();
+                
+                await deleteImage(id);
+
+                logger.debug(`Deleted image ${id}`);
             }
         
             //logger.debug(message)

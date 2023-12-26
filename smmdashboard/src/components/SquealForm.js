@@ -28,8 +28,8 @@ function LocationMarker({ position, setPosition }) {
     })
 
     return position === null ? null : (
-        <Marker 
-            position={position} 
+        <Marker
+            position={position}
             eventHandlers={{ click: () => setPosition(null) }}>
             <Tooltip>Click on the marker to delete it.</Tooltip>
         </Marker>
@@ -44,13 +44,13 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const managedAccountsDispatch = useManagedAccountsDispatch()
 
     //console.log(`SquealFormModal managed: ${managed}`);
-    
-    
+
+
     const managedAccount = managedAccounts.find(u => u.handle === managed);
     //console.log(`SquealFormModal managedAccount: ${!!managedAccount}`);
     //console.log(`Managed handles: ${managedAccounts.map(m => m.handle).join(',')}`)
     const maxLength = Math.min(...Object.values(managedAccount.charLeft));
-    
+
 
     const [usedChars, setUsedChars] = useState(0);
     const [position, setPosition] = useState(null);
@@ -68,7 +68,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         setUsedChars(0);
     }
 
-    const post_squeal = (img_url=null) => {
+    const post_squeal = (img_url = null) => {
         let body = {
             content: {
                 text: text,
@@ -87,7 +87,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         //console.log(body);
 
         setPosting(true);
-        const baseUrl = `http://localhost:8000/messages/user/${managed}`;
+        const baseUrl = `http://site222346.tw.cs.unibo.it/messages/user/${managed}`;
         const url = new URL(baseUrl);
 
         fetch(url.href, {
@@ -98,29 +98,29 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             method: 'POST',
             body: JSON.stringify(body)
         }).then(res => {
-                if (res.ok) {
-                    return res.json().then(res => {
+            if (res.ok) {
+                return res.json().then(res => {
 
-                        managedAccountsDispatch({
-                            type: 'CHANGE_CHARLEFT',
-                            payload: {
-                                handle: managed,
-                                charLeft: res.charLeft,
-                            }
-                        })
-
-                        setPosting(false);
-                        handleClose();
+                    managedAccountsDispatch({
+                        type: 'CHANGE_CHARLEFT',
+                        payload: {
+                            handle: managed,
+                            charLeft: res.charLeft,
+                        }
                     })
-                } else {
-                    console.log(`Posting Squeal failed with code: ${res.status}`);
-                    setPosting(false);
-                }
 
-            })
+                    setPosting(false);
+                    handleClose();
+                })
+            } else {
+                console.log(`Posting Squeal failed with code: ${res.status}`);
+                setPosting(false);
+            }
+
+        })
             .catch(err => console.log(err));
     }
-    
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
@@ -134,7 +134,9 @@ export default function SquealFormModal({ managed, open, setOpen }) {
 
             req.onreadystatechange = () => {
                 if (req.readyState === 4) {
-                    let img_url = `http://site222346.tw.cs.unibo.it/image/${managed}/${JSON.stringify(req.response).id}`;
+                    //console.log(JSON.parse(req.response).id)
+                    let img_url = `http://site222346.tw.cs.unibo.it/image/${managed}/${JSON.parse(req.response).id}`;
+                    //console.log(img_url);
                     post_squeal(img_url);
                     setPosting(false);
                     handleClose();
@@ -167,20 +169,20 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     }, [position])
 
     return (
-            <Modal
-                open={open}
-                onClose={handleClose}
-                aria-labelledby="Squeal-Form"
-                sx={{
-                    position: 'absolute',
-                    [theme.breakpoints.up('sm')]: { left: '12%',},
-                    [theme.breakpoints.up('lg')]: {left: '25%',},
-                    maxWidth: 'lg',
-                    p: 1,
-                }}
-            >
-                {getModalContents()}
-            </Modal>
+        <Modal
+            open={open}
+            onClose={handleClose}
+            aria-labelledby="Squeal-Form"
+            sx={{
+                position: 'absolute',
+                [theme.breakpoints.up('sm')]: { left: '12%', },
+                [theme.breakpoints.up('lg')]: { left: '25%', },
+                maxWidth: 'lg',
+                p: 1,
+            }}
+        >
+            {getModalContents()}
+        </Modal>
     );
 
     function getSeverity() {
@@ -213,16 +215,16 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                 namesOnly: 'true'
             }
         }).then(res => res.json())
-        .then(channels => channels.map(c => c.name))
+            .then(channels => channels.map(c => c.name))
     }
 
     function getModalContents() {
         if (posting) {
             return (<Spinner />)
         } else {
-            
+
             let disabled = (usedChars > maxLength) || ((usedChars === 0) && !selectedImage)
-            
+
             return (
                 <Box sx={{
                     maxWidth: 'md',
@@ -317,9 +319,9 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                         </Box>}
 
                         <Box>
-                            <UploadAndDisplayImage 
-                                selectedImage={selectedImage} 
-                                setSelectedImage={setSelectedImage}/>
+                            <UploadAndDisplayImage
+                                selectedImage={selectedImage}
+                                setSelectedImage={setSelectedImage} />
                         </Box>
 
                         <Button
