@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 async function deleteImage(id) {
 
-    let obj_id = mongoose.mongo.ObjectId(id)
+    let obj_id = new mongoose.mongo.ObjectId(id)
 
     let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
         bucketName: 'images',

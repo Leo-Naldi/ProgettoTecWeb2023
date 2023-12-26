@@ -720,7 +720,7 @@ class MessageService {
         })
         
         await Promise.all(image_ids.map(async id => {
-            let obj_id = mongoose.mongo.ObjectId(id)
+            let obj_id = new mongoose.mongo.ObjectId(id)
 
             await gridfs_bucket.delete(obj_id);
             logger.debug(`Deleted image ${id}`);
