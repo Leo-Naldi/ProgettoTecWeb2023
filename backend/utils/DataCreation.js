@@ -563,6 +563,12 @@ class TestEnv {
             ...this.proPlans.map(p => p.save()),
             ...this.reactions.map(r => r.save()),
         ]);
+
+        this.channels = [];
+        this.users = [];
+        this.messages = [];
+        this.proPlans = [];
+        this.reactions = [];
     }
 
     /**

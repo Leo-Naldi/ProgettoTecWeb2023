@@ -11,6 +11,7 @@ const { makeDefaultUsers } = require('./utils/defaultUsers');
 
 
 const crons = require('./config/crons');
+const Reaction = require('./models/Reactions');
 
 
 mongoose.connect(config.db_url).then(async () => {
@@ -22,6 +23,7 @@ mongoose.connect(config.db_url).then(async () => {
     await Message.deleteMany({});
     await Channel.deleteMany({});
     await Plan.deleteMany({});
+    await Reaction.deleteMany({});
 
     let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
         bucketName: 'images',

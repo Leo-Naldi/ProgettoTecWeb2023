@@ -312,8 +312,17 @@ function makeTestData() {
         authorIndex: test_user_indexes[i],
         allTime: 10,
         week: 10,
-        today: 10.
+        today: 10,
     });
+
+    // delete message
+    i = 32
+    test_env.addRandomMessages({
+        authorIndex: test_user_indexes[i],
+        allTime: 1,
+    });
+
+    test_env.messages.at(-1).publicMessage = true;
 }
 
 
