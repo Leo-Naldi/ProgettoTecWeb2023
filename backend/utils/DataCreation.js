@@ -73,7 +73,7 @@ class TestEnv {
      * @param {Plan[]} proPlans Array of Pro plans to use to generate pro users
      * @param {string[]} image_urls Array of image urls to use in messages
     */
-    constructor(prefix, password, num_users=0, num_channels=0, proPlans=[], image_urls=[]) {
+    constructor(prefix, password, num_users=0, num_channels=0, proPlans=[]) {
     
         this.#prefix = prefix;
 
@@ -117,14 +117,6 @@ class TestEnv {
 
         for (let i = 0; i < num_users; i++) this.addTestUser()
         for (let i = 0; i < num_channels; i++) this.addRandomChannel()
-
-        /**
-         * Array of image urls to be used in message generation.
-         * 
-         * @type {string[]}
-         * @public
-         */
-        this.image_urls = image_urls;
 
         this.reactions = [];
     }

@@ -13,54 +13,8 @@ const { logger } = require('../config/logging');
 
 const pw = '12345678';
 
-const monthly_plan = new Plan({
-    name: 'Monthly subscription plan',
-    price: 4.99,
-    period: 'month',
-    extraCharacters: {
-        day: 300,
-        week: 320 * 7,
-        month: 330 * 31,
-    },
-    pro: true,
-})
 
-const monthly_plan_not_pro = new Plan({
-    name: 'Monthly character plan',
-    price: 1.99,
-    period: 'month',
-    extraCharacters: {
-        day: 300,
-        week: 320 * 7,
-        month: 330 * 31,
-    },
-    pro: false,
-})
-
-const yearly_plan = new Plan({
-    name: 'Yearly subscription plan',
-    price: 49.99,
-    period: 'year',
-    extraCharacters: {
-        day: 300,
-        week: 320 * 7,
-        month: 330 * 31,
-    },
-    pro: true,
-});
-
-let image_urls = [
-    'https://picsum.photos/200/300',
-    'https://picsum.photos/400',
-    'https://picsum.photos/450/300',
-    'https://picsum.photos/450/900',
-    'https://picsum.photos/900/450',
-]
-
-const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan, monthly_plan_not_pro], image_urls);
-
-
-function makeLocalTestData() {
+function makeLocalTestData(test_env) {
     
     const num = 10;
 
@@ -71,7 +25,7 @@ function makeLocalTestData() {
         test_env.addTestUser({ handle: `lt_pro_user${i+num}`, pro: true, autoRenew: true }));
 }
 
-function makeRandomGeoMessages(author_index=-1, min=10, max=20) {
+function makeRandomGeoMessages(test_env, author_index=-1, min=10, max=20) {
 
     author_index = (author_index >= 0) ? author_index: _.random(test_env.users.length - 1);
     const n = _.random(min, max);
@@ -98,7 +52,7 @@ function makeRandomGeoMessages(author_index=-1, min=10, max=20) {
 /**
  * Data used in postman tests at 
  */
-function makeTestData() {
+function makeTestData(test_env) {
 
     const l = 40
 
@@ -327,6 +281,44 @@ function makeTestData() {
 
 
 async function makeDefaultUsers() {
+
+    const monthly_plan = new Plan({
+        name: 'Monthly subscription plan',
+        price: 4.99,
+        period: 'month',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: true,
+    })
+
+    const monthly_plan_not_pro = new Plan({
+        name: 'Monthly character plan',
+        price: 1.99,
+        period: 'month',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: false,
+    })
+
+    const yearly_plan = new Plan({
+        name: 'Yearly subscription plan',
+        price: 49.99,
+        period: 'year',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: true,
+    });
+
+    const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan, monthly_plan_not_pro]);
 
     // Utenti richiesti
     const user1 = new User({
@@ -924,10 +916,10 @@ async function makeDefaultUsers() {
 
     // add some messages with images
 
-    makeTestData();
-    makeLocalTestData();
-    makeRandomGeoMessages();
-    makeRandomGeoMessages(u2_index, 3, 6);
+    makeTestData(test_env);
+    makeLocalTestData(test_env);
+    makeRandomGeoMessages(test_env);
+    makeRandomGeoMessages(test_env, u2_index, 3, 6);
     
     
     await test_env.saveAll();
