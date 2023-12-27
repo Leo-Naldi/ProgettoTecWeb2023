@@ -185,7 +185,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         if (position === null) {
             setGeolocate(false);
         }
-    }, [position])
+    }, [position]);
 
     return (
         <Modal
@@ -274,7 +274,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                     <Alert
                         severity={getSeverity()}
                         sx={{ mt: 1, ml: 1 }}>
-                        Currently using {usedChars} characters out of the {maxLength} available.
+                        Currently using {usedChars} characters out of the {maxLength} available. Geolocations and Media are worth 125 characters each.
                     </Alert>
                     <Box component="form" onSubmit={(e) => handleSubmit(e)} noValidate sx={{ mt: 1, ml: 1 }}>
 
@@ -323,6 +323,11 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                                     onChange={(e) => {
                                         setPosition(null);
                                         setGeolocate(e.target.checked);
+                                        if (e.target.checked) {
+                                            setUsedChars(usedChars + 125);
+                                        } else {
+                                            setUsedChars(usedChars - 125);
+                                        }
                                     }}
                                     checked={geolocate} />
                             }
@@ -349,7 +354,14 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                         <Box>
                             <UploadAndDisplayMedia
                                 selectedMedia={selectedImage}
-                                setSelectedMedia={setSelectedImage} />
+                                setSelectedMedia={(media) => {
+                                    setSelectedImage(media);
+                                    if (media) {
+                                        setUsedChars(usedChars + 125);
+                                    } else {
+                                        setUsedChars(usedChars - 125);
+                                    }
+                                }} />
                         </Box>
 
                         <Button

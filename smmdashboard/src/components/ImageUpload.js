@@ -29,7 +29,7 @@ export default function UploadAndDisplayMedia({ selectedMedia, setSelectedMedia 
                             component={(isImage(selectedMedia)) ? "img": "video"}
                             height="280"
                             src={URL.createObjectURL(selectedMedia)}
-                            alt={`Uploaded Media titled ${selectedImage.name}`}
+                            alt={`Uploaded Media titled ${selectedMedia.name}`}
                         />
                     </CardActionArea>
                 </Card>

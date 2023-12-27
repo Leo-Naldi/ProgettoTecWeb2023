@@ -408,6 +408,28 @@ async function makeDefaultUsers() {
         }
     })
 
+    const userTesto = new User({
+        handle: 'testoh',
+        username: 'testoh',
+        email: 'profTesto@mail.com',
+        password: pw,
+        accountType: 'pro',
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: monthly_plan._id,
+            expires: (new dayjs()).add(1, 'month').toDate(),
+            autoRenew: true,
+        }
+    })
+
+    userTesto.charLeft = {
+        day: 5000,
+        week: 6000,
+        month: 7500,
+    }
+
     // Modify the character balance of user2, user5, user6
     user2.charLeft = {
         day: 50,
@@ -428,6 +450,7 @@ async function makeDefaultUsers() {
     user2.smm = user3._id;
     user5.smm = user3._id;
     user6.smm = user3._id;
+    userTesto.smm = user3._id;
 
     const u1_index = test_env.addUser(user1);
     const u2_index = test_env.addUser(user2);
@@ -435,6 +458,8 @@ async function makeDefaultUsers() {
     const u4_index = test_env.addUser(user4);
     const u5_index = test_env.addUser(user5);
     const u6_index = test_env.addUser(user6);
+
+    test_env.addUser(userTesto);
 
     const pro1_index = test_env.addTestUser({
         pro: true,
