@@ -70,6 +70,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
 
 
     const post_squeal = (img_url = null) => {
+        
         let body = {
             content: {
                 text: text,
@@ -149,10 +150,11 @@ export default function SquealFormModal({ managed, open, setOpen }) {
 
             req.send(data);
             
+        } else {
+            post_squeal();
+            setPosting(false);
         }
 
-        post_squeal();
-        setPosting(false);
         handleClose();
     };
 
