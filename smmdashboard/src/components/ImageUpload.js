@@ -3,7 +3,7 @@ import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { Button, Card, CardActionArea, CardMedia, Tooltip } from "@mui/material";
 import isImage from "../utils/isImage";
 
-export default function UploadAndDisplayImage({ selectedMedia, setSelectedMedia }){
+export default function UploadAndDisplayMedia({ selectedMedia, setSelectedMedia }){
 
     return (
         <React.Fragment>

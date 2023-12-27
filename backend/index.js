@@ -29,7 +29,7 @@ mongoose.connect(config.db_url).then(async () => {
         bucketName: 'images',
     })
 
-    const cursor = gridfs_bucket.find({});
+    let cursor = gridfs_bucket.find({});
     for await (const doc of cursor) {
         await gridfs_bucket.delete(doc._id);
     }

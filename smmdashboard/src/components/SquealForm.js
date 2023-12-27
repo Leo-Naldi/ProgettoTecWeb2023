@@ -9,9 +9,9 @@ import { MapContainer, TileLayer, Marker, useMapEvents, Tooltip } from 'react-le
 import FetchOptionsAutocomplete from './FetchOptionsAutocomplete';
 import { useAccount } from '../context/CurrentAccountContext';
 import Spinner from './Spinner';
-import UploadAndDisplayImage from './ImageUpload';
 import authorizedRequest from '../utils/authorizedRequest';
 import isImage from '../utils/isImage';
+import UploadAndDisplayMedia from './ImageUpload';
 
 
 function LocationMarker({ position, setPosition }) {
@@ -347,9 +347,9 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                         </Box>}
 
                         <Box>
-                            <UploadAndDisplayImage
-                                selectedImage={selectedImage}
-                                setSelectedImage={setSelectedImage} />
+                            <UploadAndDisplayMedia
+                                selectedMedia={selectedImage}
+                                setSelectedMedia={setSelectedImage} />
                         </Box>
 
                         <Button
