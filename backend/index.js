@@ -34,7 +34,14 @@ mongoose.connect(config.db_url).then(async () => {
         await gridfs_bucket.delete(doc._id);
     }
 
-    //await gridfs_bucket.drop(); // delete all images
+    gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'videos',
+    })
+
+    cursor = gridfs_bucket.find({});
+    for await (const doc of cursor) {
+        await gridfs_bucket.delete(doc._id);
+    }
 
     await makeDefaultUsers();
 

@@ -11,9 +11,9 @@ const ImageService = require("../services/ImageService");
 const { logger } = require("../config/logging");
 const mongoose = require("mongoose");
 
-const ImageRouter = express.Router();
+const MediaRouter = express.Router();
 
-ImageRouter.post("/upload/:handle", (req, res) => {
+MediaRouter.post("/upload/image/:handle", (req, res) => {
 
   let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
     bucketName: 'images',
@@ -45,12 +45,44 @@ ImageRouter.post("/upload/:handle", (req, res) => {
   });
 });
 
-ImageRouter.get('/:handle/:id', (req, res) => {
+MediaRouter.post("/upload/video/:handle", (req, res) => {
+
+  let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+    bucketName: 'videos',
+  })
+
+  const form = new formidable.IncomingForm();
+  form.keepExtensions = true;
+
+  form.parse(req, (err, fields, files) => {
+    if (err) {
+      logger.error(err);
+      return res.sendStatus(409);
+    }
+
+    let file_name = Object.keys(files)[0];
+    let file_path = files[file_name].filepath;
+
+    let writeStream = gridfs_bucket.openUploadStream(file_name);
+
+    writeStream.on('finish', () => {
+      return res.status(200).json({ id: writeStream.id })
+    });
+    writeStream.on('error', (err) => {
+      logger.error(err);
+      return res.sendStatus(409);
+    });
+
+    fs.createReadStream(file_path).pipe(writeStream);
+  });
+});
+
+MediaRouter.get('/image/:handle/:id', (req, res) => {
   let img_id
   try {
     img_id = new mongoose.mongo.ObjectId(req.params.id);
   } catch (err) {
-    return res.status(400).json({ message: "Invalid PhotoID in URL parameter. Must be a single String of 12 bytes or a string of 24 hex characters" });
+    return res.status(400).json({ message: "Invalid id in URL parameter. Must be a single String of 12 bytes or a string of 24 hex characters" });
   }
 
   let bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
@@ -72,8 +104,35 @@ ImageRouter.get('/:handle/:id', (req, res) => {
   });
 })
 
+MediaRouter.get('/video/:handle/:id', (req, res) => {
+  let video_id
+  try {
+    video_id = new mongoose.mongo.ObjectId(req.params.id);
+  } catch (err) {
+    return res.status(400).json({ message: "Invalid id in URL parameter. Must be a single String of 12 bytes or a string of 24 hex characters" });
+  }
+
+  let bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+    bucketName: 'videos'
+  });
+
+  let downloadStream = bucket.openDownloadStream(video_id);
+
+  downloadStream.on('data', (chunk) => {
+    res.write(chunk);
+  });
+
+  downloadStream.on('error', () => {
+    res.sendStatus(404);
+  });
+
+  downloadStream.on('end', () => {
+    res.end();
+  });
+})
+
 /*
-ImageRouter.post("/upload/:handle", (req, res) => {
+MediaRouter.post("/upload/:handle", (req, res) => {
   const form = new formidable.IncomingForm();
   form.keepExtensions = true;
 
@@ -125,7 +184,7 @@ ImageRouter.post("/upload/:handle", (req, res) => {
   });
 });
 
-ImageRouter.get('/:handle/:name', (req, res) => {
+MediaRouter.get('/:handle/:name', (req, res) => {
   let file = path.resolve(`./files/${req.params.handle}/${req.params.name}`);
 
   //logger.debug(file);
@@ -139,4 +198,4 @@ ImageRouter.get('/:handle/:name', (req, res) => {
 
 */
 
-module.exports = ImageRouter;
+module.exports = MediaRouter;

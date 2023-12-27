@@ -9,7 +9,6 @@ const UserRouter = require('./routes/users');
 const AuthRouter = require('./routes/auth');
 const MessageRouter = require('./routes/messages');
 const ChannelRouter = require('./routes/channel');
-const ImageRouter = require('./routes/image');
 const MailRouter = require('./routes/mail')
 
 const { logger, morganLogMiddleware } = require('./config/logging');
@@ -18,6 +17,7 @@ const PlansRouter = require('./routes/plans');
 const PublicRouter = require('./routes/public');
 const DebugRouter = require('./routes/debug');
 const { SquealCrons } = require('./config/crons');
+const MediaRouter = require('./routes/media');
 
 class ExpressServer {
     constructor() {
@@ -51,7 +51,7 @@ class ExpressServer {
         app.use('/auth', AuthRouter);
         app.use('/messages', MessageRouter);
         app.use('/channels', ChannelRouter);
-        app.use('/image', ImageRouter);
+        app.use('/media', MediaRouter);
         app.use('/mail', MailRouter);
         app.use('/plans', PlansRouter);
         app.use('/public', PublicRouter);
