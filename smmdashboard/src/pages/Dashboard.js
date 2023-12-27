@@ -115,7 +115,20 @@ export default function DashboardPage() {
                 </>
             )
         }else {
-            return <Spinner />
+            return <Box sx={{
+                textAlign: 'center',
+                p: 5,
+                maxWidth: 200,
+            }}>
+                <Typography
+                    variant="h6"
+                    sx={{
+                        fontWeight: 'bold',
+                        color: 'text.disabled',
+                    }}>
+                    No users managed by @{smm.handle}
+                </Typography>
+            </Box>
         }
     }
 }
