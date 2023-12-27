@@ -195,15 +195,24 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         return 'info'
     }
 
-    function getUserHandlesFetch() {
+    function getUserHandlesFetch(val='') {
+
+        let query = {
+            handleOnly: 'true',
+            results_per_page: 25,
+        };
+
+        if (val) query.handle = val;
 
         return authorizedRequest({
             endpoint: '/users/',
             token: smm.token,
-            query: {
-                handleOnly: 'true'
-            }
+            query: query,
         }).then(res => res.json())
+        .then(res => {
+            console.log(res.results);
+            return res.results;
+        })
     }
 
     function getChannelNamesFetch() {
@@ -267,7 +276,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                                 margin="normal"
                                 optionsPromise={getUserHandlesFetch}
                                 id="select-fetched-handles"
-                                getOptionLabel={(u) => u.handle}
+                                getOptionLabel={(u) => u}
                                 textLabel="User Destinations"
                                 onChange={(e, v) => setDestUsers(v)}
                             />
