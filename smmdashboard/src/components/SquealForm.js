@@ -79,6 +79,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             content: {
                 text: text,
                 image: img_url,
+                video: video_url,
             },
             dest: destUsers.map(u => '@' + u.handle).concat(destChannels.map(c => '§' + c))
         };

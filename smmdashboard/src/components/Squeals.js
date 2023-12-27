@@ -24,6 +24,8 @@ import HideImageOutlinedIcon from '@mui/icons-material/HideImageOutlined';
 import MapIcon from '@mui/icons-material/Map';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import LocationOffOutlinedIcon from '@mui/icons-material/LocationOffOutlined';
+import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
+import ReactPlayer from 'react-player';
 
 import _ from 'underscore';
 
@@ -66,7 +68,8 @@ export default function Squeals({ managed }) {
     const [maxPages, setMaxPages] = useState(null);
 
     const [openImageModal, setOpenImageModal] = useState(false);
-    const [imageUrl, setImageUrl] = useState(null);
+    const [openVideoModal, setOpenVideoModal] = useState(false);
+    const [mediaUrl, setMediaUrl] = useState(null);
 
     const [openGeoModal, setOpenGeoModal] = useState(false);
     const [geo, setGeo] = useState(null);
@@ -174,7 +177,7 @@ export default function Squeals({ managed }) {
                         justifyContent={'center'}
                         >
 
-                        <img src={imageUrl} alt={'Squeal image'}
+                        <img src={mediaUrl} alt={'Squeal image'}
                             style={{
                                 maxWidth: '100%',
                                 maxHeight: '70vh',
@@ -188,6 +191,31 @@ export default function Squeals({ managed }) {
                 <Divider />
                 <DialogActions>
                     <Button onClick={handleCloseImageModal}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                fullWidth={true}
+                maxWidth={'md'}
+                open={openVideoModal}
+                onClose={() => setOpenVideoModal(false)}
+            >
+                <DialogContent>
+
+                    <Box
+                        display={'flex'}
+                        justifyContent={'center'}
+                    >
+
+                        <ReactPlayer url={mediaUrl} playing={true}/>
+
+                    </Box>
+
+
+                </DialogContent>
+                <Divider />
+                <DialogActions>
+                    <Button onClick={() => setOpenVideoModal(false)}>Close</Button>
                 </DialogActions>
             </Dialog>
 
@@ -305,22 +333,8 @@ export default function Squeals({ managed }) {
                     <TableCell>{(destUser.length) ? destUser.join(', ') : "-"}</TableCell>
                     <TableCell>{m.reactions.positive}</TableCell>
                     <TableCell>{m.reactions.negative}</TableCell>
-                    <TableCell>{(_.isString( m.content.image) && (m.content.image?.length)) ?
-                        (<IconButton
-                            aria-label='Show Squeal Image'
-                            onClick={() => {
-                                console.log(`Clicked on: ${m.content.image}`)
-                                setImageUrl(m.content.image);
-                                setOpenImageModal(true);
-                            }}>
-                            <ImageIcon />
-                        </IconButton>
-                        ) :
-                        (<HideImageOutlinedIcon 
-                            aria-label='No Squeal Image'
-                            sx={{
-                                ml: 1,
-                            }} />)}</TableCell>
+                    
+                    {getMediaTableCell(m)}
 
                     <TableCell>{(m.content.geo) ?
                         (<IconButton
@@ -340,5 +354,44 @@ export default function Squeals({ managed }) {
                     </TableRow>
                 </Fragment>
             );
+    }
+
+    function getMediaTableCell(m) {
+
+        console.log(m.content)
+
+        if (m.content.image) {
+            return <TableCell>
+                <IconButton
+                    aria-label='Show Squeal Image'
+                    onClick={() => {
+                        console.log(`Clicked on: ${m.content.image}`)
+                        setMediaUrl(m.content.image);
+                        setOpenImageModal(true);
+                    }}>
+                    <ImageIcon />
+                </IconButton>
+            </TableCell>
+        } else if (m.content.video) {
+            return <TableCell>
+                <IconButton
+                    aria-label='Show Squeal Video'
+                    onClick={() => {
+                        console.log(`Clicked on: ${m.content.video}`)
+                        setMediaUrl(m.content.video);
+                        setOpenVideoModal(true);
+                    }}>
+                    <PlayCircleFilledIcon />
+                </IconButton>
+            </TableCell>
+        } else {
+            return <TableCell>
+                <HideImageOutlinedIcon
+                    aria-label='No Squeal Image'
+                    sx={{
+                        ml: 1,
+                    }} />
+            </TableCell>
+        }
     }
 }
