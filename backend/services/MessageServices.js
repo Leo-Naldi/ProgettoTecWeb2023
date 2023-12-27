@@ -556,6 +556,9 @@ class MessageService {
             return Service.rejectResponse({ message: "Allowed content fields are 'text', 'image', 'geo', 'video'" });
         }
 
+        if ((content.video) && (content.image)) {
+            return Service.rejectResponse({ message: "A squeal cannot contain both an image and a video." });
+        }
 
         let destUser = dest?.filter(h => h.charAt(0) === '@').map(h => h.slice(1));
         let destChannel = dest?.filter(h => h.charAt(0) === '§').map(h => h.slice(1));
