@@ -610,9 +610,11 @@ class MessageService {
                         characters each)`,
                 }, 418);
 
-            user.charLeft = _.mapObject(user.charLeft, function (val, key) {
-                return val - required_chars;
-            })
+            user.charLeft = {
+                day: user.charLeft.day - required_chars,
+                week: user.charLeft.week - required_chars,
+                month: user.charLeft.month - required_chars,
+            }
             
             used_chars = required_chars > 0;
         }
