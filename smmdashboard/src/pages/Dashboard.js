@@ -70,7 +70,7 @@ export default function DashboardPage() {
                         sx={{
                             m: 1,
                         }}>
-                        <Typography variant="h6" sx={{
+                        <Typography variant="h5" sx={{
                             m:1,
                         }}>
                             Managed Users

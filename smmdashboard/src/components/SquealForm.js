@@ -68,6 +68,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
         setUsedChars(0);
     }
 
+
     const post_squeal = (img_url = null) => {
         let body = {
             content: {
@@ -147,7 +148,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             req.setRequestHeader('Authorization', `Bearer ${smm.token}`);
 
             req.send(data);
-            return;
+            
         }
 
         post_squeal();

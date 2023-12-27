@@ -19,7 +19,7 @@ export default function FetchOptionsAutocomplete({ optionsPromise, onChange, id,
     }
 
     const handle_close = () => {
-        setOpen(true);
+        setOpen(false);
         setLoading(false);
     }
 

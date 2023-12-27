@@ -546,6 +546,17 @@ class MessageService {
 
         let user = reqUser;
 
+        if ((!content) || (!_.isObject(content))) {
+            return Service.rejectResponse({ message: "Must provide a valid content object" });
+        }
+
+        content = _.pick(content, 'text', 'image', 'geo', 'video');
+
+        if (_.isEmpty(content)) {   
+            return Service.rejectResponse({ message: "Allowed content fields are 'text', 'image', 'geo', 'video'" });
+        }
+
+
         let destUser = dest?.filter(h => h.charAt(0) === '@').map(h => h.slice(1));
         let destChannel = dest?.filter(h => h.charAt(0) === '§').map(h => h.slice(1));
 
@@ -581,21 +592,29 @@ class MessageService {
 
         // Messaggi privati indirizzati a soli utenti non diminuiscono la quota
         let used_chars = false;
-        if ((publicMessage) || (destChannel?.length)) {
+        if ((publicMessage) || (destChannel.length)) {
 
             let min_left = Math.min(...Object.values(user.toObject().charLeft));
+
+            let required_chars = 0;
+
+            if (content.text) required_chars += content.text.length;
+            if (content.image) required_chars += 125;
+            if (content.geo) required_chars += 125;
+            if (content.video) required_chars += 125;
     
-            if (content.text && (min_left < content.text.length))
+            if (required_chars && (min_left < required_chars))
                 return Service.rejectResponse({
-                    message: `Attempted posting a message of ${content.text.length} characters with ${min_left} characters remaining`,
+                    message: `Attempted posting a message requiring ${required_chars} characters with 
+                        ${min_left} characters remaining. (Friendly reminder that images and geos are 125 
+                        characters each)`,
                 }, 418);
 
-            if (content.text) {
-                user.charLeft.day -= content.text.length;
-                user.charLeft.week -= content.text.length;
-                user.charLeft.month -= content.text.length;
-                used_chars = true;
-            }
+            user.charLeft = _.mapObject(user.charLeft, function (val, key) {
+                return val - required_chars;
+            })
+            
+            used_chars = required_chars > 0;
         }
 
         let answering_record;
