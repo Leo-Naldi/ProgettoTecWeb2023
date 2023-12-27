@@ -11,6 +11,7 @@ import { useAccount } from '../context/CurrentAccountContext';
 import Spinner from './Spinner';
 import UploadAndDisplayImage from './ImageUpload';
 import authorizedRequest from '../utils/authorizedRequest';
+import isImage from '../utils/isImage';
 
 
 function LocationMarker({ position, setPosition }) {
@@ -66,10 +67,13 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const handleClose = () => {
         setOpen(false);
         setUsedChars(0);
+        setSelectedImage(null);
+        setPosition(null);
+        setGeolocate(false);
     }
 
 
-    const post_squeal = (img_url = null) => {
+    const post_squeal = (img_url = null, video_url=null) => {
         
         let body = {
             content: {
@@ -136,18 +140,30 @@ export default function SquealFormModal({ managed, open, setOpen }) {
 
             req.onreadystatechange = () => {
                 if (req.readyState === 4) {
-                    //console.log(JSON.parse(req.response).id)
-                    let img_url = `http://site222346.tw.cs.unibo.it/image/${managed}/${JSON.parse(req.response).id}`;
-                    //console.log(img_url);
-                    post_squeal(img_url);
+
+                    let img_url = null;
+                    let video_url = null;
+
+                    if (isImage(selectedImage)) {
+                        img_url = `http://site222346.tw.cs.unibo.it/media/image/${managed}/${JSON.parse(req.response).id}`;
+                    } else {
+                        video_url = `http://site222346.tw.cs.unibo.it/media/video/${managed}/${JSON.parse(req.response).id}`;
+                    }
+
+                    
+                    post_squeal(img_url, video_url);
                     setPosting(false);
                     handleClose();
                 }
             }
 
-            req.open('post', 'http://site222346.tw.cs.unibo.it/image/upload/' + managed);
+            if (isImage(selectedImage)) {
+                req.open('post', 'http://site222346.tw.cs.unibo.it/media/upload/image/' + managed);
+            } else {
+                req.open('post', 'http://site222346.tw.cs.unibo.it/media/upload/video/' + managed);
+            }
+            
             req.setRequestHeader('Authorization', `Bearer ${smm.token}`);
-
             req.send(data);
             
         } else {
@@ -235,7 +251,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             return (<Spinner />)
         } else {
 
-            let disabled = (usedChars > maxLength) || ((usedChars === 0) && !selectedImage)
+            let disabled = (usedChars > maxLength) || ((usedChars === 0) && !selectedImage && !position)
 
             return (
                 <Box sx={{

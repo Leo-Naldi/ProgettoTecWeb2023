@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { Button, Card, CardActionArea, CardMedia, Tooltip } from "@mui/material";
+import isImage from "../utils/isImage";
 
-export default function UploadAndDisplayImage({ selectedImage, setSelectedImage }){
+export default function UploadAndDisplayImage({ selectedMedia, setSelectedMedia }){
 
     return (
         <React.Fragment>
@@ -10,23 +11,25 @@ export default function UploadAndDisplayImage({ selectedImage, setSelectedImage 
                     component='label'
                     variant="text"
                     startIcon={<AddPhotoAlternateIcon sx={{ mb: 1 }}/>}>
-                        {(selectedImage) ? 'Change Image...': 'Add Image...'}
+                        {(selectedMedia) ? 'Change Image or Video...': 'Add Image or Video...'}
                     <input
                         type="file"
-                        accept="image/*"
-                        onChange={e => setSelectedImage(e.target.files[0])}
+                        accept="image/*,video/*"
+                        onChange={e => {
+                            setSelectedMedia(e.target.files[0]);
+                        }}
                         style={{ display: 'none' }}
                     />
                 </Button>
-            {selectedImage && <Tooltip title='Click to Clear'>
+            {selectedMedia && <Tooltip title='Click to Clear'>
                 <Card sx={{ maxWidth: '100%' }}>
                     <CardActionArea
-                        onClick={() => setSelectedImage(null)}>
+                        onClick={() => setSelectedMedia(null)}>
                         <CardMedia
-                            component="img"
+                            component={(isImage(selectedMedia)) ? "img": "video"}
                             height="280"
-                            image={URL.createObjectURL(selectedImage)}
-                            alt={`Uploaded Image titled ${selectedImage.name}`}
+                            src={URL.createObjectURL(selectedMedia)}
+                            alt={`Uploaded Media titled ${selectedImage.name}`}
                         />
                     </CardActionArea>
                 </Card>
