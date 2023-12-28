@@ -14,7 +14,7 @@ const Reaction = require('../models/Reactions');
 const dayjs = require('dayjs');
 const UserService = require('./UserServices');
 const { makeGetResBody } = require('../utils/serviceUtils');
-const deleteImage = require('../utils/deleteImage');
+const { deleteImage, deleteVideo } = require('../utils/deleteMedia');
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -776,6 +776,16 @@ class MessageService {
 
                 logger.debug(`Deleted image ${id}`);
             }
+            
+            // delete local video associated to the user's message
+            if (message.content.video) {
+                let id = message.content.video.split('/').pop();
+
+                await deleteVideo(id);
+
+                logger.debug(`Deleted video ${id}`);
+            }
+
         
             //logger.debug(message)
 
