@@ -99,6 +99,7 @@ module.exports = configure(function (/* ctx */) {
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
+    // local server mode:
     devServer: {
       host: "localhost",
       server: {
@@ -110,6 +111,7 @@ module.exports = configure(function (/* ctx */) {
         "Access-Control-Allow-Origin": "*",
       },
     },
+    // TODO: to global mode:
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework
     framework: {

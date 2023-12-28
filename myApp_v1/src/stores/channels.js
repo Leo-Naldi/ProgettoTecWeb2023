@@ -58,7 +58,7 @@ export const useChannelStore = defineStore("channel", {
       return await API.all_channels_name()
         .then((response) => {
           if (response.status === 200) {
-            this.allChannel = response.data;
+            this.allChannel = response.data.results;
           }
         })
         .catch((err) => console.log("fetch all channel name error!!!", err));

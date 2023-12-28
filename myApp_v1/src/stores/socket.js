@@ -10,6 +10,8 @@ import { computed } from "vue";
 export const useSocketStore = defineStore("socket", {
   state: () => ({
     socket: null,
+    baseURL: "http://site222346.tw.cs.unibo.it",
+    // baseURL: "http://localhost:8000",
   }),
 
   getters: {
@@ -19,7 +21,7 @@ export const useSocketStore = defineStore("socket", {
   actions: {
     setSocket(handle, token) {
       if (handle && token) {
-        this.socket = io("http://localhost:8000/user-io/" + handle, {
+        this.socket = io(this.baseURL+"/user-io/" + handle, {
           extraHeaders: {
             Authorization: "Bearer " + token,
           },
@@ -31,7 +33,7 @@ export const useSocketStore = defineStore("socket", {
       const handle = useAuthStore().getUserHandle();
       const token = useAuthStore().getToken();
       if (handle && token) {
-        this.socket = io("http://localhost:8000/user-io/" + handle, {
+        this.socket = io(this.baseURL+"/user-io/" + handle, {
           extraHeaders: {
             Authorization: "Bearer " + token,
           },
@@ -39,7 +41,7 @@ export const useSocketStore = defineStore("socket", {
       }
     },
     setPublicSocket() {
-      this.socket = io("http://localhost:8000/public-io/", {
+      this.socket = io(this.baseURL+"/public-io/", {
         forceNew: true,
       });
     },

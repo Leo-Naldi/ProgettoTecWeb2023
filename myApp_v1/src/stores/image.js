@@ -20,12 +20,15 @@ export const useImageStore = defineStore('image', {
       const user_handle = useAuthStore().getUserHandle()
       // console.log("用户 handle:",user_handle)
       const data = await API.send_image(user_handle, formData)
-      return (
-        useGlobalStore().getBaseURL +
-        user_handle +
-        "/" +
-        data.data
-      );
+      console.log("这是从 剪切板获取图片的返回值：",useGlobalStore().getBaseURL  + "/media/image/" + user_handle+ "/"+JSON.parse(data.data).id)
+      // return (
+      //   useGlobalStore().getBaseURL +
+      //   user_handle +
+      //   "/" +
+      //   data.data
+      // );
+      return useGlobalStore().getBaseURL  + "/media/image/" + user_handle+ "/"+JSON.parse(data.data).id
+
     },
   }
 })

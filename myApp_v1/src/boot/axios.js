@@ -8,7 +8,8 @@ import { LocalStorage, Notify } from "quasar";
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-const baseURL = "http://localhost:8000";
+// const baseURL = "http://localhost:8000"; // local url
+const baseURL = "http://site222346.tw.cs.unibo.it"; //
 const api = axios.create({ baseURL: baseURL });
 
 const showErrorNotification = ({ message, caption }) =>

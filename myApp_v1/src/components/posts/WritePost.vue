@@ -26,8 +26,9 @@
 
         <div class="image-container">
           <q-img :src="newPost.imageURL" v-if="newPost.imageURL != ''" spinner-color="white" class="my-img" />
+          <q-video :src="newPost.videoURL" v-if="newPost.videoURL" spinner-color="blue" :ratio="16/9" class="my-img" />
           <ShowMap v-if="newPost.coordinates.length != 0" :mapId="newPost.mapName" :my-position="newPost.coordinates" />
-          <q-btn @click="deleteImage" v-if="newPost.imageURL != '' || newPost.coordinates.length != 0" flat round
+          <q-btn @click="deleteImage" v-if="newPost.imageURL != '' || newPost.coordinates.length != 0 || newPost.videoURL"  flat round
             class="closeIcon" color="red" icon="fa-regular fa-circle-xmark" />
         </div>
 
@@ -198,7 +199,13 @@
                 <!--                 <q-video
                   src="https://www.youtube.com/embed/k3_tw44QsZQ?rel=0"
                 /> -->
-                <q-uploader @uploaded="handleUploaded" :url="globalStore.baseURL + 'image/upload/' + user_handle"
+                <q-uploader @uploaded="handleUploaded" :url="globalStore.baseURL + '/media/upload/image/' + user_handle"
+                  label="upload one or more imgs(choose one in a time)" style="width: 300px" />
+              </q-popup-proxy>
+            </q-btn>
+            <q-btn flat round icon="fa-regular fa-file-video" size="sm">
+              <q-popup-proxy cover :breakpoint="800">
+                <q-uploader @uploaded="handleUploadedVideo" :url="globalStore.baseURL + '/media/upload/video/' + user_handle"
                   label="upload one or more imgs(choose one in a time)" style="width: 300px" />
               </q-popup-proxy>
             </q-btn>
@@ -282,8 +289,6 @@ import ShowMap from 'src/components/map/ShowMap.vue'
 import { useAuthStore } from "src/stores/auth";
 import { useGlobalStore } from "src/stores/global";
 import ShowDialog from 'src/components/ShowDialog.vue';
-
-
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
@@ -617,11 +622,18 @@ const sendNewPost = () => {
     }
     toSend.content.image = newPost.imageURL
   }
+  if (newPost.videoURL != "") {                                                             // image
+    if (!("content" in toSend)) {
+      toSend.content = {}
+    }
+    toSend.content.video = newPost.videoURL
+  }
   if (newPost.coordinates.length != 0)                                                      // coordinate
     toSend.meta = { geo: { type: "Point", coordinates: toRaw(newPost.coordinates) } };
 
 
-  if (newPost.imageURL != "" || newPost.coordinates.length != 0 || newPost.content != "") {
+  // 什么时候可以发送？有图片/视频/地理位置/有文字时就可以
+  if (newPost.imageURL != "" || newPost.videoURL != "" || newPost.coordinates.length != 0 || newPost.content != "") {
     // TODO: 可能需要更新 store 的值？？？ 回复页，全部页，用户消息页
     postStore.sendPost(user_handle, toSend)
   }
@@ -629,15 +641,16 @@ const sendNewPost = () => {
   newPost.everyOneCanSee = true
   newPost.content = ""
   newPost.imageURL = ""
+  newPost.videoURL = ""
   newPost.coordinates = []
   newPost.destUsers = null
   newPost.destChannels = null
 }
 
-// TODO: 当点击叉号后连带后端里的图片也删掉
 const deleteImage = () => {
   newPost.imageURL = ""
   newPost.coordinates = []
+  newPost.videoURL = ""
 }
 
 // 获得调用上传图片 API 之后的返回值
@@ -645,8 +658,20 @@ const handleUploaded = (response) => {
   const img_name = response.files[0].xhr.response
   const baseURL = globalStore.getBaseURL
   const handle = user_handle
-  newPost.imageURL = baseURL + handle + "/" + img_name
-  console.log(img_name);
+  // newPost.imageURL = baseURL + handle + "/" + img_name
+  // console.log("获取不到上传以后得文件名啦！",JSON.parse(img_name).id);
+  newPost.imageURL = baseURL  + "/media/image/" + handle+ "/"+JSON.parse(img_name).id
+  // console.log("获取不到上传以后得文件名啦！ddd",newPost.imageURL);
+
+}
+
+const handleUploadedVideo = (response) =>{
+  const video_name = response.files[0].xhr.response
+  const baseURL = globalStore.getBaseURL
+  const handle = user_handle
+  console.log("获取不到上传以后得视频啦！",JSON.parse(video_name).id);
+  newPost.videoURL = baseURL  + "/media/video/" + handle+ "/"+JSON.parse(video_name).id
+  console.log("获取不到上传以后得视频名啦！ddd",newPost.videoURL);
 }
 
 onMounted(() => {
@@ -674,6 +699,7 @@ onMounted(() => {
           newPost.imageURL = await imageStore.uploadImage(blob);
         }
       }
+      // TODO: 剪切板视频
     }
   });
 });

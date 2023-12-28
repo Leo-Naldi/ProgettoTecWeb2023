@@ -65,7 +65,7 @@ export const useUserStore = defineStore("User", {
       return await API.all_users_name()
         .then((response) => {
           if (response.status === 200) {
-            this.allUser = response.data;
+            this.allUser = response.data.results;
           }
         })
         .catch((err) => console.log("fetch all User name error!!!", err));

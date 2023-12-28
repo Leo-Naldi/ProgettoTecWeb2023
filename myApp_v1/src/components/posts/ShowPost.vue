@@ -38,6 +38,8 @@
       <div class="post-content" v-html="content.text"></div>
 
       <q-img :src="content.image" v-if="content.image" spinner-color="white" class="my-img" />
+      <q-video :src="content.video" v-if="content.video" spinner-color="blue" :ratio="16/9" class="my-img"/>
+
       <!--       <ShowMap v-if="meta.geo && meta.geo.coordinates.length != 0"  :myPosition="meta.geo.coordinates"
           :style="$q.screen.gt.sm ? 'height: 280px; max-width:  100%' :  'height: 200px; max-width: 100%'" /> -->
       <ShowMap v-if="meta.geo && meta.geo.coordinates.length != 0" :mapId="id" :my-position="meta.geo.coordinates">

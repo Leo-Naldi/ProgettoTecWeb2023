@@ -1,12 +1,13 @@
 <template>
-  <div>
-    <q-dialog v-model="showModal" persistent>
+  <q-dialog v-model="showModal" persistent>
+    <div>
       <q-card>
         <q-card-section class="row items-center q-pb-none">
           <q-space />
-          <q-btn icon="close" flat round dense v-close-popup >
-            <q-tooltip v-if="globalStore.getAutoTimerId != null && stopAutoMsg">if you close this, auto-message well stop!</q-tooltip>
-            <q-tooltip v-else class="bg-primary" >click to exit</q-tooltip>
+          <q-btn icon="close" flat round dense v-close-popup>
+            <q-tooltip v-if="globalStore.getAutoTimerId != null && stopAutoMsg">if you close this, auto-message well
+              stop!</q-tooltip>
+            <q-tooltip v-else class="bg-primary">click to exit</q-tooltip>
           </q-btn>
         </q-card-section>
 
@@ -15,17 +16,17 @@
         </div> -->
         <q-card-section>
           <slot></slot>
-          <ModifyPassword v-if="modifyPassword===true"/>
-          <ChoosePlan v-if="choosePlan==true"></ChoosePlan>
+          <ModifyPassword v-if="modifyPassword === true" />
+          <ChoosePlan v-if="choosePlan == true"></ChoosePlan>
         </q-card-section>
       </q-card>
-    </q-dialog>
-    <!-- <q-dialog v-model="showModal" position="absolute" transition-show="scale" transition-hide="scale">
+    </div>
+  </q-dialog>
+  <!-- <q-dialog v-model="showModal" position="absolute" transition-show="scale" transition-hide="scale">
       <div class="modal-content">
         弹窗内容
       </div>
     </q-dialog> -->
-  </div>
 </template>
 
 <script>
@@ -39,20 +40,20 @@ export default {
     component: {
       type: Object,
     },
-    modifyPassword:{
-      type: Boolean,
-      default:false
-    },
-    choosePlan:{
+    modifyPassword: {
       type: Boolean,
       default: false
     },
-    stopAutoMsg:{
+    choosePlan: {
+      type: Boolean,
+      default: false
+    },
+    stopAutoMsg: {
       type: Boolean,
       default: false
     }
   },
-  components:{
+  components: {
     ModifyPassword,
     ChoosePlan,
   },

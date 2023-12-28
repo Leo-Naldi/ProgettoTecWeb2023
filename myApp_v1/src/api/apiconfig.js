@@ -72,5 +72,7 @@ export default {
   undo_dislike_messages: (msg_id) => api.delete("messages/down/"+msg_id),
 
   send_message: (user_handle, messages_json) => api.post("messages/user/"+user_handle, messages_json),
-  send_image: (user_handle, image_data) => api.post("image/upload/"+user_handle, image_data),
+  // send_image: (user_handle, image_data) => api.post("image/upload/"+user_handle, image_data), // old local image path
+  send_image: (user_handle, image_data) => api.post("media/upload/image/"+user_handle, image_data),
+  send_video: (user_handle, image_data) => api.post("media/upload/video/"+user_handle, video_data),
 };
