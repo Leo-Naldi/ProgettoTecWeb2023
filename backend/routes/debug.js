@@ -8,6 +8,7 @@ const Reaction = require('../models/Reactions');
 const Plan = require('../models/Plan');
 const { makeDefaultUsers } = require('../utils/defaultUsers');
 const mongoose = require('mongoose');
+const resetDB = require('../utils/resetDB');
 
 
 /**
@@ -200,22 +201,8 @@ DebugRouter.get('/:handle/reacted', async (req, res) => {
 });
 
 DebugRouter.post('/restart', async (req, res) => {
-    await User.deleteMany({});
-    await Message.deleteMany({});
-    await Channel.deleteMany({});
-    await Plan.deleteMany({});
-    await Reaction.deleteMany({});
-
-    let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-        bucketName: 'images',
-    })
-
-    const cursor = gridfs_bucket.find({});
-    for await (const doc of cursor) {
-        await gridfs_bucket.delete(doc._id);
-    }
-
-    logger.debug('Cleared DBs')
+    
+    await resetDB(true);
 
     await makeDefaultUsers();
 

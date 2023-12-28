@@ -12,6 +12,7 @@ const { makeDefaultUsers } = require('./utils/defaultUsers');
 
 const crons = require('./config/crons');
 const Reaction = require('./models/Reactions');
+const resetDB = require('./utils/resetDB');
 
 
 mongoose.connect(config.db_url).then(async () => {
@@ -19,29 +20,7 @@ mongoose.connect(config.db_url).then(async () => {
     logger.info(`Connected DB at ${config.db_url}`);
     
     // delete all tables and recreate them
-    await User.deleteMany({});
-    await Message.deleteMany({});
-    await Channel.deleteMany({});
-    await Plan.deleteMany({});
-    await Reaction.deleteMany({});
-
-    let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-        bucketName: 'images',
-    })
-
-    let cursor = gridfs_bucket.find({});
-    for await (const doc of cursor) {
-        await gridfs_bucket.delete(doc._id);
-    }
-
-    gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-        bucketName: 'videos',
-    })
-
-    cursor = gridfs_bucket.find({});
-    for await (const doc of cursor) {
-        await gridfs_bucket.delete(doc._id);
-    }
+    await resetDB();
 
     await makeDefaultUsers();
 

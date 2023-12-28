@@ -783,7 +783,7 @@ class MessageService {
 
                 await deleteVideo(id);
 
-                logger.debug(`Deleted video ${id}`);
+                logger.debug(`Deleted video  ${id}`);
             }
 
         
