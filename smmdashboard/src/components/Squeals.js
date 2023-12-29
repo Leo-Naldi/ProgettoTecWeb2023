@@ -144,11 +144,18 @@ export default function Squeals({ managed }) {
                     setMessages(newMessages);
                 }
             }
+        });
+
+        socket.on('message:deleted', (data) => {
+            if (messages.find(m => m.id === data.id)) {
+                setMessages(messages.filter(m => m.id !== data.id));
+            }
         })
 
         return () => {
             socket?.off('message:created');
             socket?.off('message:changed');
+            socket?.off('message:deleted');
         }
     }, [socket, messages])
 
@@ -303,7 +310,7 @@ export default function Squeals({ managed }) {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {messages.map(makeMessageRow)};
+                        {messages.map(makeMessageRow)}
                     </TableBody>
                 </Table>
             )
@@ -361,7 +368,7 @@ export default function Squeals({ managed }) {
         console.log(m.content)
 
         if (m.content.image) {
-            return <TableCell>
+            return (<TableCell>
                 <IconButton
                     aria-label='Show Squeal Image'
                     onClick={() => {
@@ -371,9 +378,9 @@ export default function Squeals({ managed }) {
                     }}>
                     <ImageIcon />
                 </IconButton>
-            </TableCell>
+            </TableCell>);
         } else if (m.content.video) {
-            return <TableCell>
+            return (<TableCell>
                 <IconButton
                     aria-label='Show Squeal Video'
                     onClick={() => {
@@ -383,15 +390,15 @@ export default function Squeals({ managed }) {
                     }}>
                     <PlayCircleFilledIcon />
                 </IconButton>
-            </TableCell>
+            </TableCell>);
         } else {
-            return <TableCell>
+            return (<TableCell>
                 <HideImageOutlinedIcon
                     aria-label='No Squeal Image'
                     sx={{
                         ml: 1,
                     }} />
-            </TableCell>
+            </TableCell>);
         }
     }
 }
