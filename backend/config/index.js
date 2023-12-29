@@ -8,7 +8,6 @@ const path = require("path");
 
 let rootPath = path.resolve(__dirname, "..");
 
-
 require("dotenv").config({ path: path.join(rootPath, '.env') });
 
 const env = process.env.ENVIRONMENT || 'local';
@@ -130,6 +129,8 @@ const config = {
    * @type {string}
    */
   logs_dir: path.join(rootPath, 'logs'),
+  smmdashboard_build_path: path.resolve(rootPath, '..', 'smmdashboard', 'build'),
+  moddashboard_build_path: path.resolve(rootPath, '..', 'moddashboard'),
 };
 
 module.exports = config;

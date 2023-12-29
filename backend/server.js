@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const cors = require('cors');
 const throttle = require('express-throttle-bandwidth')
+const path = require('path')
 
 const config = require('./config/index');
 
@@ -18,6 +19,7 @@ const PublicRouter = require('./routes/public');
 const DebugRouter = require('./routes/debug');
 const { SquealCrons } = require('./config/crons');
 const MediaRouter = require('./routes/media');
+const FrontendRouter = require('./routes/frontend');
 
 class ExpressServer {
     constructor() {
@@ -46,6 +48,11 @@ class ExpressServer {
         app.use(express.static(config.folder));
         app.use(morganLogMiddleware);  // requests logger
 
+        //Static Files
+        app.use(express.static(config.smmdashboard_build_path));
+        app.use('/moddashboard', express.static(config.moddashboard_build_path));
+
+
         // Rutes
         app.use('/users', UserRouter);
         app.use('/auth', AuthRouter);
@@ -56,6 +63,7 @@ class ExpressServer {
         app.use('/plans', PlansRouter);
         app.use('/public', PublicRouter);
         app.use('/debug', DebugRouter);
+        app.use('/frontend', FrontendRouter);
 
 
         this.app = app;

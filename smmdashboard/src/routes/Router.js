@@ -16,6 +16,9 @@ export const routerData = [
     }
 ];
 
-const router = createBrowserRouter(routerData);
+const router = createBrowserRouter(routerData, {
+    basename: '/frontend/smmdashboard/'
+});
+
 
 export default router;
