@@ -10,7 +10,7 @@ class MessageContent{
             'Users',
             'Published',
             'Text',
-            'Image',
+            'Media',
             'Geo',
             'Privacy',
         ]
@@ -30,11 +30,17 @@ class MessageContent{
             
             if (header == 'Text') {
                 return d.content.text || '-';
-            } else if (header == 'Image') {
+            } else if (header == 'Media') {
                 if (d.content.image) {
                     return $("<a>", {
                         href: d.content.image,
                         text: 'Image',
+                        target: '_blank',
+                    });
+                } else if (d.content.video) {
+                    return $("<a>", {
+                        href: d.content.image,
+                        text: 'Video',
                         target: '_blank',
                     });
                 } else {

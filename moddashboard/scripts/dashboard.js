@@ -128,7 +128,7 @@ function makeDashboardHeader() {
 
     ['Users', 'Messages', 'Channels'].map((val, i) => {
 
-        let li = $('<li>', { "class": 'nav-item' });
+        let li = $('<li>', { "class": 'nav-item fex-grow-1' });
         let a = $('<a>', {
             'class': (i === 0) ? 'nav-link active' : 'nav-link',
             id: val.toLowerCase() + 'Tab',
@@ -138,8 +138,15 @@ function makeDashboardHeader() {
         ul.append(li);
     })
 
+    let div = $('<div>', {
+        "class": 'd-flex flex-row-reverse flex-grow-1'
+    });
+
+    div.append(makeLogoutButton());
+
     let header = $('<header>', { 'class': 'mt-2' });
     header.append(ul)
+    ul.append(div);
 
     return header;
 }
@@ -216,3 +223,22 @@ function addTabClickListeners() {
     });
 }
 
+function makeLogoutButton() {
+    let res = $(`
+        <button type="button" class="btn btn-outline-danger border border-0" aria-label="Logout">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/>
+                <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+            </svg>
+            Logout
+        </button>
+    `);
+
+    res.click(function(event) {
+        clearRefreshTokenInterval();
+        localStorage.removeItem('modDashboardData');
+        location.reload();
+    })
+
+    return res;
+}
