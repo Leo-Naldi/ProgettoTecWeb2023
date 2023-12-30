@@ -36,7 +36,9 @@ class SquealSocket {
             namespaces.add(`/pro-io/${populatedMessage.author.smm.handle}`)
         }
 
-        //logger.debug(populatedMessage.author.smm.handle)
+        if (populatedMessage.publicMessage) {
+            namespaces.add('/admin-io/');
+        }
 
         return namespaces;
     }
@@ -48,11 +50,15 @@ class SquealSocket {
             namespaces.add('/public-io/');
         }
 
+        if (populatedChannel.publicChannel) {
+            namespaces.add('/admin-io/');
+        }
+
         return namespaces;
     }
 
     static userChanged({ populatedUser, ebody, old_smm_handle, socket }) {
-        let nms = new Set([`/user-io/${populatedUser.handle}`]);
+        let nms = new Set([`/user-io/${populatedUser.handle}`, '/admin-io/']);
 
         //logger.debug(JSON.stringify(populatedUser))
         if (populatedUser.smm?.handle) nms.add(`/pro-io/${populatedUser.smm.handle}`);
@@ -75,7 +81,7 @@ class SquealSocket {
 
     static userDeleted({ handle, smm_handle=null, managed=[], socket }) {
         
-        let namespaces = new Set();
+        let namespaces = new Set(['/admin-io/']);
         
         if (smm_handle) {
             namespaces.add(`/pro-io/${smm_handle}`);
@@ -94,7 +100,7 @@ class SquealSocket {
     }
 
     static messageDeleted({ id, destHandles, smm_handle=null, official, socket }) {
-        let namespaces = new Set();
+        let namespaces = new Set(['/admin-io/']);
          
         destHandles.forEach(handle => namespaces.add(`/user-io/${handle}`));
 
