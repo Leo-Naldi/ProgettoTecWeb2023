@@ -16,14 +16,18 @@ class DataTable {
     #results_per_page;
     #page = 1;
     #pages = null;
+    #data = [];
 
     #pagination = null;
     #filter = {};
 
+    #socket_prefix;
+    #socket;
+
     constructor(container, headers, endpoint, 
         after_row_select, data_transform = _.identity, 
         data_display = data_display_default, results_per_page = 25,
-        default_filter={}) {
+        default_filter={}, socket_prefix='', socket=null) {
         
         this.#headers = headers;
         this.#container = container;
@@ -34,6 +38,11 @@ class DataTable {
         
         this.#results_per_page = results_per_page;
         this.#filter = default_filter;
+
+        this.#socket_prefix = socket_prefix;
+        this.#socket = socket;
+        
+        this.addSocketListeners();
     }
 
     get selected_item() {
@@ -112,6 +121,7 @@ class DataTable {
                 this.#spinner?.remove();
 
                 this.#pages = data.pages;
+                this.#data = data.results;
                 //console.log(this.#pages);
 
                 this.#table = this.#makeTable(data);
@@ -128,6 +138,7 @@ class DataTable {
         this.#fetchData()
             .then(data => {
 
+                this.#data = data.results;
                 this.#table = this.#makeTable(data);
                 this.#spinner?.remove();
                 this.#pagination?.remove();
@@ -255,7 +266,7 @@ class DataTable {
         if (this.#page === 1) {
             return _.range(1, Math.min(3, this.#pages) + 1);
         } else if (this.#page === this.#pages) {
-            return _.range(this.#pages - 2, this.#pages + 1);
+            return _.range(Math.max(1, this.#pages - 2), this.#pages + 1);
         } else {
             return [this.#page - 1, this.#page, this.#page + 1];
         }
@@ -277,6 +288,66 @@ class DataTable {
         }
 
         this.#after_row_select();
+    }
+
+    addSocketListeners() {
+
+        this.#socket?.removeAllListeners();
+
+        this.#socket?.on(`${this.#socket_prefix}:changed`, (changes) => {
+
+            let i = this.#data.findIndex(d => d.id === changes.id)
+
+            if (i >= 0) {
+                this.#data[i] = {
+                    ...this.#data[i],
+                    ...changes,
+                }
+
+                let row = $(`#${this.#data[i].id}`);
+
+                row.empty();
+
+                let d = this.#data[i];
+                let transformed = this.#data_transform?.(d) ?? d;
+
+                this.#headers.map(header => {
+
+                    let td = $('<td>', {
+                        'class': 'ellipsis-text'
+                    });
+                    let content = this.#data_display(transformed, header);
+                    if (_.isArray(content)) {
+                        td.append(...content);
+                    } else {
+                        td.append(content);
+                    }
+
+                    row.append(td);
+
+                });
+
+                if (this.#selected_row?.attr('id') === row.attr('id')) {
+                    this.#selected_row?.toggleClass('table-primary');
+                    this.#selected_row = null;
+                    this.#selected_item = null;
+                    this.#after_row_select();
+                }
+            }
+        })
+
+        this.#socket?.on(`${this.#socket_prefix}:deleted`, (data) => {
+
+            let i = this.#data.findIndex(d => d.id === data.id)
+
+            if (i >= 0) {
+                if (this.#selected_row?.attr('id') === data.id) {
+                    this.#selectRow(this.#selected_row, this.#selected_item);
+                }
+
+                $(`#${data.id}`).remove();
+            }
+        })
     }
 
     static #getToken() {

@@ -1,6 +1,6 @@
 class MessageContent{
 
-    constructor(container) {
+    constructor(container, socket) {
         this.container = container;
         this.filters = null;
 
@@ -85,10 +85,14 @@ class MessageContent{
         this.data_table = new DataTable(
             this.table_container,
             headers,
-            'http://site222346.tw.cs.unibo.it/messages/',
+            '/messages/',
             after_row_select,
             transform,
             display,
+            25,
+            {},
+            'message',
+            socket,
         );
 
         this.edit_button = null;

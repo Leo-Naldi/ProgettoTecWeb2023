@@ -1,6 +1,6 @@
 class UserContent{
 
-    constructor(container) {
+    constructor(container, socket) {
         this.container = container;
         this.filters = null;
 
@@ -35,9 +35,14 @@ class UserContent{
         this.data_table = new DataTable(
             this.table_container, 
             headers, 
-            'http://site222346.tw.cs.unibo.it/users', 
+            '/users/', 
             after_row_select,
-            transform
+            transform,
+            (data, header) => (data[header.toLowerCase()]),
+            25,
+            {},
+            'user',
+            socket,
         );
 
         this.edit_button = null;

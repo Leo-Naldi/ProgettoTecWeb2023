@@ -3,6 +3,7 @@ let message_table = null;
 let channel_table = null;
 let container = null;
 let tabs = null;
+let socket = null;
 
 
 $(function () {
@@ -39,6 +40,13 @@ function addLoginFormListeners() {
     $('#login-form').on('submit', function (event) {
         event.preventDefault();
 
+        $('#login-submit-button').empty();
+        $('#login-submit-button').append($(`
+            <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        `));
+
         let body = $(this).serializeArray().reduce((acc, cur) => {
             acc[cur.name] = cur.value;
             return acc;
@@ -49,14 +57,19 @@ function addLoginFormListeners() {
             method: 'post',
             body: JSON.stringify(body),
         }).then(res => {
+
+            $('#login-submit-button').empty();
+            $('#login-submit-button').text('Log in')
+
             if (res.ok) {
                 return res.json().then(data => {
                     saveLogin(data);
                     mountDashboard();
                 })
             } else {
+                if (!$('#login-error-message').length)
                 $('form').prepend(`
-                    <div class="alert alert-danger p-3 my-2">
+                    <div class="alert alert-danger p-3 my-2" id="login-error-message">
                         Username or password did not work
                     </div>
                 `);
@@ -90,7 +103,7 @@ function makeLogin() {
                                 <label for="password" class="form-label">Password</label>
                                 <input type="password" name="password" class="form-control" id="password">
                             </div>
-                            <button type="submit" class="btn btn-primary">Log in</button>
+                            <button type="submit" class="btn btn-primary" id="login-submit-button">Log in</button>
                         </form>
                     </div>
                 </div>
@@ -103,21 +116,31 @@ function makeLogin() {
 
 function mountDashboard(){
 
-    container = $('div.container');
-    container.empty();
-    startRefreshTokenInterval();
+    socket = io(`http://site222346.tw.cs.unibo.it/admin-io/`, {
+        extraHeaders: {
+            Authorization: `Bearer ${getToken()}`
+        },
+        forceNew: true,
+    });
 
-    tabs = makeDashboardHeader();
-    let users = makeUserContent();
+    socket.once('connect', () => {
+        container = $('div.container');
+        container.empty();
+        startRefreshTokenInterval();
+    
+        tabs = makeDashboardHeader();
+        let users = makeUserContent();
+    
+        container.append(tabs);
+    
+        let main = $('<main>');
+        container.append(main);
+    
+        main.append(users);
+    
+        addTabClickListeners();
+    })
 
-    container.append(tabs);
-
-    let main = $('<main>');
-    container.append(main);
-
-    main.append(users);
-
-    addTabClickListeners();
 }
 
 function makeDashboardHeader() {
@@ -158,7 +181,7 @@ function makeUserContent() {
         id: 'usersContent',
     })
     
-    let users_content = new UserContent(result);
+    let users_content = new UserContent(result, socket);
     users_content.mount();
 
     return result;
@@ -171,7 +194,7 @@ function makeMessagesContent() {
         id: 'messagesContent',
     })
 
-    let messages_content = new MessageContent(result);
+    let messages_content = new MessageContent(result, socket);
     messages_content.mount();
 
     return result;
@@ -183,7 +206,7 @@ function makeChannelsContent() {
         id: 'channelsContent',
     })
 
-    let channels_content = new ChannelsContent(result);
+    let channels_content = new ChannelsContent(result, socket);
     channels_content.mount();
 
     return result;

@@ -1,1 +1,0 @@
-const dasboard_href = 'file:///home/leo/proj/moddashboard/pages/dashboard.html'

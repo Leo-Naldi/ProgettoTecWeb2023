@@ -196,7 +196,7 @@ class SquealSocket {
             socket: socket,
             namespaces: namespaces,
             eventName: 'channel:deleted',
-            eventBody: { name: populatedChannelObject.name },
+            eventBody: { name: populatedChannelObject.name, id: populatedChannelObject._id.toString() },
         });
     }
 }

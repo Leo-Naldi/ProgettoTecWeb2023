@@ -314,9 +314,9 @@ class ChannelServices{
         return Service.successResponse(ChannelServices.#makeChannelObject(res));
     }
 
-    static async deleteChannel({ name }) {
+    static async deleteChannel({ name, socket }) {
 
-        const channel = await Channel.findOne({ name: name });
+        let channel = await Channel.findOne({ name: name });
 
         if (!channel) return Service.rejectResponse({ message: `No channel called ${name}` })
 
@@ -339,8 +339,15 @@ class ChannelServices{
                 u.editorChannels = u.joinedChannels.filter(id => !id.equals(channel._id))
                 return u.save()
         }));
+
+        channel = channel.toObject();
+        channel.members = _.pluck(users, 'handle');
+
+        //logger.debug(JSON.stringify(channel.members))
         
-        await channel.deleteOne({ name: name });
+        await Channel.deleteOne({ name: name });
+
+        SquealSocket.channelDeleted({ populatedChannelObject: channel, socket })
 
         return Service.successResponse();
     }

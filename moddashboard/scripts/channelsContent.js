@@ -1,6 +1,6 @@
 class ChannelsContent {
 
-    constructor(container) {
+    constructor(container, socket) {
         this.container = container;
         this.filters = null;
 
@@ -40,12 +40,14 @@ class ChannelsContent {
         this.data_table = new DataTable(
             this.table_container,
             headers,
-            'http://site222346.tw.cs.unibo.it/channels/',
+            '/channels/',
             after_row_select,
             transform,
             display,
             25,
-            { official: true }
+            { official: true },
+            'channel',
+            socket,
         );
 
         this.edit_button = null;
