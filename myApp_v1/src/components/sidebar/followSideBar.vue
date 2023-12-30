@@ -66,15 +66,10 @@ onMounted(() => {
 
 <script>
 import { ref, onMounted, toRaw } from "vue";
-import ChannelEnum from "./channel/ChannelEnum.vue";
+import ChannelEnum from "../channel/ChannelEnum.vue";
 import { useRouter } from "vue-router";
+import { useChannelStore } from "src/stores/channels";
 export default {
-  props: {
-    channels: {
-      type: Array,
-      required: true,
-    },
-  },
   data() {
     return {
       router: useRouter(),
@@ -83,22 +78,22 @@ export default {
   components: {
     ChannelEnum
   },
-  setup(props) {
-    // const propValue = ref(props.channels)
+  setup() {
+    const channelStore = useChannelStore()
     const randomChannels = ref([])
     // console.log("props value: ", propValue.value)
 
     const getRandomChannels = (() => {
-      // console.log("props channel: ", props.channels)
-      // console.log("props channel: ", toRaw(props.channels).value) // TODO: vue3 props get value? sometimes work
-      // console.log("props channel: ", JSON.parse(JSON.stringify(props.channels)))
-      const channel_candidate = toRaw(props.channels).value && toRaw(props.channels).value.length > 0 ? toRaw(props.channels).value : []
+      const store_allchannel = channelStore.getChannelLists
+      // console.log("我获得的 sore channel 是：", store_allchannel)
+      const channel_candidate = JSON.parse(JSON.stringify(store_allchannel))
+      // console.log("我获得的 sore channel 是2：", channel_candidate)
+
 
       if (channel_candidate.length > 0) {
         for (var i = 0; i < 3; i++) {
           const randomIndex = Math.floor(Math.random() * channel_candidate.length);
           randomChannels.value.push(channel_candidate[randomIndex])
-          // console.log("generated channels: ", channel_candidate[randomIndex])
         }
       }
 

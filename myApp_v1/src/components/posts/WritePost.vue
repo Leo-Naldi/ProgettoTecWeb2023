@@ -200,13 +200,13 @@
                   src="https://www.youtube.com/embed/k3_tw44QsZQ?rel=0"
                 /> -->
                 <q-uploader @uploaded="handleUploaded" :url="globalStore.baseURL + '/media/upload/image/' + user_handle"
-                  label="upload one or more imgs(choose one in a time)" style="width: 300px" />
+                  label="upload one or more imgs(choose one in a time)" style="width: 300px" accept=".jpg, .png, image/*" max-files="1" />
               </q-popup-proxy>
             </q-btn>
             <q-btn flat round icon="fa-regular fa-file-video" size="sm">
               <q-popup-proxy cover :breakpoint="800">
                 <q-uploader @uploaded="handleUploadedVideo" :url="globalStore.baseURL + '/media/upload/video/' + user_handle"
-                  label="upload one or more imgs(choose one in a time)" style="width: 300px" />
+                  label="upload one or more imgs(choose one in a time)" style="width: 300px" accept=".mp4, video/*" max-files="1"/>
               </q-popup-proxy>
             </q-btn>
             <q-btn flat round color="grey" icon="fas fa-map-marker-alt" size="sm" @click="getGeo()">
@@ -284,18 +284,17 @@ import { usePostStore } from "src/stores/posts";
 import { useUserStore } from "src/stores/user";
 import { useChannelStore } from "src/stores/channels";
 import { useMapStore } from "src/stores/map";
-import { useImageStore } from "src/stores/image"
 import ShowMap from 'src/components/map/ShowMap.vue'
 import { useAuthStore } from "src/stores/auth";
 import { useGlobalStore } from "src/stores/global";
 import ShowDialog from 'src/components/ShowDialog.vue';
+import { uploadImage, uploadVideo } from  "src/common/mediaUploader.js"
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
 const channelStore = useChannelStore()
 const postStore = usePostStore()
 const mapStore = useMapStore()
-const imageStore = useImageStore()
 const router = useRouter();
 const globalStore = useGlobalStore()
 
@@ -304,6 +303,10 @@ const props = defineProps({
   id: {
     type: String,
     default: "",
+  },
+  destChannel:{
+    type:String,
+    default:""
   },
   // replying to: author
   author: {
@@ -609,8 +612,14 @@ const sendNewPost = () => {
     const destChannels = newPost.destChannels.map(function (element) {
       return "§" + element;
     });
+    if (props.destChannel!=""){
+      destChannels.unshift("§"+props.destChannel)
+    }
     toSend.dest = "dest" in toSend ? (Array.isArray(toSend.dest) ? toSend.dest.concat(destChannels) : [toSend.dest, destChannels]) : destChannels    // dest
-
+  }
+  if (!newPost.dest && props.destChannel!=""){
+    let destChannels1 = ["§"+props.destChannel]
+    toSend.dest= "dest" in toSend ? (Array.isArray(toSend.dest) ? toSend.dest.concat(destChannels1) : [toSend.dest, destChannels1]) : destChannels1
   }
   if (newPost.content != "") {                                                             // content
     toSend.content = {}
@@ -635,7 +644,12 @@ const sendNewPost = () => {
   // 什么时候可以发送？有图片/视频/地理位置/有文字时就可以
   if (newPost.imageURL != "" || newPost.videoURL != "" || newPost.coordinates.length != 0 || newPost.content != "") {
     // TODO: 可能需要更新 store 的值？？？ 回复页，全部页，用户消息页
-    postStore.sendPost(user_handle, toSend)
+    if(newPost.imageURL!="" && newPost.videoURL!=""){
+      alert("you can only send one of them in the same time!")
+    }
+    else{
+      postStore.sendPost(user_handle, toSend)
+    }
   }
 
   newPost.everyOneCanSee = true
@@ -669,9 +683,9 @@ const handleUploadedVideo = (response) =>{
   const video_name = response.files[0].xhr.response
   const baseURL = globalStore.getBaseURL
   const handle = user_handle
-  console.log("获取不到上传以后得视频啦！",JSON.parse(video_name).id);
+  // console.log("获取不到上传以后得视频啦！",JSON.parse(video_name).id);
   newPost.videoURL = baseURL  + "/media/video/" + handle+ "/"+JSON.parse(video_name).id
-  console.log("获取不到上传以后得视频名啦！ddd",newPost.videoURL);
+  // console.log("获取不到上传以后得视频名啦！ddd",newPost.videoURL);
 }
 
 onMounted(() => {
@@ -684,6 +698,7 @@ onMounted(() => {
 
   const el = userInput.value.getNativeElement();
   el.addEventListener("paste", async (e) => {
+    // if clipboard is text then do nothing
     if (e.clipboardData && typeof e.clipboardData.getData === "function" && e.clipboardData.getData('text/plain')) { }
     else {
       e.preventDefault();
@@ -696,7 +711,13 @@ onMounted(() => {
         let blob;
         if (clipboardItem.type?.startsWith("image/")) {
           blob = clipboardItem;
-          newPost.imageURL = await imageStore.uploadImage(blob);
+          // newPost.imageURL = await imageStore.uploadImage(blob);
+          newPost.imageURL = await uploadImage(blob);
+        }
+        if (clipboardItem.type?.startsWith("video/")) {
+          blob = clipboardItem;
+          // newPost.imageURL = await imageStore.uploadImage(blob);
+          newPost.videoURL = await uploadVideo(blob);
         }
       }
       // TODO: 剪切板视频

@@ -56,6 +56,7 @@ export default {
   user_messages: (user_handle) => api.get("users/" + user_handle + "/messages"),  // get user messages by handle
   write_user: (handle, data) =>api.post("users/"+handle, data),
 
+  create_channel: (channel_name, data)=>api.post("channels/"+channel_name,data),
   modify_channel: (channel_name, data) => api.put("channels/"+channel_name, data),
   delete_channel: (channel_name) => api.delete("channels/"+channel_name),
   channel_messages: (channel_name) => api.get("messages/channel/"+channel_name),
@@ -64,6 +65,7 @@ export default {
   modify_channel_member:(name,data)=>api.post("channels/"+name+"/members",data),
   modify_channel_editor:(name,data)=>api.post("channels/"+name+"/editors", data),
   delete_channel_messages:(channel_name)=>api.delete("messages/channel/"+channel_name),
+  // TODO: get controversial channel
 
   like_messages: (msg_id) => api.post("messages/up/"+msg_id),
   dislike_messages: (msg_id) => api.post("messages/down/"+msg_id),
@@ -72,7 +74,6 @@ export default {
   undo_dislike_messages: (msg_id) => api.delete("messages/down/"+msg_id),
 
   send_message: (user_handle, messages_json) => api.post("messages/user/"+user_handle, messages_json),
-  // send_image: (user_handle, image_data) => api.post("image/upload/"+user_handle, image_data), // old local image path
   send_image: (user_handle, image_data) => api.post("media/upload/image/"+user_handle, image_data),
-  send_video: (user_handle, image_data) => api.post("media/upload/video/"+user_handle, video_data),
+  send_video: (user_handle, video_data) => api.post("media/upload/video/"+user_handle, video_data),
 };

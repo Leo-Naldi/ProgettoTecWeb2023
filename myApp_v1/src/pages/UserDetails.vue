@@ -10,7 +10,7 @@
             <img src="https://cdn.quasar.dev/img/avatar2.jpg" />
             <!-- <q-badge class="verified" > -->
             <div v-if="userDetails.verified">
-              <q-icon name="fa-solid fa-circle-check" class="verified" size="3.5rem"/>
+              <q-icon name="fa-solid fa-circle-check" class="verified" size="3.5rem" />
             </div>
             <!-- </q-badge> -->
             <!-- {{ paramId[0] }} -->
@@ -19,12 +19,15 @@
       </div>
       <q-separator size="0.25rem" color="grey-2" class="divider" />
       <div class="col q-pa-lg">
-        <div class="flex justify-end">
+        <br>
+        <br>
+
+ <!--        <div class="flex justify-end">
           <q-btn outline rounded style="color: goldenrod" icon="edit" label="Edit profile" @click="editProfile()" />
-        </div>
+        </div> -->
         <div class="q-mt-md">
           <q-item-label class="text-subtitle1 flex justify-between">
-            <div class="text-bold">{{  userDetails.userName }}</div>
+            <div class="text-bold">{{ userDetails.userName }}</div>
             <span class="text-grey-7 text-caption"><q-icon name="calendar_month" size="xs" class="q-mr-sm" />Joined
               at {{ userDetails.created }}</span>
           </q-item-label>
@@ -32,7 +35,8 @@
             <span class="text-grey-7">@{{ userDetails.handle }}</span>
           </q-item-label>
           <q-item-label>
-            <span class="text-grey-7 text-caption">{{userDetails.description==''? 'Hi guys! nice to meet u!' : userDetails.description}}</span>
+            <span class="text-grey-7 text-caption">{{ userDetails.description == '' ? 'Hi guys! nice to meet u!' :
+              userDetails.description }}</span>
           </q-item-label>
           <q-item-label class="text-subtitle1 flex">
             <strong>{{ userDetails.joined_channels.length }}
@@ -70,7 +74,7 @@
     <div>
       <q-list v-if="isActive === 'posts'" separator>
         <ShowPost :canModify="true" v-for="post in userMessageDetails.userPosts" :key="post.id" v-bind="post"
-          class="q-py-md" clickable/>
+          class="q-py-md" clickable />
       </q-list>
       <q-list v-if="isActive === 'replies'" separator>
         <ShowPost v-for="post in userMessageDetails.userReplies" :key="post.id" v-bind="post" :canModify="true"
@@ -78,12 +82,16 @@
       </q-list>
       <q-list v-if="isActive === 'media'" separator>
         <ShowPost :canModify="true" v-for="post in userMessageDetails.userMedias" :key="post.id" v-bind="post"
-          class="q-py-md" clickable/>
+          class="q-py-md" clickable />
       </q-list>
       <q-list v-if="isActive === 'likes'" separator>
-        <ShowPost v-for="post in userMessageDetails.userAgrees" :key="post.id" v-bind="post" class="q-py-md" clickable/>
-          <!-- {{ userDetails.liked }} -->
-        <p style="display:flex;align-items: center; justify-content:center" v-if="userMessageDetails.userAgrees.length<=0">No user Likes!</p>
+        <!-- <ShowPost v-for="post in userAgrees" :key="post.id" v-bind="post" class="q-py-md" clickable /> -->
+        <ShowPost v-for="post in userMessageDetails.userAgrees" :key="post.id" v-bind="post" class="q-py-md" clickable />
+        <!-- {{ userDetails.liked }} -->
+        <p style="display:flex;align-items: center; justify-content:center"
+          v-if="userMessageDetails.userAgrees.length <= 0">No user Likes!</p>
+          <!-- <p style="display:flex;align-items: center; justify-content:center"
+          v-if="userAgrees.length <= 0">No user Likes!</p> -->
       </q-list>
     </div>
   </q-page>
@@ -101,9 +109,6 @@ const router = useRouter();
 
 const postStore = usePostStore()
 const userStore = useUserStore()
-
-
-
 
 
 const isActive = ref("posts");
@@ -133,31 +138,34 @@ const userMessageDetails = reactive({
 
 const fetchUserMessages = async (paramId) => {
   userMessageDetails.userPosts = await postStore.fetchUserPosts(paramId)
-  userMessageDetails.userMedias = computed(()=>userMessageDetails.userPosts.filter( obj => obj.content !== undefined && obj.content.image !=undefined))
-  userMessageDetails.userReplies = computed(()=>userMessageDetails.userPosts.filter( obj => obj.answering !== undefined))
+  userMessageDetails.userMedias = computed(() => userMessageDetails.userPosts.filter(obj => obj.content !== undefined && obj.content.image != undefined))
+  userMessageDetails.userReplies = computed(() => userMessageDetails.userPosts.filter(obj => obj.answering !== undefined))
 }
-
 
 const fetchUserData = async (paramId) => {
   const data = await userStore.findUser(paramId)
-  userDetails.handle=data.handle
-  userDetails.userName=data.username
-  userDetails.verified=data.verified
-  userDetails.description=data.description
-  userDetails.joined_channels=data.joinedChannels
-  userDetails.co_edited_channels=data.editorChannels
-  userDetails.liked=data.liked
-  userMessageDetails.userAgrees= await postStore.fetchLikes(data.liked)
+  userDetails.handle = data.handle
+  userDetails.userName = data.username
+  userDetails.verified = data.verified
+  userDetails.description = data.description
+  userDetails.joined_channels = data.joinedChannels
+  userDetails.co_edited_channels = data.editorChannels
+  userDetails.liked = data.liked
+
+
+  userMessageDetails.userAgrees = await postStore.fetchLikes(data.liked)
   userDetails.created = format(new Date(data.meta.created), 'MMMM yyyy');
   return data
 }
 
+
+
 watch(
   () => router.currentRoute.value.params,
   async (v) => {
-    if(v.userId){
-    fetchUserMessages(v.userId);
-    fetchUserData(v.userId)
+    if (v.userId) {
+      fetchUserMessages(v.userId);
+      fetchUserData(v.userId)
     }
   },
   {
@@ -166,7 +174,29 @@ watch(
   }
 );
 
+watch(
+  () => postStore.allPosts,
+  (old, newv) => {
+    // console.log("postStore value changed new!", newv)
 
+    if (old && newv) {
+      // console.log("postStore value changed old!", old)
+      let proxy_value= JSON.parse(JSON.stringify(newv))
+      // console.log("filter value is: ",proxy_value)
+      // console.log("i've found new user replies: ", postStore.searchFilterDebug(proxy_value, userDetails.handle))
+      userMessageDetails.userPosts = postStore.searchFilterDebug(proxy_value, userDetails.handle)
+      // userMessageDetails.userPosts = postStore.searchFilterDebug(proxy_value, userDetails.handle)
+
+      userMessageDetails.userMedias = computed(() => userMessageDetails.userPosts.filter(obj => obj.content !== undefined && obj.content.image != undefined))
+      userMessageDetails.userReplies = computed(() => userMessageDetails.userPosts.filter(obj => obj.answering !== undefined))
+      // console.log("新的用户所有回复为；", userMessageDetails.userPosts)
+    }
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+)
 
 
 

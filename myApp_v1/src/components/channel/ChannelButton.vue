@@ -10,7 +10,8 @@
 <script setup>
 import { useAuthStore } from "stores/auth";
 import { useUserStore } from "src/stores/user";
-import { ref, onMounted } from "vue"
+import { useNotificationsStore } from "src/stores/notifications";
+import { ref, onMounted, computed } from "vue"
 
 const props = defineProps({
   channel_name: {
@@ -26,21 +27,41 @@ const follow_text = "Follow"
 const unfollow_text = "Unfollow"
 const following_text = "Following"
 const request_text = "Request"
-const requesting_text = "Requesing"
+const requesting_text = "Requesting"
 const cancel_text = "Cancel"
+const admin_text = "Admin"
+const created_text = "Created"
+
 
 // "joinedChannels": [],
 // "joinChannelRequests": ["daily_news"],
 // "editorChannelRequests": ["daily_news","test5","test6"],
 // "editorChannels": [],
-const user_json = auth_store.getUser()
-const list_joinedChannels = user_json.joinedChannels
+
+// const user_json = auth_store.getUser() // old good
+const user_json1 =ref([])
+user_json1.value= userStore.getUserJson
+// const user_json2 = computed(()=>userStore.getUserJson)
+// console.log("channel Button 检查userStore是否填充正确？", userStore.getUserJson) // get a proxy
+// console.log("channel Button 检查userStore是否填充正确？", JSON.parse(JSON.stringify(user_json1.value))) // get a JSON object
+// console.log("channel Button 检查userStore是否填充正确？", user_json2) // get a Object { _setter: setter(), dep: undefined, __v_isRef: true, __v_isReadonly: true, _dirty: true, effect: {…}, _cacheable: true }
+
+// console.log("channel Button 是否填充正确？", userStore.getUserToken) // get a string
+// const user_json1= auth_store.getLocalStorageData
+// console.log("computed 从 store 用 getters 获得的到底是什么啦！！！！", user_json1)
+const user_json = JSON.parse(JSON.stringify(user_json1.value))
+const list_joinedChannels = user_json.joinedChannels.map(obj => obj.name);
 const list_joinedChannelRequests = user_json.joinChannelRequests
+// TODO: isMember: cerca sul filed name in joinedChannels json array
+const list_createdChannels = user_json.createdChannels.map(obj => obj.name);
 const isMember = list_joinedChannels.includes(props.channel_name)
+const isCreator = list_createdChannels.includes(props.channel_name)
 const isRequestingMember = list_joinedChannelRequests.includes(props.channel_name)
 
 function setButtonText() {
-  if (isMember)
+  if (isCreator)
+    return created_text
+  else if (isMember)
     return following_text
   else if (isRequestingMember)
     return requesting_text
@@ -61,6 +82,9 @@ function mouseOver() {
   else if (current_buttonText === requesting_text) {
     buttonText.value = cancel_text
   }
+  else if (current_buttonText === created_text){
+    buttonText.value = admin_text
+  }
 }
 function mouseLeave() {
   const current_buttonText = buttonText.value
@@ -73,17 +97,22 @@ function mouseLeave() {
   else if (current_buttonText === cancel_text) {
     buttonText.value = requesting_text
   }
+  else if (current_buttonText === admin_text){
+    buttonText.value = created_text
+  }
 }
 
-function requestChannel() {
+async function requestChannel() {
   if (buttonText.value === request_text) {
     userStore.requestMember(props.channel_name)
     buttonText.value = requesting_text
     // console.log("request")
   }
   else if (buttonText.value === unfollow_text) {
-    userStore.unfollowChannel(props.channel_name)
-    buttonText.value = follow_text
+    const res = await userStore.leaveChannel(props.channel_name)
+    if (res===200){
+      buttonText.value = follow_text
+    }
     // console.log("unfollow")
   }
   else if(buttonText.value === cancel_text){
@@ -91,10 +120,10 @@ function requestChannel() {
     buttonText.value= follow_text
     // console.log("cancel")
   }
+  else if (buttonText.value === admin_text){
+    useNotificationsStore().showNegative("You cannot leave this channel because you're the creator!");
+  }
 }
-
-
-
 
 </script>
 

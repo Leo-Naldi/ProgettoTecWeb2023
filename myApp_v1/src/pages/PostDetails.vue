@@ -6,7 +6,7 @@
     <router-view :key="router.fullPath"></router-view>
 
     <!-- <NewShowPost :author="info.post[0].author"></NewShowPost> -->
-    <WritePost :author="postInfo.author"></WritePost>
+    <WritePost :author="postInfo.author"/>
 
     <q-separator class="divider" color="grey-2" size="10px" />
 
@@ -63,11 +63,6 @@ watch(
     if (v.postId) {
       fetchPost(v.postId)
       fetchPostReplies(v.postId)
-      mysocket.on("message:created", (message) => {
-        if(message.answering && message.answering=== v.postId){
-          fetchPostReplies(v.postId)
-        }
-      });
     }
   },
   {
@@ -93,6 +88,12 @@ onMounted(() => {
     fetchPost(paramId);
     fetchPostReplies(paramId);
   }
+  mysocket.on("message:created", (message) => {
+    if(message.answering && message.answering=== paramId){
+      postInfo.replies.unshift(message)
+    }
+    console.log("add new replies!")
+  });
 
 });
 

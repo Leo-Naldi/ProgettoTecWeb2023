@@ -13,8 +13,7 @@
 
             <q-tab name="channelSettings" label="channel settings" style="justify-content: left"
               content-class="q-pl-md" />
-            <q-tab name="deleteChannelMessage" label="Delete Post" style="justify-content: left"
-              content-class="q-pl-md" />
+
 
             <q-tab name="deleteChannel" label="Delete Channel" style="justify-content: left" content-class="q-pl-md" />
 
@@ -71,17 +70,7 @@
                 </span>
               </div> -->
             </q-tab-panel>
-            <q-tab-panel name="deleteChannelMessage" class="q-pt-sm">
-              <div class="text-h5 col-12 q-mb-md">Delete channel posts</div>
-              <q-form @submit="deleteChannelPost()" class="q-mt-md">
-                <p>Please insert below the channel name to delete this channel</p>
-                <q-input class="col" outlined dense rounded label="name" v-model="confirmDeleteChannelPost" />
-                <q-dialog v-model="confirmDeleteChannelPostRes" persistent style="width: 250px">
-                  <ConfirmPopup :confirm-data="4" :channel-name=props.channelName>{{ deleteChannelPostsPopup }}
-                  </ConfirmPopup>
-                </q-dialog>
-              </q-form>
-            </q-tab-panel>
+
             <q-tab-panel name="deleteChannel" class="q-pt-sm">
               <div class="text-h5 col-12 q-mb-md">Delete this channel</div>
               <q-form @submit="deleteChannel()" class="q-mt-md">

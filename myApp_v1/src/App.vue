@@ -8,12 +8,20 @@ import { defineComponent, ref, onMounted, onUnmounted, watch,computed } from 'vu
 import { usePostStore } from "src/stores/posts.js";
 import { useChannelStore } from "src/stores/channels.js";
 import { useAuthStore } from './stores/auth';
-import NotifyType from "src/components/notify/NotifyType.vue";
-import { LocalStorage } from 'Quasar'
+import { useGlobalStore } from "src/stores/global";
+import { useUserStore } from './stores/user';
 import { useSocketStore } from "src/stores/socket";
 import { useNotificationsStore } from 'src/stores/notifications';
+
+// import { channelStore, authStore, userStore, globalStore, hashStore, mapStore, notificationStore, postStore, socketStore } from './common/pinia_stores';
+
+
+
+import NotifyType from "src/components/notify/NotifyType.vue";
+import { LocalStorage } from 'Quasar'
+
 import { useRouter } from "vue-router";
-import { useGlobalStore } from "src/stores/global";
+
 
 export default defineComponent({
   name: 'App',
@@ -23,7 +31,8 @@ export default defineComponent({
   data() {
     return {
       postStore: usePostStore(),
-      // authStore: useAuthStore(),
+      authStore: useAuthStore(),
+      userStore: useUserStore(),
       channelStore: useChannelStore(),
       // isLoggedin:useAuthStore().getLoggedState
       // notificationStore: useNotificationsStore()
@@ -38,7 +47,23 @@ export default defineComponent({
     async  fetchAllPosts() {
       await this.postStore.fetchPosts()
     },
-    async  fetchLogin() {
+    async fetchLogin() {
+      // 登录之后就抓取：所有推文，用户的所有信息，用户的所有推文，填充store里的初始值，并开始 socket 监听
+      // 从 localStorage 填充 store
+      this.userStore.setUser(this.authStore.getUser(), this.authStore.getToken())
+      //TODO: fetch userJoined Channel json poi lo sostituisco nel user json
+      const joinedChannelsJson = await this.userStore.fetchUserJoinedChannels()
+      const createdChannelsJson = await this.userStore.fetchUserCreatedChannels()
+      // console.log("修改用户创建的频道之前：", createdChannelsJson)
+      // console.log("修改用户加入的频道之前：", joinedChannelsJson)
+      this.userStore.modifyUserField("joinedChannels", joinedChannelsJson)
+      this.userStore.modifyUserField("createdChannels", createdChannelsJson)
+      // console.log("修改用户加入的频道之后：", this.userStore.getUserJson)
+      // console.log("修改用户创建的频道之后：", this.userStore.getUserJson.createdChannels)
+      // console.log("检查userStore是否填充正确？", this.userStore.getUserJson) // get a proxy
+      // console.log("检查userStore是否填充正确？", this.userStore.getUserToken) // get a string
+      await this.channelStore.fetchChannels()
+      // console.log("我获取了所有的频道，从store 获得：", this.channelStore.getChannelLists)
       await this.postStore.fetchUserPosts()
       await this.postStore.fetchPosts()
       this.socketStore.startLoggedInSocket()
@@ -168,7 +193,6 @@ export default defineComponent({
     return {
       userPost,
       audio,
-      authStore,
       socketStore,
       timerId
     };
@@ -177,7 +201,6 @@ export default defineComponent({
     if (this.authStore.getLocalStorageData == null && this.socketStore.getSocket==null) {
       this.fetchOfficialPosts()
       this.socketStore.startNoLoginSocket()
-
     }
     else if(this.authStore.getLocalStorageData != null && this.socketStore.getSocket==null){
       this.fetchLogin()

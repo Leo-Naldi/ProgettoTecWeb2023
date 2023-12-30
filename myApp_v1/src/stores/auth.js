@@ -24,7 +24,7 @@ export const useAuthStore = defineStore("auth", {
   getters: {
     getLoadingState: (state) => state.isLoading,
     getLoggedState: (state) => state.hasLoggedin,
-    getLocalStorageData: (state) => state.LocalStorageData,
+    getLocalStorageData: (state) => LocalStorage.getItem(USER_KEY) || null,
   },
 
   actions: {

@@ -108,9 +108,9 @@ import { useGlobalStore } from "src/stores/global";
 
 import ShowDialog from 'src/components/ShowDialog.vue';
 import WritePost from "src/components/posts/WritePost.vue";
-import TrendPage from "src/components/TrendSideBar.vue";
-import followSideBar from "src/components/followSideBar.vue";
-import searchSideBar from "src/components/searchSideBar.vue";
+import TrendPage from "src/components/sidebar/TrendSideBar.vue";
+import followSideBar from "src/components/sidebar/followSideBar.vue";
+import searchSideBar from "src/components/sidebar/searchSideBar.vue";
 
 const authStore = useAuthStore()
 const userStore = useUserStore()

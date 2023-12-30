@@ -28,6 +28,9 @@ export const usePostStore = defineStore("post", {
     getBookmarks: (state) => state.bookmarks,
     getTrendList: (state)=>state.trendList,
     getHashtagCountry:(state)=>state.hashtagCountry,
+    // getReplies: (state, id)=> state.filter((obj)=>obj.answering===id),
+    getReplies: (state) =>  (msgId) => state.allPosts.filter((obj) => obj.answering === msgId),
+    getLikes: (state)=> state.allPosts.filter((obj)=>obj.liked == true),
   },
 
   actions: {
@@ -290,6 +293,14 @@ export const usePostStore = defineStore("post", {
         // return error.response.status
       }
     },
+    // update local posts lists
+    updatePosts(data){
+      let res = this.messageHandler(data);
+      this.allPosts.unshift(res);
+      console.log("new allpost length：",this.allPosts.length)
+      console.log("i'm going to add: ",res)
+      return res
+    },
     // fetch all posts
     async fetchPosts(page = 1) {
       console.log("i've fetched again all posts!");
@@ -370,6 +381,19 @@ export const usePostStore = defineStore("post", {
     searchHashtags_filtered(data, tag) {
       return data.filter((obj) => obj.content.text.includes(tag));
     },
+    // return post list with given answering id
+    searchReplies(data, id){
+      return data.filter((obj)=>obj.answering===id)
+    },
+    searchFilterDebug(data, handle){
+      return data.filter((obj)=> obj.author===handle)
+    },
+    searchUserLikes(data, id){
+      return data.filter((obj)=>obj.liked==true)
+    },
+    // searchFilterDebug(handle){
+    //   return this.allPosts.filter((obj)=> obj.author===handle)
+    // },
     // ?keywords=...
     // "#daily" -> "#daily-1", "#XXXdaily", ...
     async searchHashtags(text) {
@@ -428,6 +452,10 @@ export const usePostStore = defineStore("post", {
     async add_negReaction(id) {
       try {
         await API.dislike_messages(id);
+        const res = this.allPosts.find((iter) => iter.id === id);
+        if (res) {
+          res.disliked = true;
+        }
         console.log("dislike success");
         return 200;
       } catch (error) {
@@ -444,6 +472,10 @@ export const usePostStore = defineStore("post", {
     async add_posReaction(id) {
       try {
         await API.like_messages(id);
+        const res = this.allPosts.find((iter) => iter.id === id);
+        if (res) {
+          res.liked = true;
+        }
         console.log("like success");
         return 200;
       } catch (error) {
@@ -460,6 +492,10 @@ export const usePostStore = defineStore("post", {
     async undo_posReaction(id) {
       try {
         await API.undo_like_messages(id);
+        const res = this.allPosts.find((iter) => iter.id === id);
+        if (res) {
+          res.liked = false;
+        }
         console.log("undo like success");
       } catch (error) {
         console.error("undo like failed", error);
@@ -468,6 +504,10 @@ export const usePostStore = defineStore("post", {
     async undo_negaReaction(id) {
       try {
         await API.undo_dislike_messages(id);
+        const res = this.allPosts.find((iter) => iter.id === id);
+        if (res) {
+          res.disliked = false;
+        }
         console.log("undo dislike success");
       } catch (error) {
         console.error("undo dislike failed", error);

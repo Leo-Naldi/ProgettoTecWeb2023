@@ -47,12 +47,16 @@ export const useChannelStore = defineStore("channel", {
       try {
         const response = await API.all_channels();
         this.channels_list=response.data.results
-        console.log("fetch all channel res: ", response.data)
-        return response.data.results;
+        console.log("fetch all channel res: ", this.channels_list)
+        return this.channels_list;
       } catch (error) {
         console.log("fetch all channel error!!!", error);
         throw error;
       }
+    },
+    //TODO:
+    async fetchPublicChannels(){
+
     },
     async fetchAllChannelName() {
       return await API.all_channels_name()
@@ -95,6 +99,24 @@ export const useChannelStore = defineStore("channel", {
           );
           return err.response.status;
         });
+    },
+    async createChannel(channel_name, channel_data){
+      return await API.create_channel(channel_name, channel_data)
+      .then((response) => {
+        if (response.status === 200) {
+          useNotificationsStore().showPositive(
+            "You've created channel data successfully!"
+          );
+          return [response.status, response.data];
+        }
+      })
+      .catch((err) => {
+        console.log("create channel data error!!!", err);
+        useNotificationsStore().showNegative(
+          "Create channel failed! Please try it again!"
+        );
+        return [err.response.status];
+      });
     },
     async deleteChannel(channel_name) {
       return await API.delete_channel(channel_name)

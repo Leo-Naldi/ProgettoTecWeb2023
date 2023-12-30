@@ -21,22 +21,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRefs, onMounted, computed, toRaw, watch } from "vue";
+import { ref, watch } from "vue";
 
-// import ChannelEnum from "./channel/ChannelEnum.vue";
 import { useChannelStore } from "src/stores/channels";
 import { useAuthStore } from "src/stores/auth";
 import ChannelEnum from "src/components/channel/ChannelEnum.vue";
 import ShowDialog from "src/components/ShowDialog.vue";
+import { useUserStore } from "src/stores/user";
 
 const channelStore = useChannelStore()
+const userStore = useUserStore()
 const authStore = useAuthStore()
 const ifFilterFollowed = ref(false)
 const channel_list = ref([])
 
 const onSubmit = (() => {
   ifFilterFollowed.value = true
-  console.log("ifFilter: ", toRefs(props))
 })
 watch(
   () => ifFilterFollowed.value,
@@ -47,12 +47,16 @@ watch(
 
     }
     else {
-      const user_json = authStore.getUser()
-      const list_joinedChannels = user_json.joinedChannels
-      const data = channelStore.getChannelLists
+      const store_channel = channelStore.getChannelLists
+      const all_channel_list = JSON.parse(JSON.stringify(store_channel))
+      const user_json1 =ref([])
+      user_json1.value= userStore.getUserJson
 
-      const filteredData = data.filter(item => !list_joinedChannels.includes(item.name))
-      console.log("ifFiltewwwwwwwwwr: ", filteredData)
+      const user_json = JSON.parse(JSON.stringify(user_json1.value))
+      const list_joinedChannels = user_json.joinedChannels
+
+      const filteredData = all_channel_list.filter(obj1 => !list_joinedChannels.some(obj2 => obj2.name === obj1.name));
+      // console.log("ifFiltewwwwwwwwwr: ", filteredData)
 
       channel_list.value = filteredData
     }
@@ -61,23 +65,7 @@ watch(
     immediate: true
   }
 )
-// const channel_list = computed(() => {
-//   if (!ifFilterFollowed.value) {
-//     return channelStore.getChannelLists
 
-//   }
-//   else {
-//     //TODO:返回没有 follow 的频道
-//     const user_json = authStore.getUser()
-//     const list_joinedChannels = user_json.joinedChannels
-//     const data = channelStore.getChannelLists
-
-//     const filteredData = data.filter(item => !list_joinedChannels.includes(item.name))
-//     console.log("ifFiltewwwwwwwwwr: ", filteredData)
-
-//     return filteredData
-//   }
-// })
 
 
 </script>

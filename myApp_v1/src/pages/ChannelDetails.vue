@@ -45,7 +45,7 @@
 
       </div>
 
-      <div style="order:2" v-if="channelDetails.isEditor">
+      <div style="order:2" v-if="channelDetails.isCreator">
         <q-btn flat round icon="settings"  class="cursor-pointer" >
           <q-popup-proxy>
           <ShowDialog>
@@ -69,10 +69,12 @@
     If not a channel member, display "follow", click to become a member of this channel;
     If you are a channel member, display "unfollow", click to exit from the current channel's membership
    -->
+   <q-separator class="divider" color="grey-2" size="10px" v-if="channelDetails.isEditor" />
+   <WritePost :destChannel=$route.params.channelName v-if="channelDetails.isEditor"/>
 
     <q-separator class="divider" color="grey-2" size="10px" />
 
-    <q-list separator>
+    <q-list separator v-if="channelDetails.isMember">
       <ShowPost v-for="post in channelDetails.messages" :key="post.id" v-bind="post" clickable />
 
     </q-list>
@@ -92,6 +94,7 @@ import { useUserStore } from 'src/stores/user';
 import { usePostStore } from 'src/stores/posts';
 import { ref, onMounted, reactive } from "vue";
 import ShowPost from "src/components/posts/ShowPost.vue";
+import WritePost from 'src/components/posts/WritePost.vue';
 import ShowDialog from "src/components/ShowDialog.vue";
 import { useRouter } from "vue-router";
 import MemberDetails from 'src/components/channel/MemberDetails.vue';

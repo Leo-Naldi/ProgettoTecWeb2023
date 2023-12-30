@@ -38,7 +38,7 @@
       <div class="post-content" v-html="content.text"></div>
 
       <q-img :src="content.image" v-if="content.image" spinner-color="white" class="my-img" />
-      <q-video :src="content.video" v-if="content.video" spinner-color="blue" :ratio="16/9" class="my-img"/>
+      <q-video autoplay="false" :src="content.video" v-if="content.video"  :ratio="16/9" class="my-img"/>
 
       <!--       <ShowMap v-if="meta.geo && meta.geo.coordinates.length != 0"  :myPosition="meta.geo.coordinates"
           :style="$q.screen.gt.sm ? 'height: 280px; max-width:  100%' :  'height: 200px; max-width: 100%'" /> -->
@@ -87,7 +87,9 @@
               <WritePost :id="id" :author="author" />
             </q-popup-proxy>
           </q-btn>
-          <span>{{ postReplies.length }}</span>
+          <!-- <span>{{ postReplies.length }}</span> -->
+          <!-- <span v-if="postReplies">{{ postReplies }}</span> -->
+          <span>{{ replies.length}}</span>
         </div>
 
         <div class="my-button" id="chart">
@@ -114,7 +116,7 @@ import { useUserStore } from "src/stores/user";
 import { useRouter } from "vue-router";
 import { formatDistance } from "date-fns";
 import { parseISO } from "date-fns";
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, watch, computed } from "vue";
 import ShowMap from 'src/components/map/ShowMap.vue'
 import WritePost from "./WritePost.vue";
 
@@ -191,6 +193,14 @@ const props = defineProps({
   hide: {
     type: Boolean,
     default: false,
+  },
+  liked:{
+    type: Boolean,
+    default: false
+  },
+  disliked:{
+    type: Boolean,
+    default:false
   }
 });
 
@@ -207,8 +217,8 @@ const reactiveCnt = reactive({
   negative: props.reactions.negative
 })
 const hasLiked = reactive({
-  liked: false,
-  disliked: false
+  liked: props.liked,
+  disliked: props.disliked
 })
 
 /******************************************
@@ -259,7 +269,57 @@ const userLikes = reactive({
 
 const userVerified = ref(false)
 
-const postReplies = ref([])
+// const postReplies = computed(()=> postStore.getReplies(props.id))
+const replies = computed(()=> postStore.getReplies(props.id)) || []
+
+// const postReplies = ref([])
+// const post_list = computed(() => postStore.getPosts)
+// let proxy_value= JSON.parse(JSON.stringify(post_list))
+// const repliesLength=0
+// const replies = postStore.getReplies(props.id) || []
+// const repliesLength = replies.length
+// const getRepliesLength = async (msgId) => {
+//   const replies = await postStore.getReplies(msgId)
+//   repliesLength = replies.length
+//   console.log("replies 长度为：",repliesLength) // 输出 replies 的长度
+// }
+
+// 获取 replies 的长度
+// const repliesLength = replies.length
+// console.log("dsadjlkjlkadsjlgjlkdjskljgklds: ", replies)
+// postReplies.value = postStore.searchReplies(post_list, props.id)
+// const postReplies = computed(() => postStore.getReplies(props.id));
+// const {getReplies}  = storeToRefs(postStore)
+// const postReplies = postStore.searchReplies(props.id)
+/* watch(
+  () => postStore.allPosts,
+  (old, newv) => {
+    // console.log("watch all old: ", old)
+    // console.log("watch all new: ", newv)
+
+    if (newv && old) {
+      let proxy_value= JSON.parse(JSON.stringify(newv))
+      let proxy_value2= JSON.parse(JSON.stringify(old))
+      let res = proxy_value.length > proxy_value2.length? proxy_value: proxy_value2
+      postReplies.value = postStore.searchReplies(res, props.id)
+      // console.log("变化了！回复的数量！",postReplies.value.length)
+    }
+    else if(!old && newv){
+      let proxy_value= JSON.parse(JSON.stringify(newv))
+      postReplies.value = postStore.searchReplies(proxy_value, props.id)
+      // console.log("变化了！回复的数量！",postReplies.value.length)
+    }
+    else if(!newv && old){
+      let proxy_value= JSON.parse(JSON.stringify(old))
+      postReplies.value = postStore.searchReplies(proxy_value, props.id)
+      // console.log("变化了！回复的数量！",postReplies.value.length)
+    }
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+) */
 
 const fetchUserData = async (author) => {
   const data = await userStore.findUser(author)
@@ -310,7 +370,8 @@ onMounted(() => {
   const paramId = router.currentRoute.value.params.userId;
   const searchLikes = paramId ? paramId : authStore.getUserHandle()
   fetchUserData(searchLikes)
-  fetchPostReplies(props.id)
+  // getRepliesLength(props.id)
+  // fetchPostReplies(props.id)
 })
 
 /******************************************

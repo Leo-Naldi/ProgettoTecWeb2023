@@ -24,8 +24,10 @@ export const useUserStore = defineStore("User", {
       }
       return "Error";
     },
+    getUserJson2: (state) =>
+      JSON.parse(state.user.user) || JSON.parse(LocalStorage.getItem(USER_KEY)),
     getUserJson(state) {
-      if (state.user.user != "") {
+      if (state.user.user) {
         return state.user.user;
       } else if (LocalStorage.getItem(USER_KEY)) {
         return JSON.parse(LocalStorage.getItem(USER_KEY));
@@ -33,7 +35,7 @@ export const useUserStore = defineStore("User", {
       return "Error";
     },
     getUserToken(state) {
-      if (state.user.token != "") {
+      if (state.user.token) {
         return state.user.token;
       } else if (LocalStorage.getItem(TOKEN_KEY)) {
         return JSON.parse(LocalStorage.getItem(TOKEN_KEY));
@@ -233,6 +235,38 @@ export const useUserStore = defineStore("User", {
         return null;
       }
     },
+    async leaveChannel(channel_name) {
+      const authStore = useAuthStore();
+      const user_handle = authStore.getUserHandle();
+      const userData = authStore.getUser();
+      const submitData = { removeMember: [channel_name] };
+      try {
+        const response = await API.write_user(user_handle, submitData);
+        if (response.status === 200) {
+          useNotificationsStore().showPositive(
+            "You've left the channel: " + channel_name + " !"
+          );
+          const oldJoinedChannels = userData.joinedChannels;
+          let index = userData.joinedChannels.findIndex(
+            (channel) => channel === channel_name
+          );
+          oldJoinedChannels.splice(index, 1);
+          authStore.modifyUser("joinedChannels", oldJoinedChannels);
+          console.log("修改 localStorage 完毕 user json: ", userData.joinedChannels)
+          // const data = this.getUserJson;
+          this.user.user.joinedChannels = userData.joinedChannels
+          console.log("也修改了 store 里的值 userJson: ", this.user.user.joinedChannels)
+          // // data.joinedChannels = oldJoinedChannels;
+          // console.log("unfollow! ", authStore.getUser().joinedChannels);
+
+        }
+        return response.status;
+      } catch (error) {
+        console.log("leave channel request error!!!", error);
+        useNotificationsStore().showNegative("Leave channel request failed!");
+        throw error;
+      }
+    },
     async getPlans() {
       return await API.get_plans()
         .then((response) => {
@@ -287,17 +321,15 @@ export const useUserStore = defineStore("User", {
     modifyUser(userJson) {
       this.user.user = userJson;
     },
-    unfollowChannel(channel_name) {
-      const authStore = useAuthStore();
-      const userData = authStore.getUser();
-      const oldJoinedChannels = userData.joinedChannels;
-      let index = userData.joinedChannels.findIndex(
-        (channel) => channel === channel_name
-      );
-      oldJoinedChannels.splice(index, 1);
-      authStore.modifyUser("joinedChannels", oldJoinedChannels);
-      // console.log("unfollow! ", authStore.getUser().joinedChannels)
+    modifyUserField(field, value){
+      if (this.user.user){
+        if(!this.user.user[field]){
+          this.user.user[field]=''
+        }
+        this.user.user[field] = value;
+      }
     },
+
     cancelRequestChannel(channel_name) {
       const authStore = useAuthStore();
       const userData = authStore.getUser();
@@ -314,7 +346,7 @@ export const useUserStore = defineStore("User", {
     },
     async verifyAccount(email, handle, token) {
       // 从 localStorage 获得 handle, token
-      var submitionForm = { email: email, handle: handle, token: token }
+      var submitionForm = { email: email, handle: handle, token: token };
 
       return await API.verifyAccount(submitionForm)
         .then((response) => {
@@ -322,11 +354,7 @@ export const useUserStore = defineStore("User", {
             console.log(
               "send verify account mail: ",
               response,
-              "【"+
-              email+" , "+
-              handle+" , "+
-              token+
-              "】"
+              "【" + email + " , " + handle + " , " + token + "】"
             );
             useNotificationsStore().showPositive(
               "Verification mail has already send to your mail address, please check your mailbox!"
@@ -342,9 +370,12 @@ export const useUserStore = defineStore("User", {
           return err.response.status;
         });
     },
-    async verifyAccountFeedBack(handle, email, verification_url ) {
-
-      var submitionForm = {handle:handle, email: email, verification_url:verification_url }
+    async verifyAccountFeedBack(handle, email, verification_url) {
+      var submitionForm = {
+        handle: handle,
+        email: email,
+        verification_url: verification_url,
+      };
       return await API.verifyAccountFeedback(submitionForm)
         .then((response) => {
           if (response.status === 200) {
@@ -357,7 +388,9 @@ export const useUserStore = defineStore("User", {
         })
         .catch((err) => {
           if (err.response.status === 409) {
-            useNotificationsStore().showNegative("verify account failed!<br/>Please get retry!");
+            useNotificationsStore().showNegative(
+              "verify account failed!<br/>Please get retry!"
+            );
             return err.response.status;
           } else {
             console.log("verify account failed: ", err);

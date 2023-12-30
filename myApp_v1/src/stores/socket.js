@@ -96,7 +96,8 @@ export const useSocketStore = defineStore("socket", {
       mysocket.on("message:created", (message) => {
         // console.log("TODO: No print??", message.answering)
         // console.log("TODO: No print??",userPost.some((obj) => obj._id === message.answering))
-
+        postStore.updatePosts(message)
+        console.log("message changed: ", message)
         if (message.length > 0) {
           console.log(
             "start to listen socket ！",
