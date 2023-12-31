@@ -5,6 +5,7 @@ const MessageService = require('../services/MessageServices');
 const ChannelServices = require('../services/ChannelServices');
 const UserService = require('../services/UserServices');
 
+
 const PublicRouter = express.Router();
 
 
@@ -36,6 +37,15 @@ PublicRouter.get('/forget-password', async (req, res) => {
 
     await Controller.handleRequest(req, res, UserService.checkMailValidation);
 });
+
+PublicRouter.post('/up/:id', async (req, res) => {
+
+    await Controller.handleRequest(req, res, MessageService.unregisteredAddPositiveReaction)
+})
+
+PublicRouter.post('/down/:id', async (req, res) => {
+    await Controller.handleRequest(req, res, MessageService.unregisteredAddPositiveReaction)
+})
 
 
 module.exports = PublicRouter;

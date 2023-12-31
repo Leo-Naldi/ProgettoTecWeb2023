@@ -988,9 +988,10 @@ class MessageService {
         message = await MessageService.#populateMessageQuery(Message.findById(id));
 
 
-        SquealSocket.reactionRecived({
+        SquealSocket.messageChanged({
             populatedMessage: message,
-            type: 'negative',
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
             socket: socket,
         });
 
@@ -1082,11 +1083,12 @@ class MessageService {
         message = await MessageService.#populateMessageQuery(Message.findById(id));
 
     
-        SquealSocket.reactionRecived({
+        SquealSocket.messageChanged({
             populatedMessage: message,
-            type: 'positive',
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
             socket: socket,
-        }); 
+        });
 
         if (user) {
             if (user.smm) {
@@ -1147,9 +1149,10 @@ class MessageService {
 
         message = await MessageService.#populateMessageQuery(Message.findById(id));
 
-        SquealSocket.reactionDeleted({
+        SquealSocket.messageChanged({
             populatedMessage: message,
-            type: 'negative',
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
             socket: socket,
         });
 
@@ -1197,11 +1200,171 @@ class MessageService {
 
         message = await MessageService.#populateMessageQuery(Message.findById(id));
 
-        SquealSocket.reactionDeleted({
+        SquealSocket.messageChanged({
             populatedMessage: message,
-            type: 'positive',
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
             socket: socket,
         });
+
+        return Service.successResponse();
+    };
+
+    /**
+     * Adds a dislike to a message for non-logged in users.
+     */
+    static async unregisteredAddNegativeReaction({ id, socket }) {
+
+        if (!mongoose.isObjectIdOrHexString(id))
+            return Service.rejectResponse({ message: "Invalid message id" })
+
+        let message = await Message.findById(id);
+
+        if (!((message) && (message?.official))) {
+            return Service.rejectResponse({ message: "Id not found" });
+        }
+
+        const num_inf_messages = await Message.find({ author: message.author._id })
+            .byPopularity('unpopular').count();
+
+        message.reactions.negative += 1;
+
+        let user = null;
+
+        if ((message.reactions.negative === config.fame_threshold) &&
+            ((num_inf_messages + 1) % config.num_messages_reward === 0)
+            && (message.publicMessage || (message.destChannel?.length))) {
+
+            user = await User.findById(message.author).pupulate('smm', 'handle');
+
+            user.charLeft.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
+            user.charLeft.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
+            user.charLeft.month -= Math.max(1, Math.ceil(config.monthly_quote / 100));
+
+            user.charLeft.day = Math.max(user.charLeft.day, 0);
+            user.charLeft.week = Math.max(user.charLeft.week, 0);
+            user.charLeft.month = Math.max(user.charLeft.month, 0);
+        }
+
+        let err = null;
+
+        let smm_handle = user?.smm?.handle;
+        try {
+            message = await message.save();
+            if (user) {
+                user = await user.depopulate();
+                user = await user.save();
+            }
+
+        } catch (e) {
+            err = e;
+            logger.error(`AddNegativeReaction Error: ${e.message}`);
+        }
+
+        if (err)
+            return Service.rejectResponse(err);
+
+        message = await MessageService.#populateMessageQuery(Message.findById(id));
+
+
+        SquealSocket.messageChanged({
+            populatedMessage: message,
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
+            socket: socket,
+        });
+
+        if (user) {
+            if (user.smm) {
+                user.smm = { handle: smm_handle }
+            }
+            SquealSocket.userChaged({
+                populatedUser: message.author,
+                ebody: {
+                    charLeft: user.charLeft,
+                },
+                socket: socket,
+            })
+        }
+
+        return Service.successResponse();
+    };
+
+    /**
+     * Adds a like to a message for non-logged in users.
+     */
+    static async unregisteredAddPositiveReaction({ id, socket }) {
+        if (!mongoose.isValidObjectId(id)) {
+
+            logger.error(`addPositiveReaction: ${id} is not a valid id`)
+            return Service.rejectResponse({ message: "Invalid message id" });
+        }
+
+        let message = await Message.findById(id);
+
+        if (!((message) && (message?.official))) {
+            logger.error(`addPositiveReaction: no message with id ${id}`)
+            return Service.rejectResponse({ message: "Id not found" });
+        }
+
+        const num_fam_messages = await Message.find({ author: message.author })
+            .byPopularity('popular').count();
+
+        message.reactions.positive += 1;
+
+        let user = null;
+
+        if ((message.reactions.positive === config.fame_threshold) &&
+            ((num_fam_messages + 1) % config.num_messages_reward === 0)
+            && (message.publicMessage || (message.destChannel?.length))) {
+
+            user = await User.findById(message.author).pupulate('smm', 'handle _id');
+
+
+            user.charLeft.day += Math.max(1, Math.ceil(config.daily_quote / 100));
+            user.charLeft.week += Math.max(1, Math.ceil(config.weekly_quote / 100));
+            user.charLeft.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
+        }
+
+        let err = null;
+        let smm_handle = user?.smm?.handle;
+        try {
+            message = await message.save();
+            if (user) {
+                user = await user.depopulate();
+                user = await user.save();
+            }
+        } catch (e) {
+            err = e;
+            logger.error(`AddPositiveReaction Error: ${e.message}`);
+        }
+
+        if (err)
+            return Service.rejectResponse(err);
+
+        message = await MessageService.#populateMessageQuery(Message.findById(id));
+
+
+        SquealSocket.messageChanged({
+            populatedMessage: message,
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
+            socket: socket,
+        });
+
+        if (user) {
+            if (user.smm) {
+                user.smm = { handle: smm_handle }
+            }
+            SquealSocket.userChaged({
+                populatedUser: user,
+                ebody: {
+                    handle: user.handle,
+                    charLeft: user.charLeft,
+                },
+                socket: socket,
+            })
+        }
 
         return Service.successResponse();
     };

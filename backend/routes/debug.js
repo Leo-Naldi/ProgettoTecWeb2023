@@ -50,6 +50,28 @@ DebugRouter.get('/public_message', async (req, res) => {
     return res.status(200).json({ id: message._id.toString() });
 });
 
+DebugRouter.get('/official_message', async (req, res) => {
+
+    let filter = { official: true };
+
+    if (req.query.author) {
+        const author = await User.findOne({ handle: req.query.author });
+
+        if (!author) return res.status(409).json({ message: `No user named @${req.query.author}` });
+
+        filter.author = author._id;
+    }
+
+
+    const message = await Message.findOne(filter);
+
+    if (!message) {
+        return res.status(409).json({ message: 'No public message' });
+    }
+
+    return res.status(200).json({ id: message._id.toString() });
+});
+
 DebugRouter.get('/private_message/:dest', async (req, res) => {
     let filter = {
         publicMessage: false,

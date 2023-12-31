@@ -148,6 +148,7 @@ class SquealSocket {
         });
     }
 
+    /*
     static reactionRecived({ populatedMessage, type, socket }) {
         
         let namespaces = SquealSocket.#makeNamespacesFromPopulatedMessage(populatedMessage);
@@ -171,6 +172,7 @@ class SquealSocket {
             eventBody: { id: populatedMessage._id.toString(), type: type },
         });
     }
+    */
 
     static channelChanged({ populatedChannelObject, ebody, socket }) {
         const namespaces = SquealSocket.#makeNamespacesFromPopulatedChannel(populatedChannelObject);
