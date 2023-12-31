@@ -45,7 +45,6 @@ class ExpressServer {
             next()
         })
         app.use(throttle(1024 * 128)); //maybe useless, decide letter
-        app.use(express.static(config.folder));
         app.use(morganLogMiddleware);  // requests logger
 
         //Static Files
