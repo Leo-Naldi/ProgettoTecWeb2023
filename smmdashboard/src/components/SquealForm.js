@@ -81,7 +81,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                 image: img_url,
                 video: video_url,
             },
-            dest: destUsers.map(u => '@' + u.handle).concat(destChannels.map(c => '§' + c))
+            dest: destUsers.map(u => '@' + u).concat(destChannels.map(c => '§' + c))
         };
 
         if (geolocate && position) {
@@ -298,7 +298,9 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                                 id="select-fetched-handles"
                                 getOptionLabel={(u) => u}
                                 textLabel="User Destinations"
-                                onChange={(e, v) => setDestUsers(v)}
+                                onChange={(e, v) => {
+                                    setDestUsers(v)
+                                }}
                             />
                         </Box>
 

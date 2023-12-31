@@ -270,13 +270,37 @@ export default function Squeals({ managed }) {
         } else {
             return (
                 <TableContainer component={'paper'}>
-                    <Table size="small">
+                    <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>Published</TableCell>
-                                <TableCell>Text</TableCell>
-                                <TableCell>Channels</TableCell>
-                                <TableCell>Users</TableCell>
+                                <TableCell>
+                                    <Typography sx={{
+                                        fontWeight: 'bold'
+                                    }}>
+                                        Published
+                                    </Typography>
+                                </TableCell>
+                                <TableCell>
+                                    <Typography sx={{
+                                        fontWeight: 'bold'
+                                    }}>
+                                        Text
+                                    </Typography>
+                                </TableCell>
+                                <TableCell>
+                                    <Typography sx={{
+                                        fontWeight: 'bold'
+                                    }}>
+                                        Channels
+                                    </Typography>
+                                </TableCell>
+                                <TableCell>
+                                    <Typography sx={{
+                                        fontWeight: 'bold'
+                                    }}>
+                                        Users
+                                    </Typography>
+                                </TableCell>
                                 <TableCell>
                                     <ThumbUpAltIcon />
                                 </TableCell>
@@ -311,35 +335,13 @@ export default function Squeals({ managed }) {
                 <TableRow key={`squeal-${m.id}`}>
                     <TableCell>{m.meta.created.format('YYYY/MM/DD, HH:mm')}</TableCell>
                     <TableCell>
-                        <TooltipMui title={(m.content.text?.length) ? m.content.text : '-'}>
-                            <Typography
-                                sx={{
-                                    maxWidth: '150px',
-                                }}
-                                noWrap>
-                                {(m.content.text?.length) ? m.content.text : '-'}
-                            </Typography>
-                        </TooltipMui>
+                        {getArrayField(m.content.text)}
                     </TableCell>
                     <TableCell >
-                        <TooltipMui title={(destChannel.length) ? destChannel.join(', ') : "-"}>
-                            <Typography sx={{
-                                    maxWidth: '150px'
-                                }}
-                                noWrap>
-                                {(destChannel.length) ? destChannel.join(', ') : "-"}
-                            </Typography>
-                        </TooltipMui>
+                        {getArrayField(destChannel.join(', '))}
                     </TableCell>
                     <TableCell>
-                        <TooltipMui title={(destUser.length) ? destUser.join(', ') : "-"}>
-                            <Typography sx={{
-                                maxWidth: '150px'
-                            }}
-                                noWrap>
-                                {(destUser.length) ? destUser.join(', ') : "-"}
-                            </Typography>
-                        </TooltipMui>
+                        {getArrayField(destUser.join(', '))}
                     </TableCell>
                     <TableCell>{m.reactions.positive}</TableCell>
                     <TableCell>{m.reactions.negative}</TableCell>
@@ -366,9 +368,22 @@ export default function Squeals({ managed }) {
             );
     }
 
-    function getMediaTableCell(m) {
+    function getArrayField(data) {
+        if (data.length) {
+            return <TooltipMui title={data}>
+                <Typography sx={{
+                    maxWidth: '150px'
+                }}
+                    noWrap>
+                    {data}
+                </Typography>
+            </TooltipMui>
+        } else {
+            return '-'
+        }
+    }
 
-        console.log(m.content)
+    function getMediaTableCell(m) {
 
         if (m.content.image) {
             return (<TableCell>
