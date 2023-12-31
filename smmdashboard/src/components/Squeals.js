@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Fragment } from 'react';
-import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -14,7 +13,7 @@ import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 import dayjs from 'dayjs';
 import Spinner from './Spinner';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Pagination } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, Divider, IconButton, Pagination, TableContainer } from '@mui/material';
 import { useManagedAccounts } from '../context/ManagedAccountsContext';
 import { useSocket } from '../context/SocketContext';
 import authorizedRequest from '../utils/authorizedRequest';
@@ -26,25 +25,9 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import LocationOffOutlinedIcon from '@mui/icons-material/LocationOffOutlined';
 import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
 import ReactPlayer from 'react-player';
+import { Tooltip as TooltipMui } from '@mui/material';
 
 import _ from 'underscore';
-
-function LocationMarker({ point }) {
-    const map = useMapEvents({
-        load: () => {
-            map.locate();
-        },
-        locationfound: (loc) => {
-            map.flyTo(loc, map.getZoom())
-        }
-    });
-
-    return (
-        <Marker
-            position={[point.coordinates[1], point.coordinates[0]]}>
-        </Marker>
-    )
-}
 
 function parseMessage (message) {
     message.meta = {
@@ -53,7 +36,7 @@ function parseMessage (message) {
         lastModified: new dayjs(message.meta.lastModified)
     }
 
-    message.content = _.defaults(message.content, { text: '', image: null })
+    message.content = _.defaults(message.content, { text: '', image: null, video: null, geo: null })
 
     return message;
 }
@@ -75,9 +58,7 @@ export default function Squeals({ managed }) {
     const [geo, setGeo] = useState(null);
 
     const smm = useAccount();
-    const managedUsers = useManagedAccounts();
-    const userAccount = managedUsers?.find(u => u.handle === managed);
-    //console.log(userAccount)
+    
     const socket = useSocket();
 
     const fetchMessages = () => {
@@ -95,7 +76,7 @@ export default function Squeals({ managed }) {
             }))
             .then(res => {
                 setMessages(res.results);
-                console.log(res.results)
+                
                 if (res.pages !== maxPages) {
                     setMaxPages(res.pages)
                 }
@@ -288,31 +269,33 @@ export default function Squeals({ managed }) {
                 </Fragment>)
         } else {
             return (
-                <Table size="small">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Published</TableCell>
-                            <TableCell>Text</TableCell>
-                            <TableCell>Channels</TableCell>
-                            <TableCell>Users</TableCell>
-                            <TableCell>
-                                <ThumbUpAltIcon />
-                            </TableCell>
-                            <TableCell>
-                                <ThumbDownAltIcon />
-                            </TableCell>
-                            <TableCell>
-                                <PhotoLibraryIcon />
-                            </TableCell>
-                            <TableCell>
-                                <MapIcon />
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {messages.map(makeMessageRow)}
-                    </TableBody>
-                </Table>
+                <TableContainer component={'paper'}>
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Published</TableCell>
+                                <TableCell>Text</TableCell>
+                                <TableCell>Channels</TableCell>
+                                <TableCell>Users</TableCell>
+                                <TableCell>
+                                    <ThumbUpAltIcon />
+                                </TableCell>
+                                <TableCell>
+                                    <ThumbDownAltIcon />
+                                </TableCell>
+                                <TableCell>
+                                    <PhotoLibraryIcon />
+                                </TableCell>
+                                <TableCell>
+                                    <MapIcon />
+                                </TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {messages.map(makeMessageRow)}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
             )
         }
     }
@@ -328,16 +311,36 @@ export default function Squeals({ managed }) {
                 <TableRow key={`squeal-${m.id}`}>
                     <TableCell>{m.meta.created.format('YYYY/MM/DD, HH:mm')}</TableCell>
                     <TableCell>
-                        <Typography
-                            sx={{
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                            }}>
-                            {(m.content.text?.length) ? m.content.text : '-'}
-                        </Typography>
+                        <TooltipMui title={(m.content.text?.length) ? m.content.text : '-'}>
+                            <Typography
+                                sx={{
+                                    maxWidth: '150px',
+                                }}
+                                noWrap>
+                                {(m.content.text?.length) ? m.content.text : '-'}
+                            </Typography>
+                        </TooltipMui>
                     </TableCell>
-                    <TableCell>{(destChannel.length) ? destChannel.join(', ') : "-"}</TableCell>
-                    <TableCell>{(destUser.length) ? destUser.join(', ') : "-"}</TableCell>
+                    <TableCell >
+                        <TooltipMui title={(destChannel.length) ? destChannel.join(', ') : "-"}>
+                            <Typography sx={{
+                                    maxWidth: '150px'
+                                }}
+                                noWrap>
+                                {(destChannel.length) ? destChannel.join(', ') : "-"}
+                            </Typography>
+                        </TooltipMui>
+                    </TableCell>
+                    <TableCell>
+                        <TooltipMui title={(destUser.length) ? destUser.join(', ') : "-"}>
+                            <Typography sx={{
+                                maxWidth: '150px'
+                            }}
+                                noWrap>
+                                {(destUser.length) ? destUser.join(', ') : "-"}
+                            </Typography>
+                        </TooltipMui>
+                    </TableCell>
                     <TableCell>{m.reactions.positive}</TableCell>
                     <TableCell>{m.reactions.negative}</TableCell>
                     
