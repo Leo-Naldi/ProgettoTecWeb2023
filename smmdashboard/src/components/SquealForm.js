@@ -14,28 +14,6 @@ import isImage from '../utils/isImage';
 import UploadAndDisplayMedia from './ImageUpload';
 
 
-function LocationMarker({ position, setPosition }) {
-    
-    const map = useMap();
-
-    useEffect(() => {
-
-        map.locate().on('locationfound', function (e){
-            setPosition(e.latlng);
-            map.flyTo(e.latlng, map.getZoom());
-        })
-
-    }, [])
-
-    return (position === null) ? null: (
-        <Marker
-            position={position}
-            alt={`Selected coordinates: ${position}, default is current device position.`}>
-            <Popup>Squeal Geolocation</Popup>
-        </Marker>
-    )
-}
-
 export default function SquealFormModal({ managed, open, setOpen }) {
 
     const theme = useTheme();
@@ -375,5 +353,35 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                 </Box>
             );
         }
+    }
+
+    function LocationMarker({ position, setPosition }) {
+
+        const map = useMap();
+
+        // When the map is opened the location will be set to the device's location
+        useEffect(() => {
+
+            if (!position) {
+                map.locate().on('locationfound', function (e) {
+                    setPosition(e.latlng);
+                    map.flyTo(e.latlng, map.getZoom());
+                });
+            }
+
+            map.on('click', (e) => {
+                setPosition(e.latlng);
+                map.flyTo(e.latlng, map.getZoom());
+            })
+
+        }, [])
+
+        return (position === null) ? null : (
+            <Marker
+                position={position}
+                alt={`Selected coordinates: ${position}, default is current device position.`}>
+                <Popup>Squeal Geolocation</Popup>
+            </Marker>
+        )
     }
 }

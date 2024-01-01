@@ -29,6 +29,7 @@ import { Tooltip as TooltipMui } from '@mui/material';
 
 import _ from 'underscore';
 
+// TODO add inert polyfill to squeal locations map
 
 export default function Squeals({ managed }) {
 

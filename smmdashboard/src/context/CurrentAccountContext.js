@@ -65,7 +65,7 @@ export function AccountContextProvider({ children }) {
                 }  
             }).catch(err => {
                 accountDispatch({
-                    type: 'USER_LOGOUT',  // TODO add some error message
+                    type: 'USER_LOGOUT',
                 })
             })
         }
