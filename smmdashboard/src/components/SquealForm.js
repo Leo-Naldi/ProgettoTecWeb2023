@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
 import { useTheme, TextField, Alert, FormControlLabel, Checkbox } from '@mui/material';
 import { useManagedAccounts, useManagedAccountsDispatch } from '../context/ManagedAccountsContext';
-import { MapContainer, TileLayer, Marker, useMapEvents, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, Tooltip, useMap, Popup } from 'react-leaflet';
 import FetchOptionsAutocomplete from './FetchOptionsAutocomplete';
 import { useAccount } from '../context/CurrentAccountContext';
 import Spinner from './Spinner';
@@ -15,24 +15,23 @@ import UploadAndDisplayMedia from './ImageUpload';
 
 
 function LocationMarker({ position, setPosition }) {
-    const map = useMapEvents({
-        click: (e) => {
-            setPosition(e.latlng)
-            map.flyTo(e.latlng, map.getZoom())
-        },
-        load: () => {
-            map.locate();
-        },
-        locationfound: (loc) => {
-            map.flyTo(loc, map.getZoom())
-        }
-    })
+    
+    const map = useMap();
 
-    return position === null ? null : (
+    useEffect(() => {
+
+        map.locate().on('locationfound', function (e){
+            setPosition(e.latlng);
+            map.flyTo(e.latlng, map.getZoom());
+        })
+
+    }, [])
+
+    return (position === null) ? null: (
         <Marker
             position={position}
-            eventHandlers={{ click: () => setPosition(null) }}>
-            <Tooltip>Click on the marker to delete it.</Tooltip>
+            alt={`Selected coordinates: ${position}, default is current device position.`}>
+            <Popup>Squeal Geolocation</Popup>
         </Marker>
     )
 }
@@ -44,12 +43,8 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const managedAccounts = useManagedAccounts()
     const managedAccountsDispatch = useManagedAccountsDispatch()
 
-    //console.log(`SquealFormModal managed: ${managed}`);
-
 
     const managedAccount = managedAccounts.find(u => u.handle === managed);
-    //console.log(`SquealFormModal managedAccount: ${!!managedAccount}`);
-    //console.log(`Managed handles: ${managedAccounts.map(m => m.handle).join(',')}`)
     const maxLength = Math.min(...Object.values(managedAccount.charLeft));
 
 
@@ -182,11 +177,12 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     };
 
 
+    /*
     useEffect(() => {
         if (position === null) {
             setGeolocate(false);
         }
-    }, [position]);
+    }, [position]);*/
 
     return (
         <Modal
@@ -252,7 +248,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             return (<Spinner />)
         } else {
 
-            let disabled = (usedChars > maxLength) || ((usedChars === 0) && !selectedImage && !position)
+            let disabled = (usedChars > maxLength) || (usedChars === 0) || (geolocate && (!position))
 
             return (
                 <Box sx={{

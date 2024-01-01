@@ -29,17 +29,6 @@ import { Tooltip as TooltipMui } from '@mui/material';
 
 import _ from 'underscore';
 
-function parseMessage (message) {
-    message.meta = {
-        ...message.meta,
-        created: new dayjs(message.meta.created),
-        lastModified: new dayjs(message.meta.lastModified)
-    }
-
-    message.content = _.defaults(message.content, { text: '', image: null, video: null, geo: null })
-
-    return message;
-}
 
 export default function Squeals({ managed }) {
 
@@ -270,7 +259,8 @@ export default function Squeals({ managed }) {
         } else {
             return (
                 <TableContainer component={'paper'}>
-                    <Table>
+                    <Table aria-label='Squeals Table'>
+                        <caption>Squeals by @{managed}.</caption>
                         <TableHead>
                             <TableRow>
                                 <TableCell>
@@ -370,7 +360,7 @@ export default function Squeals({ managed }) {
 
     function getArrayField(data) {
         if (data.length) {
-            return <TooltipMui title={data}>
+            return <TooltipMui title={data} arrow>
                 <Typography sx={{
                     maxWidth: '150px'
                 }}
@@ -418,5 +408,17 @@ export default function Squeals({ managed }) {
                     }} />
             </TableCell>);
         }
+    }
+
+    function parseMessage(message) {
+        message.meta = {
+            ...message.meta,
+            created: new dayjs(message.meta.created),
+            lastModified: new dayjs(message.meta.lastModified)
+        }
+
+        message.content = _.defaults(message.content, { text: '', image: null, video: null, geo: null })
+
+        return message;
     }
 }

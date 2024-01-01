@@ -6,7 +6,7 @@ import { CircularProgress } from '@mui/material';
 export default function Spinner() {
 
     return (
-    <Container component='main' maxWidth='xs'>
+    <Container maxWidth='xs'>
         <Box sx={{
             display: 'flex',
             alignItems: 'center',
