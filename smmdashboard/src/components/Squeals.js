@@ -13,7 +13,7 @@ import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
 import dayjs from 'dayjs';
 import Spinner from './Spinner';
-import { Box, Button, Dialog, DialogActions, DialogContent, Divider, IconButton, Pagination, TableContainer } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Pagination, TableContainer } from '@mui/material';
 import { useManagedAccounts } from '../context/ManagedAccountsContext';
 import { useSocket } from '../context/SocketContext';
 import authorizedRequest from '../utils/authorizedRequest';
@@ -147,7 +147,13 @@ export default function Squeals({ managed }) {
                 maxWidth={'md'}
                 open={openImageModal}
                 onClose={handleCloseImageModal}
+                aria-labelledby="squeal-image-title"
             >
+                <DialogTitle>
+                    <Typography id="squeal-image-title" variant="h5" component='h2'>
+                        Squeal Image Content
+                    </Typography>
+                </DialogTitle>
                 <DialogContent>
 
                     <Box
@@ -177,7 +183,13 @@ export default function Squeals({ managed }) {
                 maxWidth={'md'}
                 open={openVideoModal}
                 onClose={() => setOpenVideoModal(false)}
+                aria-labelledby='squeal-video-title'
             >
+                <DialogTitle>
+                    <Typography id="squeal-video-title" variant="h5" component='h2'>
+                        Squeal Video Content
+                    </Typography>
+                </DialogTitle>
                 <DialogContent>
 
                     <Box
@@ -202,7 +214,13 @@ export default function Squeals({ managed }) {
                 maxWidth={'md'}
                 open={openGeoModal}
                 onClose={handleCloseGeoModal}
+                aria-labelledby='squeal-location-title'
             >
+                <DialogTitle>
+                    <Typography id="squeal-location-title" variant="h5" component='h2'>
+                        Squeal's Location
+                    </Typography>
+                </DialogTitle>
                 <DialogContent>
 
                     <Box
@@ -292,16 +310,16 @@ export default function Squeals({ managed }) {
                                         Users
                                     </Typography>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell aria-label='Likes'>
                                     <ThumbUpAltIcon />
                                 </TableCell>
-                                <TableCell>
+                                <TableCell aria-label='Dislikes'>
                                     <ThumbDownAltIcon />
                                 </TableCell>
-                                <TableCell>
+                                <TableCell aria-label='Media Content'>
                                     <PhotoLibraryIcon />
                                 </TableCell>
-                                <TableCell>
+                                <TableCell aria-label='Geolocation'>
                                     <MapIcon />
                                 </TableCell>
                             </TableRow>

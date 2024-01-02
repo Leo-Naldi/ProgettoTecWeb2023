@@ -6,40 +6,24 @@ import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
 import Title from './Title';
 
-
 import { time_periods } from '../utils/fetchStats'
 
-// Generate Sales Data
-function createData(time, likes, dislikes) {
-    return { time, likes, dislikes };
-}
 
-
-function parseChartData(chartData, timePeriod) {
-    
-    if (timePeriod === 'Today') {
-        return chartData.map(datapoint => {
-
-            return createData(datapoint.start.format('HH:mm'),
-                datapoint.stats.positive, datapoint.stats.negative);
-        })
-    } else if (timePeriod === 'All Time') {
-        return chartData.map(datapoint => {
-            return createData(datapoint.start.format('YYYY/MM'),
-                datapoint.stats.positive, datapoint.stats.negative);
-        })
-    } else {
-        return chartData.map(datapoint => {
-            return createData(datapoint.start.format('MM/DD'),
-                datapoint.stats.positive, datapoint.stats.negative);
-        })
-    }
-}
 
 export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) {
+    
+    const data = parseChartData(chartData, selectedPeriod);
+    const minVal = Math.min(data[0].likes, data[0].dislikes);
+    const maxVal = Math.max(data[data.length - 1].likes, data[data.length - 1].dislikes);
+    const horizontalPoints = Array.from({ length: 3 }, (v, i) => Math.floor(minVal + (maxVal - minVal) / 4))
+
+
     const theme = useTheme();
+    
+    
     const [anchorEl, setAnchorEl] = useState(null);
 
+     
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);
     };
@@ -47,11 +31,6 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
     const handleClose = () => {
         setAnchorEl(null);
     };
-
-    const data = parseChartData(chartData, selectedPeriod);
-    const minVal = Math.min(data[0].likes, data[0].dislikes);
-    const maxVal = Math.max(data[data.length - 1].likes, data[data.length - 1].dislikes);
-    const horizontalPoints = Array.from({ length: 3 }, (v, i) => Math.floor(minVal + (maxVal - minVal) / 4))
 
     return (
         <React.Fragment>
@@ -124,4 +103,30 @@ export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) 
             </ResponsiveContainer>
         </React.Fragment>
     );
+
+    function parseChartData(chartData, timePeriod) {
+
+        if (timePeriod === 'Today') {
+            return chartData.map(datapoint => {
+
+                return createData(datapoint.start.format('HH:mm'),
+                    datapoint.stats.positive, datapoint.stats.negative);
+            })
+        } else if (timePeriod === 'All Time') {
+            return chartData.map(datapoint => {
+                return createData(datapoint.start.format('YYYY/MM'),
+                    datapoint.stats.positive, datapoint.stats.negative);
+            })
+        } else {
+            return chartData.map(datapoint => {
+                return createData(datapoint.start.format('MM/DD'),
+                    datapoint.stats.positive, datapoint.stats.negative);
+            })
+        }
+    }
+
+    function createData(time, likes, dislikes) {
+        return { time, likes, dislikes };
+    }
+
 }

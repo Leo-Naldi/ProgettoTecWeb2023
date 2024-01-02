@@ -20,8 +20,6 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const smm = useAccount();
     const managedAccounts = useManagedAccounts()
     const managedAccountsDispatch = useManagedAccountsDispatch()
-
-
     const managedAccount = managedAccounts.find(u => u.handle === managed);
     const maxLength = Math.min(...Object.values(managedAccount.charLeft));
 
@@ -34,6 +32,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const [text, setText] = useState('');
     const [geolocate, setGeolocate] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
+
 
     const handleOpen = () => setOpen(true);
 
@@ -155,18 +154,11 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     };
 
 
-    /*
-    useEffect(() => {
-        if (position === null) {
-            setGeolocate(false);
-        }
-    }, [position]);*/
-
     return (
         <Modal
             open={open}
             onClose={handleClose}
-            aria-labelledby="Squeal-Form"
+            aria-labelledby="post-squeal-modal-title"
             sx={{
                 position: 'absolute',
                 [theme.breakpoints.up('sm')]: { left: '12%', },
@@ -240,7 +232,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                     overflowY: 'scroll',
                     maxHeight: '95%',
                 }}>
-                    <Typography id="modal-modal-title" variant="h5">
+                    <Typography id="post-squeal-modal-title" variant="h5" component='h2'>
                         Post a Squeal for <span
                             sx={{ fontWeight: theme.typography['fontWeightBold'] }}
                         >{managed}</span>

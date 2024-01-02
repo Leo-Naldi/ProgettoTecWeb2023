@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAccount } from "../context/CurrentAccountContext";
 import Dashboard from "../components/Dashboard";
@@ -8,31 +8,24 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import List from '@mui/material/List';
 import AppBar from '@mui/material/AppBar';
 import Drawer from '@mui/material/Drawer';
-import { useManagedAccounts, useManagedAccountsDispatch } from "../context/ManagedAccountsContext";
-import Spinner from "../components/Spinner";
-import { useSocket } from "../context/SocketContext";
-import SupervisedUserCircleIcon from '@mui/icons-material/SupervisedUserCircle';
+import { useManagedAccounts, useManagedAccountsFetching } from "../context/ManagedAccountsContext";
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutListButton from "../components/LogoutListButton";
 
 
 export default function DashboardPage() {
-
-    const num_checkpoints = 8;
+    
+    
+    const smm = useAccount();
+    const managedAccount = useManagedAccounts();
+    const managedAccountsFetching = useManagedAccountsFetching();
     
     const [toggleSideDrawer, setOpenToggleSideDrawer] = useState(true);
-
     const [managed, setManaged] = useState(null);
-
-    const smm = useAccount();
-    const managedAccountsDispatch = useManagedAccountsDispatch();
-    const managedAccount = useManagedAccounts();
-    const socket = useSocket()
 
     const toggleDrawer = () => {
         setOpenToggleSideDrawer(!toggleSideDrawer);
@@ -47,7 +40,7 @@ export default function DashboardPage() {
                     <IconButton
                         edge="start"
                         color="inherit"
-                        aria-label="open drawer"
+                        aria-label="Open Select Managed Users Menu"
                         onClick={toggleDrawer}
                     >
                         <MenuIcon />
@@ -63,31 +56,36 @@ export default function DashboardPage() {
                     </Typography>
                 </Toolbar>
             </AppBar>
-                <Drawer open={toggleSideDrawer}>
+                <Drawer 
+                    open={toggleSideDrawer} 
+                    aria-labelledby="managed-user-select"
+                    >
                     <Box
-                        role={'presentation'}
                         width={'auto'}
                         sx={{
                             m: 1,
                         }}>
-                        <Typography variant="h5" sx={{
+                        <Typography id="managed-user-select" variant="h5" sx={{
                             m:1,
-                        }}>
+                        }} component="h2">
                             Managed Users
                         </Typography>
+
                         <Divider sx={{ mt: 1 }}/>
-                        {getManagedUserList()}
-                        <Divider />
-                        <LogoutListButton />
+                        
+                        <List 
+                            role="menu" 
+                            aria-live="assertive"
+                            aria-busy={`${managedAccountsFetching}`}>
+                            {getManagedUserList()}
+
+                            <Divider aria-hidden="true" />
+                            
+                            <LogoutListButton />
+                        </List>
                     </Box>
                 </Drawer>
-            {(managed) ? (<Dashboard managed={managed}/>): (
-                <Box>
-                    <Typography variant="h2">
-                        Choose a User to manage...
-                    </Typography>
-                </Box>
-            )}
+            {(managed) && (<Dashboard managed={managed}/>)}
         </Box>
     );
 
@@ -96,7 +94,7 @@ export default function DashboardPage() {
             return (
                 <>
                     {managedAccount.map((account) => (
-                        <ListItem key={account.handle}>
+                        <ListItem key={account.handle} role="menuitem">
                             <ListItemButton
                                 key={account.handle}
                                 selected={account.handle === managed}
@@ -114,7 +112,7 @@ export default function DashboardPage() {
                     ))}
                 </>
             )
-        }else {
+        } else {
             return <Box sx={{
                 textAlign: 'center',
                 p: 5,
@@ -126,7 +124,9 @@ export default function DashboardPage() {
                         fontWeight: 'bold',
                         color: 'text.disabled',
                     }}>
-                    No users managed by @{smm.handle}
+                    {(managedAccountsFetching) ? 
+                        "Fetching Managed Accounts..." : 
+                        `No users managed by @${smm.handle}`}
                 </Typography>
             </Box>
         }

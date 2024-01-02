@@ -5,6 +5,9 @@ let container = null;
 let tabs = null;
 let socket = null;
 
+// TODO add type/role search to filters
+// TODO make icon only buttons accessible
+// TODO aria live stuff
 
 $(function () {
     

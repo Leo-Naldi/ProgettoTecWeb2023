@@ -15,11 +15,18 @@ import { useManagedAccounts } from '../context/ManagedAccountsContext';
 import Spinner from './Spinner';
 import { Button } from '@mui/material';
 import SquealFormModal from './SquealForm';
+// TODO modal accessibility
 
 
 export default function Dashboard({ managed }) {
 
     const num_checkpoints = 8;
+
+
+    const smm = useAccount();
+    const managedUsers = useManagedAccounts()
+    const userAccount = managedUsers?.find(u => u.handle === managed)
+
 
     const [selectedPeriod, setSelectedPeriod] = useState('Today');
     const [chartData, setChartData] = useState([]);
@@ -27,10 +34,6 @@ export default function Dashboard({ managed }) {
     const [fetchingChartData, setFetchingChartData] = useState(true);
 
     const [openSquealModal, setOpenSquealModal] = useState(false);
-    
-    const smm = useAccount();
-    const managedUsers = useManagedAccounts()
-    const userAccount = managedUsers?.find(u => u.handle === managed)
     
 
     useEffect(() => {
@@ -113,7 +116,7 @@ export default function Dashboard({ managed }) {
                             >
                                 <CharacterCount managed={managed} managedUsers={managedUsers}/>
                                 <Button sx={{my: 1}} variant='contained' onClick={() => setOpenSquealModal(true)}>
-                                    Post Squeal
+                                    New Squeal
                                 </Button>
                             </Paper>
                         </Grid>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { Button, Card, CardActionArea, CardMedia, Tooltip } from "@mui/material";
 import isImage from "../utils/isImage";
@@ -21,7 +21,7 @@ export default function UploadAndDisplayMedia({ selectedMedia, setSelectedMedia 
                         style={{ display: 'none' }}
                     />
                 </Button>
-            {selectedMedia && <Tooltip title='Click to Clear'>
+            {selectedMedia && <Tooltip title='Click to Clear' arrow>
                 <Card sx={{ maxWidth: '100%' }}>
                     <CardActionArea
                         onClick={() => setSelectedMedia(null)}>

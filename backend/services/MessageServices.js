@@ -40,12 +40,26 @@ class MessageService {
      * @returns The query or the query filter
      */
     static async _addQueryChains({ 
-        query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest,
-        official=null, mentions=[], 
-        keywords=[], text='', author_filter='',
-        reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
-        answering=null } = 
+        query=Message.find(), 
+        popular, 
+        unpopular, 
+        controversial, 
+        risk,
+        before, 
+        after, 
+        dest,
+        official=null, 
+        mentions=[], 
+        keywords=[], 
+        text='', 
+        author_filter='',
+        reqUser=null, 
+        author=null, 
+        sortField=null, 
+        publicMessage=null, 
+        filterOnly=false,
+        answering=null 
+    } = 
         { query: Message.find(), page: 1, 
             official: null, mentions: [], 
             reqUser: null, author: null, 
