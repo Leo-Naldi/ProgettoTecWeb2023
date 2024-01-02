@@ -486,6 +486,19 @@ paths:
           schema: 
             type: string 
             example: 653a84466bd663444681acfc
+        - name: sort 
+          in: query 
+          description: Sort results by given value. 
+          schema:
+            type: string 
+            enum: 
+              - positive
+              - negative 
+              - created
+              - -positive
+              - -negative 
+              - -created 
+            default: -created
       responses:
         '200':
           description: User found
@@ -1187,6 +1200,19 @@ paths:
           schema:
             type: string
             example: test
+        - name: sort 
+          in: query 
+          description: Sort results by given value. 
+          schema:
+            type: string 
+            enum: 
+              - positive
+              - negative 
+              - created
+              - -positive
+              - -negative 
+              - -created 
+            default: -created
       responses:
         200: 
           description: Ok 
@@ -1245,7 +1271,6 @@ paths:
           description: Unauthorized.
         409: 
           description: Invalid id.
-
 
   /messages/user/{handle}/: 
     get:

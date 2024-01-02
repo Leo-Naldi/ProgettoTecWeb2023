@@ -9,7 +9,6 @@ import Title from './Title';
 import { time_periods } from '../utils/fetchStats'
 
 
-
 export default function Chart({ selectedPeriod, setSelectedPeriod, chartData }) {
     
     const data = parseChartData(chartData, selectedPeriod);

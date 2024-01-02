@@ -28,6 +28,12 @@ const allowedSortFields = [
     'positive',
     'reactions.negative',
     'negative',
+    '-meta.created',
+    '-created',
+    '-reactions.positive',
+    '-positive',
+    '-reactions.negative',
+    '-negative',
 ]
 
 class MessageService {
@@ -60,7 +66,7 @@ class MessageService {
         filterOnly=false,
         answering=null 
     } = 
-        { query: Message.find(), page: 1, 
+        { query: Message.find(), 
             official: null, mentions: [], 
             reqUser: null, author: null, 
             sortField: null, filterOnly: false,
@@ -253,6 +259,15 @@ class MessageService {
                 case 'negative':
                     query.sort('reactions.negative')
                     break;
+                case '-created':
+                    query.sort('-meta.created')
+                    break;
+                case '-positive':
+                    query.sort('-reactions.positive')
+                    break;
+                case '-negative':
+                    query.sort('-reactions.negative')
+                    break;
                 default:
                     query.sort(sortField);
                     break;
@@ -340,10 +355,36 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage, answering, text='', author='',
-        mentions = [], keywords = [], results_per_page=config.results_per_page, official=null,
-    }={ page: 1, reqUser: null }) {
+    static async getMessages({ 
+        reqUser=null, 
+        page=1, 
+        results_per_page=config.results_per_page, 
+        popular, 
+        unpopular, 
+        controversial, 
+        risk,
+        before, 
+        after, 
+        dest, 
+        publicMessage, 
+        answering, 
+        text='', 
+        author='',
+        mentions = [], 
+        keywords = [], 
+        official=null,
+        sort="-created",
+    } = {
+        page: 1, 
+        reqUser: null, 
+        results_per_page: config.results_per_page, 
+        text: '',
+        author: '',
+        mentions: [],
+        keywords: [],
+        official: null,
+        sort: "created", 
+    }) {
         
         let old_rpp = results_per_page;
         results_per_page = parseInt(results_per_page);
@@ -352,10 +393,24 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        let query = await MessageService._addQueryChains({ query: Message.find(),
-            popular, unpopular, controversial, risk,
-            before, after, dest, reqUser, publicMessage, answering,
-            text, mentions, keywords, official, author_filter: author,
+        let query = await MessageService._addQueryChains({ 
+            query: Message.find(),
+            popular, 
+            unpopular, 
+            controversial, 
+            risk,
+            before,
+            after, 
+            dest, 
+            reqUser, 
+            publicMessage, 
+            answering,
+            text, 
+            mentions, 
+            keywords, 
+            official, 
+            author_filter: author,
+            sortField: sort,
         })
 
         let res = await query;
@@ -383,8 +438,13 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getChannelMessages({ reqUser, name, reqChannel,
-        page=1, results_per_page=config.results_per_page }){
+    static async getChannelMessages({ 
+        reqUser, 
+        name, 
+        reqChannel,
+        page=1, 
+        results_per_page=config.results_per_page 
+    }){
         
         let old_rpp = results_per_page;
         results_per_page = parseInt(results_per_page);
@@ -422,8 +482,22 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage, answering, results_per_page = config.results_per_page, }){
+    static async getUserMessages({ 
+        page = 1, 
+        reqUser, 
+        handle, 
+        popular, 
+        unpopular, 
+        controversial, 
+        risk,
+        before, 
+        after, 
+        dest, 
+        publicMessage, 
+        answering, 
+        results_per_page = config.results_per_page, 
+        sort="-created",
+    }){
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
         
@@ -439,9 +513,21 @@ class MessageService {
         let user = await User.findOne({ handle: handle });
 
         let messagesQuery = await MessageService._addQueryChains({ 
-            popular, unpopular, controversial, risk,
-            before, after, dest, page, reqUser, author: user,
-            publicMessage, answering, reqUser, results_per_page,
+            popular, 
+            unpopular, 
+            controversial, 
+            risk,
+            before, 
+            after, 
+            dest, 
+            page, 
+            reqUser, 
+            author: user,
+            publicMessage, 
+            answering, 
+            reqUser, 
+            results_per_page,
+            sortField: sort,
          })
 
         let res = await messagesQuery;
@@ -499,8 +585,18 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns An object containing the message's stats
      */
-    static async getMessagesStats({ reqUser, handle, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage }) {
+    static async getMessagesStats({ 
+        reqUser, 
+        handle, 
+        popular, 
+        unpopular, 
+        controversial, 
+        risk,
+        before, 
+        after, 
+        dest, 
+        publicMessage 
+    }) {
         
         let author = null;
 
@@ -853,7 +949,6 @@ class MessageService {
         
 
         let editor = _.pluck(message.author.editorChannels, "name");
-        logger.debug(JSON.stringify(editor));
 
         message.author = message.author._id;
         
@@ -887,7 +982,6 @@ class MessageService {
 
             let dest_users = dest.filter(d => d.charAt(0) === '@').map(d => d.slice(1));
             let dest_channel = dest.filter(d => d.charAt(0) === '§').map(d => d.slice(1));
-            logger.debug(dest_channel)
 
             let users = await User.find({ handle: { $in: dest_users } });
             let channels = await Channel.find({ name: { $in: dest_channel } });
