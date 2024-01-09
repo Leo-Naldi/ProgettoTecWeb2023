@@ -69,7 +69,7 @@ function TableToolbar({ popularity, setPopularity, period, setPeriod, risk, setR
                 id="filter-menu"
                 anchorEl={anchorEl}
                 open={open}
-                onClose={closeMenu}
+                onClose={() => closeMenu()}
                 MenuListProps={{
                     'aria-label': 'Squeal Popularity Filters',
                 }}
@@ -102,31 +102,55 @@ function TableToolbar({ popularity, setPopularity, period, setPeriod, risk, setR
                 <Divider />
 
                 <MenuItem onClick={() => closeMenu(null, 'popular')}>
-                    <ListItemText>Almost Popular</ListItemText>
+                    {(risk === 'popular') && <ListItemIcon>
+                        <CheckIcon />
+                    </ListItemIcon>}
+                    <ListItemText inset={(risk !== 'popular')}>Almost Popular</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={() => closeMenu(null, 'unpopular')}>
-                    <ListItemText>Almost Unpopular</ListItemText>
+                    {(risk === 'unpopular') && <ListItemIcon>
+                        <CheckIcon />
+                    </ListItemIcon>}
+                    <ListItemText inset={(risk !== 'unpopular')}>Almost Unpopular</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={() => closeMenu(null, 'controversial')}>
-                    <ListItemText>Almost Controversial</ListItemText>
+                    {(risk === 'controversial') && <ListItemIcon>
+                        <CheckIcon />
+                    </ListItemIcon>}
+                    <ListItemText inset={(risk !== 'controversial')}>Almost Controversial</ListItemText>
                 </MenuItem>
 
                 <Divider />
 
                 <MenuItem onClick={() => closeMenu(null, null, 'today')} >
-                    <ListItemText>Today</ListItemText>
+                    {(period === 'today') && <ListItemIcon>
+                        <CheckIcon />
+                    </ListItemIcon>}
+                    <ListItemText inset={(period !== 'today')}>Today</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={() => closeMenu(null, null, 'week')}>
-                    <ListItemText>This Week</ListItemText>
+                    {(period === 'week') && <ListItemIcon>
+                        <CheckIcon />
+                    </ListItemIcon>}
+                    <ListItemText inset={(period !== 'week')}>This Week</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={() => closeMenu(null, null, 'month')}>
-                    <ListItemText>This Month</ListItemText>
+                    {(period === 'month') && <ListItemIcon>
+                        <CheckIcon />
+                    </ListItemIcon>}
+                    <ListItemText inset={(period !== 'week')}>This Month</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={() => closeMenu(null, null, 'year')}>
-                    <ListItemText>This Year</ListItemText>
+                    {(period === 'year') && <ListItemIcon>
+                        <CheckIcon />
+                    </ListItemIcon>}
+                    <ListItemText inset={(period !== 'year')}>This Year</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={() => closeMenu(null, null, 'all')}>
-                    <ListItemText>All Time</ListItemText>
+                    {(period === 'all') && <ListItemIcon>
+                        <CheckIcon />
+                    </ListItemIcon>}
+                    <ListItemText inset={(period !== 'all')}>All Time</ListItemText>
                 </MenuItem>
 
             </Menu>
@@ -301,6 +325,7 @@ export default function Squeals({ managed }) {
     const [messages, setMessages] = useState([]);
     const [fetchingMessages, setFetchingMessages] = useState(false);
     const [maxPages, setMaxPages] = useState(null);
+    const [messagesCount, setMessagesCount] = useState(-1);
 
     const [openImageModal, setOpenImageModal] = useState(false);
     const [openVideoModal, setOpenVideoModal] = useState(false);
@@ -373,6 +398,19 @@ export default function Squeals({ managed }) {
             })
     }
 
+    const fetchMessagesCount = (q = {}) => {
+        let query = makeQuery(q);
+
+        authorizedRequest({
+            endpoint: `/users/${managed}/messages/stats`,
+            token: smm.token,
+            query: query
+        }).then(res => res.json())
+        .then(res => {
+            setMessagesCount(res.total);
+        })
+    } 
+
     const handleRequestSort = (property) => {
         const isAsc = orderBy === property && order === 'asc';
         const ord = isAsc ? 'desc' : 'asc'
@@ -404,33 +442,36 @@ export default function Squeals({ managed }) {
         })
     };
 
-    const handlePeriodChanged = (val) => {
-        if (val !== period) {
-            setPeriod(val);
-            fetchMessages({ period: val });
-        }
-    }
-
     const handleChangePopularity = (val) => {
         setPopularity(val);
         setRisk(null);
-        fetchMessages({ popularity: val, risk: null });
+        setPage(1);
+
+        fetchMessages({ popularity: val, risk: null, page: 1 });
+        fetchMessagesCount({ popularity: val, risk: null, page: 1 })
     }
 
     const handleChangeRisk = (val) => {
         setRisk(val);
         setPopularity('all');
-        fetchMessages({ risk: val, popularity: 'all' });
+        setPage(1);
+
+        fetchMessages({ risk: val, popularity: 'all', page: 1 });
+        fetchMessagesCount({ risk: val, popularity: 'all', page: 1 });
     }
 
     const handleChangePeriod = (val) => {
         setPeriod(val);
-        fetchMessages({ period: val });
+        setPage(1);
+        
+        fetchMessages({ period: val, page: 1 });
+        fetchMessagesCount({ period: val, page: 1 });
     }
 
     useEffect(() => {
-        if ((!(messages?.length || fetchingMessages)) && managed) {
+        if ((!(fetchingMessages)) && managed) {
             fetchMessages();
+            fetchMessagesCount();
         }
     }, [managed])
 
@@ -507,7 +548,7 @@ export default function Squeals({ managed }) {
             <TablePagination
                 rowsPerPageOptions={[10, 15, 25]}
                 component="div"
-                count={(maxPages || 1) * messagesPerPage}
+                count={(messagesCount > -1) ? messagesCount: ((maxPages || 1) * messagesPerPage)}
                 rowsPerPage={messagesPerPage}
                 page={page - 1}
                 onPageChange={handleChangePage}
@@ -596,7 +637,11 @@ export default function Squeals({ managed }) {
 
                                 {_.range(4).map(i => (
                                     <TableCell>
-                                        <Skeleton variant="circular" animation="wave" />
+                                        <Skeleton 
+                                            variant="circular" 
+                                            animation="wave"
+                                            width={40}
+                                            height={40} />
                                     </TableCell>))}
 
                             </TableRow>
@@ -631,7 +676,7 @@ export default function Squeals({ managed }) {
         return (
             <Fragment>
                 <TableRow key={`squeal-${m.id}`}>
-                    <TableCell>{m.meta.created.format('YYYY/MM/DD, HH:mm')}</TableCell>
+                    <TableCell>{m.meta.created.format('DD/MM/YYYY, HH:mm')}</TableCell>
                     <TableCell>
                         {getArrayField(m.content.text)}
                     </TableCell>
