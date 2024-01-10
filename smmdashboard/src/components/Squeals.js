@@ -9,7 +9,7 @@ import { useAccount } from '../context/CurrentAccountContext';
 
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import dayjs from 'dayjs';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, MenuList, Skeleton, TableContainer, TablePagination, TableSortLabel, Toolbar } from '@mui/material';
+import { Box, Button, Card, CardContent, CardHeader, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, MenuList, Skeleton, Stack, TableContainer, TablePagination, TableSortLabel, Toolbar } from '@mui/material';
 import { useSocket } from '../context/SocketContext';
 import authorizedRequest from '../utils/authorizedRequest';
 import ReactPlayer from 'react-player';
@@ -22,17 +22,16 @@ import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
 import ImageIcon from '@mui/icons-material/Image';
 import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
 import ThumbDownAltIcon from '@mui/icons-material/ThumbDownAlt';
-import ThumbUpIcon from '@mui/icons-material/ThumbUp';
-import ThumbDownIcon from '@mui/icons-material/ThumbDown';
-import ThumbsUpDownIcon from '@mui/icons-material/ThumbsUpDown';
-import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import MapIcon from '@mui/icons-material/Map';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CheckIcon from '@mui/icons-material/Check';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 
 import _ from 'underscore';
+import Spinner from './Spinner';
 
 // TODO add inert polyfill to squeal locations map
 // TODO use stats to get total messages
@@ -315,6 +314,229 @@ function TableModals({
 
 }
 
+function ReplyCard({ reply }) {
+
+    reply.meta.created = new dayjs(reply.meta.created);
+
+    return (<Card sx={{ maxWidth: 345 }}>
+
+        <CardHeader
+            title={`@${reply.author}`}
+            subheader={reply.meta.created.format('DD/MM/YYYY, HH:mm')}/>
+        {reply.content.text?.length && (
+            <CardContent>
+                <Typography variant="body2">
+                    {reply.content.text}
+                </Typography>
+            </CardContent>
+        )}
+
+    </Card>);
+}
+
+function Row({ 
+    message, 
+    setMediaUrl, 
+    setOpenImageModal, 
+    setOpenVideoModal, 
+    setGeo, 
+    setOpenGeoModal,
+}) {
+
+    const destChannel = message.dest.filter(d => d.charAt(0) === '§');
+    const destUser = message.dest.filter(d => d.charAt(0) === '@');
+
+
+    const [open, setOpen] = useState(false);
+    const [replies, setReplies] = useState(null);
+    const [fetchingReplies, setFetchingReplies] = useState(false);
+
+
+    const smm = useAccount();
+
+
+    const handleChangeOpen = (val) => {
+        setOpen(val);
+
+        if (val) {
+            setFetchingReplies(true);
+            authorizedRequest({
+                endpoint: `messages/`,
+                token: smm.token,
+                query: {
+                    page: 1,
+                    results_per_page: 10,
+                    answering: message.id,
+                }
+            }).then(res => res.json())
+            .then(answers => {
+                console.log(answers)
+                setReplies(answers.results);
+                setFetchingReplies(false);
+            })
+        }
+    }
+
+    if (message.deleted) {
+        return (<Fragment>
+            <TableRow key={`squeal-${message.id}`}>
+                <TableCell>
+                    <IconButton
+                        aria-label="View Replies"
+                        size="small"
+                        disabled>
+                        <KeyboardArrowDownIcon />
+                    </IconButton>
+                </TableCell>
+                <TableCell>{message.meta.created.format('DD/MM/YYYY, HH:mm')}</TableCell>
+                <TableCell>
+                    [deleted]
+                </TableCell>
+                <TableCell >
+                    -
+                </TableCell>
+                <TableCell>
+                    -
+                </TableCell>
+                <TableCell>{message.reactions.positive}</TableCell>
+                <TableCell>{message.reactions.negative}</TableCell>
+
+                <TableCell>
+                    <HideImageOutlinedIcon
+                        aria-label='No Squeal Media'
+                        sx={{
+                            ml: 1,
+                        }} />
+                </TableCell>
+
+                <TableCell>
+                    <LocationOffOutlinedIcon
+                        aria-label='No Squeal Geolocation'
+                        sx={{
+                            ml: 1,
+                        }} />
+                </TableCell>
+            </TableRow>
+        </Fragment>);
+    }
+
+    return (<Fragment>
+        <TableRow key={`squeal-${message.id}`}>
+            <TableCell>
+                <Tooltip title={`${open ? "Hide": "Show"} Replies`}>
+                    <IconButton
+                        aria-label={`${open ? "Hide" : "Show"} Replies`}
+                        size="small"
+                        onClick={() => handleChangeOpen(!open)}
+                    >
+                        {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                    </IconButton>
+                </Tooltip>
+            </TableCell>
+            <TableCell>{message.meta.created.format('DD/MM/YYYY, HH:mm')}</TableCell>
+            <TableCell>
+                {getArrayField(message.content.text)}
+            </TableCell>
+            <TableCell >
+                {getArrayField(destChannel.join(', '))}
+            </TableCell>
+            <TableCell>
+                {getArrayField(destUser.join(', '))}
+            </TableCell>
+            <TableCell>{message.reactions.positive}</TableCell>
+            <TableCell>{message.reactions.negative}</TableCell>
+
+            {getMediaTableCell()}
+
+            <TableCell>{(message.content.geo) ?
+                (<IconButton
+                    aria-label='Show Squeal Geolocalization'
+                    onClick={() => {
+                        setGeo(message.content.geo);
+                        setOpenGeoModal(true);
+                    }}>
+                    <LocationOnOutlinedIcon />
+                </IconButton>
+                ) :
+                (<LocationOffOutlinedIcon
+                    aria-label='No Squeal Geolocation'
+                    sx={{
+                        ml: 1,
+                    }} />)}</TableCell>
+        </TableRow>
+        <TableRow>
+            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
+                <Collapse in={open} timeout="auto" unmountOnExit>
+                    <Box sx={{ margin: 1 }}>
+                        <Typography variant="h6" gutterBottom component="div">
+                            Replies
+                        </Typography>
+                        {fetchingReplies && <Spinner />}
+                        {(Boolean(replies?.length)) && <Stack>
+                            {replies.map(r => <ReplyCard reply={r} />)}    
+                        </Stack>}
+                        {(replies?.length === 0) && <Typography variant="body2" color="text.secondary">
+                            No replies found.
+                            </Typography>}
+                    </Box>
+                </Collapse>
+            </TableCell>
+        </TableRow>
+    </Fragment>);
+
+    function getArrayField(data) {
+        if (data.length) {
+            return <Tooltip title={data} arrow>
+                <Typography sx={{
+                    maxWidth: '150px'
+                }}
+                    noWrap>
+                    {data}
+                </Typography>
+            </Tooltip>
+        } else {
+            return '-'
+        }
+    }
+
+    function getMediaTableCell() {
+
+        if (message.content.image) {
+            return (<TableCell>
+                <IconButton
+                    aria-label='Show Squeal Image'
+                    onClick={() => {
+                        //console.log(`Clicked on: ${message.content.image}`)
+                        setMediaUrl(message.content.image);
+                        setOpenImageModal(true);
+                    }}>
+                    <ImageIcon />
+                </IconButton>
+            </TableCell>);
+        } else if (message.content.video) {
+            return (<TableCell>
+                <IconButton
+                    aria-label='Show Squeal Video'
+                    onClick={() => {
+                        //console.log(`Clicked on: ${m.content.video}`)
+                        setMediaUrl(message.content.video);
+                        setOpenVideoModal(true);
+                    }}>
+                    <PlayCircleFilledIcon />
+                </IconButton>
+            </TableCell>);
+        } else {
+            return (<TableCell>
+                <HideImageOutlinedIcon
+                    aria-label='No Squeal Media'
+                    sx={{
+                        ml: 1,
+                    }} />
+            </TableCell>);
+        }
+    }
+}
+
 export default function Squeals({ managed }) {
 
     const geoModalId = "squeal-location-modal"
@@ -463,7 +685,7 @@ export default function Squeals({ managed }) {
     const handleChangePeriod = (val) => {
         setPeriod(val);
         setPage(1);
-        
+
         fetchMessages({ period: val, page: 1 });
         fetchMessagesCount({ period: val, page: 1 });
     }
@@ -477,16 +699,16 @@ export default function Squeals({ managed }) {
 
     useEffect(() => {
 
-        socket.on('message:created', (message) => {
+        const message_created_cb = (message) => {
             if ((message.author === managed) && (page === 1)) {
                 // Add it to the currently displayed messages
                 let newMessages = [parseMessage(message),
                 ...messages.slice(0, messagesPerPage - 1)];
                 setMessages(newMessages);
             }
-        });
+        }
 
-        socket.on('message:changed', (message) => {
+        const message_changed_cb = (message) => {
             if (messages.length) {
                 // for now refetch messages
                 const ind = messages.findIndex(m => m.id === message.id)
@@ -504,20 +726,29 @@ export default function Squeals({ managed }) {
                     setMessages(newMessages);
                 }
             }
-        });
+        }
 
-        socket.on('message:deleted', (data) => {
-            if (messages.find(m => m.id === data.id)) {
-                setMessages(messages.filter(m => m.id !== data.id));
+        const message_deleted_cb = (data) => {
+
+            let i = messages.findIndex(m => m.id === data.id);
+
+            if (i >= 0) {
+                let new_messages = [...messages];
+                new_messages[i].deleted = true;
+                setMessages(new_messages);
             }
-        })
+        }
+
+        socket.on('message:created', message_created_cb);
+        socket.on('message:changed', message_changed_cb);
+        socket.on('message:deleted', message_deleted_cb);
 
         return () => {
-            socket?.off('message:created');
-            socket?.off('message:changed');
-            socket?.off('message:deleted');
+            socket?.off('message:created', message_created_cb);
+            socket?.off('message:changed', message_changed_cb);
+            socket?.off('message:deleted', message_deleted_cb);
         }
-    }, [socket, messages])
+    }, [socket, messages, page, messagesPerPage, managed])
 
 
     return (
@@ -565,6 +796,7 @@ export default function Squeals({ managed }) {
                     <caption>Squeals by @{managed}.</caption>
                     <TableHead>
                         <TableRow>
+                            <TableCell />
                             <TableCell>
                                 <TableSortLabel
                                     active={orderBy === 'created'}
@@ -630,6 +862,14 @@ export default function Squeals({ managed }) {
                         {fetchingMessages && (_.range(messagesPerPage).map(i => (
                             <TableRow>
 
+                                <TableCell>
+                                    <Skeleton
+                                        variant="circular"
+                                        animation="wave"
+                                        width={40}
+                                        height={40} />
+                                </TableCell>
+
                                 {_.range(4).map(i => (
                                     <TableCell>
                                         <Skeleton variant="rectangular" animation="wave" />
@@ -648,7 +888,14 @@ export default function Squeals({ managed }) {
                         )))}
 
                         {/* actual messages */}
-                        {(!fetchingMessages) && messages.map(makeMessageRow)}
+                        {(!fetchingMessages) && messages.map(
+                            m => <Row
+                                    message={m}
+                                    setMediaUrl={setMediaUrl}
+                                    setOpenImageModal={setOpenImageModal}
+                                    setOpenVideoModal={setOpenVideoModal}
+                                    setGeo={setGeo}
+                                    setOpenGeoModal={setOpenGeoModal}/>)}
 
                         {/* empty rows to avoid layout jumps on the last page */}
                         {((!fetchingMessages) && (emptyRows > 0)) && (
@@ -667,101 +914,6 @@ export default function Squeals({ managed }) {
 
     }
 
-    function makeMessageRow(m) {
-        const destChannel = m.dest.filter(d => d.charAt(0) === '§');
-        const destUser = m.dest.filter(d => d.charAt(0) === '@');
-
-        //console.log(m.content.image)
-
-        return (
-            <Fragment>
-                <TableRow key={`squeal-${m.id}`}>
-                    <TableCell>{m.meta.created.format('DD/MM/YYYY, HH:mm')}</TableCell>
-                    <TableCell>
-                        {getArrayField(m.content.text)}
-                    </TableCell>
-                    <TableCell >
-                        {getArrayField(destChannel.join(', '))}
-                    </TableCell>
-                    <TableCell>
-                        {getArrayField(destUser.join(', '))}
-                    </TableCell>
-                    <TableCell>{m.reactions.positive}</TableCell>
-                    <TableCell>{m.reactions.negative}</TableCell>
-
-                    {getMediaTableCell(m)}
-
-                    <TableCell>{(m.content.geo) ?
-                        (<IconButton
-                            aria-label='Show Squeal Geolocalization'
-                            onClick={() => {
-                                setGeo(m.content.geo);
-                                setOpenGeoModal(true);
-                            }}>
-                            <LocationOnOutlinedIcon />
-                        </IconButton>
-                        ) :
-                        (<LocationOffOutlinedIcon
-                            aria-label='No Squeal Image'
-                            sx={{
-                                ml: 1,
-                            }} />)}</TableCell>
-                </TableRow>
-            </Fragment>
-        );
-    }
-
-    function getArrayField(data) {
-        if (data.length) {
-            return <Tooltip title={data} arrow>
-                <Typography sx={{
-                    maxWidth: '150px'
-                }}
-                    noWrap>
-                    {data}
-                </Typography>
-            </Tooltip>
-        } else {
-            return '-'
-        }
-    }
-
-    function getMediaTableCell(m) {
-
-        if (m.content.image) {
-            return (<TableCell>
-                <IconButton
-                    aria-label='Show Squeal Image'
-                    onClick={() => {
-                        console.log(`Clicked on: ${m.content.image}`)
-                        setMediaUrl(m.content.image);
-                        setOpenImageModal(true);
-                    }}>
-                    <ImageIcon />
-                </IconButton>
-            </TableCell>);
-        } else if (m.content.video) {
-            return (<TableCell>
-                <IconButton
-                    aria-label='Show Squeal Video'
-                    onClick={() => {
-                        console.log(`Clicked on: ${m.content.video}`)
-                        setMediaUrl(m.content.video);
-                        setOpenVideoModal(true);
-                    }}>
-                    <PlayCircleFilledIcon />
-                </IconButton>
-            </TableCell>);
-        } else {
-            return (<TableCell>
-                <HideImageOutlinedIcon
-                    aria-label='No Squeal Image'
-                    sx={{
-                        ml: 1,
-                    }} />
-            </TableCell>);
-        }
-    }
 
     function parseMessage(message) {
         message.meta = {

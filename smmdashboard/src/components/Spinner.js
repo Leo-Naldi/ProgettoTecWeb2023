@@ -12,7 +12,6 @@ export default function Spinner() {
             alignItems: 'center',
             justifyContent: 'center',
             mt: 4,
-            flexDirection: 'column'
         }}>
             <CircularProgress />
         </Box>

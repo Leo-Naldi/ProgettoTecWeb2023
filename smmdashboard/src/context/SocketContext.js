@@ -3,6 +3,8 @@ import { useAccount } from "./CurrentAccountContext";
 import { io } from 'socket.io-client';
 import { useManagedAccounts, useManagedAccountsDispatch } from "./ManagedAccountsContext";
 
+import _ from 'underscore';
+
 
 const SocketContext = createContext(null);
 
@@ -41,45 +43,43 @@ export default function SocketContextProvider({ children }) {
     }, [smm.loggedIn]);
 
     useEffect(() => {
-        
-            socket?.on('user:changed', (changes) => {
-                console.log(changes.handle)
-                console.log(managedAccounts.some(u => u.handle === changes.handle))
-                console.log(managedAccounts)
 
-                if (managedAccounts.some(u => u.handle === changes.handle)) {
-
-                    if (changes.smm === null) {
-                        managedAccountsDispatch({
-                            type: 'USER_REMOVED',
-                            handle: changes.handle,
-                        });
-                    } else {
-                        managedAccountsDispatch({
-                            type: 'USER_CHANGED',
-                            handle: changes.handle,
-                            changes: changes,
-                        });
-                    }
-
-                }
-            })
-
-            socket?.on('user:deleted', (delete_info) => {
-                if (managedAccounts.some(u => u.handle === delete_info.handle)) {
-
+        const user_changed_context_cb = (changes) => {
+            console.log(changes.handle)
+            console.log(managedAccounts.some(u => u.handle === changes.handle))
+            console.log(managedAccounts)
+            if (managedAccounts.some(u => u.handle === changes.handle)) {
+                if ((_.has(changes, 'smm')) && (_.isNull(changes.smm))) {
                     managedAccountsDispatch({
                         type: 'USER_REMOVED',
-                        handle: delete_info.handle,
+                        handle: changes.handle,
                     });
-
+                } else {
+                    managedAccountsDispatch({
+                        type: 'USER_CHANGED',
+                        handle: changes.handle,
+                        changes: changes,
+                    });
                 }
-            })
+            }
+        }
+
+        const user_deleted_context_cb = (delete_info) => {
+            if (managedAccounts.some(u => u.handle === delete_info.handle)) {
+                managedAccountsDispatch({
+                    type: 'USER_REMOVED',
+                    handle: delete_info.handle,
+                });
+            }
+        }
+
+        socket?.on('user:changed', user_changed_context_cb);
+        socket?.on('user:deleted', user_deleted_context_cb)
         
 
         return () => {
-            socket?.off('user:changed');
-            socket?.off('user:deleted');
+            socket?.off('user:changed', user_changed_context_cb);
+            socket?.off('user:deleted', user_deleted_context_cb);
         }
     }, [socket, managedAccounts]);
     

@@ -39,9 +39,12 @@ export default function SquealFormModal({ managed, open, setOpen }) {
     const handleClose = () => {
         setOpen(false);
         setUsedChars(0);
+        setText('');
         setSelectedImage(null);
         setPosition(null);
         setGeolocate(false);
+        setDestUsers([]);
+        setDestChannels([]);
     }
 
 

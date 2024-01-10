@@ -8,9 +8,7 @@ export default function CharacterCount({ managed }) {
 
     const managedUsers = useManagedAccounts();
     const user = managedUsers.find(u => u.handle === managed);
-    //const socket = useSocket()
-
-    //const managedAccountsDispatch = useManagedAccountsDispatch();
+    
 
     const getTextColor = (count) => {
         if (count <= 10) {
