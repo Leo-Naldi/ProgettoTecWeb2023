@@ -49,6 +49,29 @@ function makeRandomGeoMessages(test_env, author_index=-1, min=10, max=20) {
     });
 }
 
+function addRandomReplies(test_env, userIndex){
+    let messages = test_env.getUserMessages(userIndex);
+
+    for (let i = 0; i < messages.length; i++) {
+        if (Math.random() >= 0.25) {
+            let replies = _.random(1, 150);
+
+            for (let j = 0; j < replies; j++) {
+                test_env.addMessage({
+                    authorIndex: _.random(test_env.users.length - 1),
+                    text: TestEnv.lorem.generateSentences(_.random(1, 6)),
+                    answeringIndex: test_env.midti(messages[i]._id),
+                    reactions: {
+                        positive: _.random(0, 1000),
+                        negative: _.random(0, 1000),
+                    }
+                });
+
+            }
+        }
+    }
+}
+
 /**
  * Data used in postman tests at 
  */
@@ -945,7 +968,7 @@ async function makeDefaultUsers() {
     makeLocalTestData(test_env);
     makeRandomGeoMessages(test_env);
     makeRandomGeoMessages(test_env, u2_index, 3, 6);
-    
+    addRandomReplies(test_env, u2_index);
     
     await test_env.saveAll();
 
