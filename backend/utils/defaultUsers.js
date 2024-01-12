@@ -55,21 +55,30 @@ function addRandomReplies(test_env, userIndex){
     logger.debug(`Adding replies to: @${test_env.users[userIndex].handle}, ${messages.length} total messages`);
 
     let replies_counter = 0
+
+    let authors = Array.from({ length: test_env.users.length }, (v, i) => i).filter(i => i !== userIndex);
+
     for (let i = 0; i < messages.length; i++) {
         
         let replies = _.random(1, 150);
         replies_counter += replies;
 
+        let answeringIndex = test_env.midti(messages[i]._id);
+
         for (let j = 0; j < replies; j++) {
+
+            let author_index = authors[_.random(authors.length - 1)];
+
             test_env.addMessage({
-                authorIndex: _.random(test_env.users.length - 1),
+                authorIndex: author_index,
                 text: TestEnv.lorem.generateSentences(_.random(1, 6)),
-                answeringIndex: test_env.midti(messages[i]._id),
+                answeringIndex: answeringIndex,
                 reactions: {
                     positive: _.random(0, 1000),
                     negative: _.random(0, 1000),
                 }
             });
+
         }
         
     }
