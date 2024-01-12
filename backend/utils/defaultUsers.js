@@ -52,24 +52,29 @@ function makeRandomGeoMessages(test_env, author_index=-1, min=10, max=20) {
 function addRandomReplies(test_env, userIndex){
     let messages = test_env.getUserMessages(userIndex);
 
+    logger.debug(`Adding replies to: @${test_env.users[userIndex].handle}, ${messages.length} total messages`);
+
+    let replies_counter = 0
     for (let i = 0; i < messages.length; i++) {
-        if (Math.random() >= 0.25) {
-            let replies = _.random(1, 150);
+        
+        let replies = _.random(1, 150);
+        replies_counter += replies;
 
-            for (let j = 0; j < replies; j++) {
-                test_env.addMessage({
-                    authorIndex: _.random(test_env.users.length - 1),
-                    text: TestEnv.lorem.generateSentences(_.random(1, 6)),
-                    answeringIndex: test_env.midti(messages[i]._id),
-                    reactions: {
-                        positive: _.random(0, 1000),
-                        negative: _.random(0, 1000),
-                    }
-                });
-
-            }
+        for (let j = 0; j < replies; j++) {
+            test_env.addMessage({
+                authorIndex: _.random(test_env.users.length - 1),
+                text: TestEnv.lorem.generateSentences(_.random(1, 6)),
+                answeringIndex: test_env.midti(messages[i]._id),
+                reactions: {
+                    positive: _.random(0, 1000),
+                    negative: _.random(0, 1000),
+                }
+            });
         }
+        
     }
+
+    logger.info(`Added ${replies_counter} replies`)
 }
 
 /**
