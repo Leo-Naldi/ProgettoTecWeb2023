@@ -9,7 +9,7 @@ import { useAccount } from '../context/CurrentAccountContext';
 
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import dayjs from 'dayjs';
-import { Box, Button, Card, CardContent, CardHeader, Collapse, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, MenuList, Skeleton, Stack, TableContainer, TablePagination, TableSortLabel, Toolbar } from '@mui/material';
+import { Box, Button, Card, CardContent, CardHeader, Collapse, Container, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, ListItem, ListItemIcon, ListItemText, Menu, MenuItem, MenuList, Skeleton, Stack, TableContainer, TablePagination, TableSortLabel, Toolbar } from '@mui/material';
 import { useSocket } from '../context/SocketContext';
 import authorizedRequest from '../utils/authorizedRequest';
 import ReactPlayer from 'react-player';
@@ -28,6 +28,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CheckIcon from '@mui/icons-material/Check';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { FixedSizeList } from 'react-window';
 
 
 import _ from 'underscore';
@@ -314,26 +315,6 @@ function TableModals({
 
 }
 
-function ReplyCard({ reply }) {
-
-    reply.meta.created = new dayjs(reply.meta.created);
-
-    return (<Card sx={{ maxWidth: 345 }}>
-
-        <CardHeader
-            title={`@${reply.author}`}
-            subheader={reply.meta.created.format('DD/MM/YYYY, HH:mm')}/>
-        {reply.content.text?.length && (
-            <CardContent>
-                <Typography variant="body2">
-                    {reply.content.text}
-                </Typography>
-            </CardContent>
-        )}
-
-    </Card>);
-}
-
 function Row({ 
     message, 
     setMediaUrl, 
@@ -354,6 +335,7 @@ function Row({
 
     const smm = useAccount();
 
+    //console.log(message.id)
 
     const handleChangeOpen = (val) => {
         setOpen(val);
@@ -361,19 +343,21 @@ function Row({
         if (val) {
             setFetchingReplies(true);
             authorizedRequest({
-                endpoint: `messages/`,
+                endpoint: `/messages/`,
                 token: smm.token,
                 query: {
-                    page: 1,
-                    results_per_page: 10,
+                    page: 0,
                     answering: message.id,
+                    sort: 'positive',
                 }
             }).then(res => res.json())
             .then(answers => {
-                console.log(answers)
+                console.log(message.id)
                 setReplies(answers.results);
                 setFetchingReplies(false);
             })
+        } else {
+            setReplies(null);
         }
     }
 
@@ -468,16 +452,25 @@ function Row({
             <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
                 <Collapse in={open} timeout="auto" unmountOnExit>
                     <Box sx={{ margin: 1 }}>
-                        <Typography variant="h6" gutterBottom component="div">
-                            Replies
-                        </Typography>
-                        {fetchingReplies && <Spinner />}
-                        {(Boolean(replies?.length)) && <Stack>
-                            {replies.map(r => <ReplyCard reply={r} />)}    
-                        </Stack>}
-                        {(replies?.length === 0) && <Typography variant="body2" color="text.secondary">
-                            No replies found.
-                            </Typography>}
+                        {fetchingReplies && <Container>
+                            <Typography
+                                color="text.secondary">
+                                Loading Replies...
+                            </Typography>
+                        </Container>}
+                        {((!fetchingReplies) && (replies?.length > 0)) && <FixedSizeList
+                            height={Math.min(450, 45 * (replies?.length || 10))}
+                            width={720}
+                            itemSize={46}
+                            itemCount={fetchingReplies ? 10 : replies.length}>
+                            {ReplyRow}
+                        </FixedSizeList>}
+                        {((!fetchingReplies) && (replies?.length === 0)) && <Container>
+                            <Typography
+                            color="text.secondary">
+                                No Replies Found
+                            </Typography>
+                        </Container>}
                     </Box>
                 </Collapse>
             </TableCell>
@@ -535,7 +528,33 @@ function Row({
             </TableCell>);
         }
     }
+
+    function EmptyReplyRow({ index, style }) {
+        return (
+            <Fragment>
+                <ListItem key={index} style={style}>
+                    <Skeleton animation="wave" sx={{ width: '100%' }} />
+                </ListItem>
+            </Fragment>
+        );
+    }
+
+    function ReplyRow({ index, style }) {
+        return (
+            <Fragment>
+                <ListItem key={index} style={style}>
+                    <ListItemText
+                        primary={`From @${replies[index].author}`}
+                        secondary={<Fragment>
+                            {`${replies[index].content.text}`}
+                        </Fragment>}
+                    />
+                </ListItem>
+            </Fragment>
+        );
+    }
 }
+
 
 export default function Squeals({ managed }) {
 
