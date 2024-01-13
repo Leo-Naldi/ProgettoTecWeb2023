@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment } from 'react';
+import React, { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -28,11 +28,10 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CheckIcon from '@mui/icons-material/Check';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { FixedSizeList } from 'react-window';
 
 
 import _ from 'underscore';
-import Spinner from './Spinner';
+import RepliesVarList from './RepliesVarList';
 
 // TODO add inert polyfill to squeal locations map
 // TODO use stats to get total messages
@@ -352,7 +351,6 @@ function Row({
                 }
             }).then(res => res.json())
             .then(answers => {
-                console.log(message.id)
                 setReplies(answers.results);
                 setFetchingReplies(false);
             })
@@ -458,13 +456,9 @@ function Row({
                                 Loading Replies...
                             </Typography>
                         </Container>}
-                        {((!fetchingReplies) && (replies?.length > 0)) && <FixedSizeList
-                            height={Math.min(450, 45 * (replies?.length || 10))}
-                            width={720}
-                            itemSize={46}
-                            itemCount={fetchingReplies ? 10 : replies.length}>
-                            {ReplyRow}
-                        </FixedSizeList>}
+                        {((!fetchingReplies) && (replies?.length > 0)) && 
+                            <RepliesVarList replies={replies} />
+                        }
                         {((!fetchingReplies) && (replies?.length === 0)) && <Container>
                             <Typography
                             color="text.secondary">
