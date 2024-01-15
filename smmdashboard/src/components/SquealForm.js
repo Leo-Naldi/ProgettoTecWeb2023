@@ -235,7 +235,7 @@ export default function SquealFormModal({ managed, open, setOpen }) {
                     overflowY: 'scroll',
                     maxHeight: '95%',
                 }}>
-                    <Typography id="post-squeal-modal-title" variant="h5" component='h2'>
+                    <Typography id="post-squeal-modal-title" variant="h5" component='h1'>
                         Post a Squeal for <span
                             sx={{ fontWeight: theme.typography['fontWeightBold'] }}
                         >{managed}</span>

@@ -30,6 +30,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 
+import "wicg-inert";
 import _ from 'underscore';
 import RepliesVarList from './RepliesVarList';
 
@@ -72,26 +73,27 @@ function TableToolbar({ popularity, setPopularity, period, setPeriod, risk, setR
                 MenuListProps={{
                     'aria-label': 'Squeal Popularity Filters',
                 }}
+                role='menu'
             >
-                <MenuItem onClick={() => closeMenu('all')}>
+                <MenuItem onClick={() => closeMenu('all')} role='menuitem'>
                     {(popularity === 'all') && <ListItemIcon>
                             <CheckIcon />
                         </ListItemIcon>}
                     <ListItemText inset={(popularity !== 'all')}>All Squeals</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu('popular')}>
+                <MenuItem onClick={() => closeMenu('popular')} role='menuitem'>
                     {(popularity === 'popular') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
                     <ListItemText inset={(popularity !== 'popular')}>Popular</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu('unpopular')}>
+                <MenuItem onClick={() => closeMenu('unpopular')} role='menuitem'>
                     {(popularity === 'unpopular') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
                     <ListItemText inset={(popularity !== 'unpopular')}>Unpopular</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu('controversial')}>
+                <MenuItem onClick={() => closeMenu('controversial')} role='menuitem'>
                     {(popularity === 'controversial') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
@@ -100,19 +102,19 @@ function TableToolbar({ popularity, setPopularity, period, setPeriod, risk, setR
 
                 <Divider />
 
-                <MenuItem onClick={() => closeMenu(null, 'popular')}>
+                <MenuItem onClick={() => closeMenu(null, 'popular')} role='menuitem'>
                     {(risk === 'popular') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
                     <ListItemText inset={(risk !== 'popular')}>Almost Popular</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu(null, 'unpopular')}>
+                <MenuItem onClick={() => closeMenu(null, 'unpopular')} role='menuitem'>
                     {(risk === 'unpopular') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
                     <ListItemText inset={(risk !== 'unpopular')}>Almost Unpopular</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu(null, 'controversial')}>
+                <MenuItem onClick={() => closeMenu(null, 'controversial')} role='menuitem'>
                     {(risk === 'controversial') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
@@ -121,31 +123,31 @@ function TableToolbar({ popularity, setPopularity, period, setPeriod, risk, setR
 
                 <Divider />
 
-                <MenuItem onClick={() => closeMenu(null, null, 'today')} >
+                <MenuItem onClick={() => closeMenu(null, null, 'today')} role='menuitem'>
                     {(period === 'today') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
                     <ListItemText inset={(period !== 'today')}>Today</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu(null, null, 'week')}>
+                <MenuItem onClick={() => closeMenu(null, null, 'week')} role='menuitem'>
                     {(period === 'week') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
                     <ListItemText inset={(period !== 'week')}>This Week</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu(null, null, 'month')}>
+                <MenuItem onClick={() => closeMenu(null, null, 'month')} role='menuitem'>
                     {(period === 'month') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
                     <ListItemText inset={(period !== 'week')}>This Month</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu(null, null, 'year')}>
+                <MenuItem onClick={() => closeMenu(null, null, 'year')} role='menuitem'>
                     {(period === 'year') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
                     <ListItemText inset={(period !== 'year')}>This Year</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={() => closeMenu(null, null, 'all')}>
+                <MenuItem onClick={() => closeMenu(null, null, 'all')} role='menuitem'>
                     {(period === 'all') && <ListItemIcon>
                         <CheckIcon />
                     </ListItemIcon>}
@@ -166,8 +168,8 @@ function TableToolbar({ popularity, setPopularity, period, setPeriod, risk, setR
             <Tooltip title="Table Filters">
                 <IconButton
                     id="open-filters-button"
-                    aria-controls={open ? 'filter-menu' : undefined}
-                    aria-haspopup="true"
+                    aria-controls={'filter-menu'}
+                    aria-haspopup="menu"
                     aria-expanded={open ? 'true' : undefined}
                     onClick={openMenu}>
                     <FilterListIcon />
@@ -191,6 +193,7 @@ function TableModals({
     geo,
 }) {
 
+
     return (
         <Fragment>
 
@@ -201,9 +204,10 @@ function TableModals({
                 open={openImageModal}
                 onClose={onCloseImageModal}
                 aria-labelledby={`${imageModalId}-title`}
+                role="dialog"
             >
                 <DialogTitle>
-                    <Typography id={`${imageModalId}-title`} variant="h5" component='h2'>
+                    <Typography id={`${imageModalId}-title`} variant="h5" component='h1'>
                         Squeal Image Content
                     </Typography>
                 </DialogTitle>
@@ -240,7 +244,7 @@ function TableModals({
                 aria-labelledby={`${videoModalId}-title`}
             >
                 <DialogTitle>
-                    <Typography id={`${videoModalId}-title`} variant="h5" component='h2'>
+                    <Typography id={`${videoModalId}-title`} variant="h5" component='h1'>
                         Squeal Video Content
                     </Typography>
                 </DialogTitle>
@@ -272,7 +276,7 @@ function TableModals({
                 aria-labelledby={`${geoModalId}-title`}
             >
                 <DialogTitle>
-                    <Typography id={`${geoModalId}-title`} variant="h5" component='h2'>
+                    <Typography id={`${geoModalId}-title`} variant="h5" component='h1'>
                         Squeal's Location
                     </Typography>
                 </DialogTitle>
@@ -283,6 +287,7 @@ function TableModals({
                         justifyContent={'center'}
                         sx={{ mt: 1 }}
                     >
+                        
                         <MapContainer
                             center={[geo?.coordinates[1], geo?.coordinates[0]]}
                             zoom={13}
@@ -318,9 +323,15 @@ function Row({
     message, 
     setMediaUrl, 
     setOpenImageModal, 
-    setOpenVideoModal, 
-    setGeo, 
+    imageModalId,
+    openImageModal,
+    setOpenVideoModal,
+    openVideoModal,
+    videoModalId, 
+    setGeo,
     setOpenGeoModal,
+    openGeoModal,
+    geoModalId,
 }) {
 
     const destChannel = message.dest.filter(d => d.charAt(0) === '§');
@@ -436,7 +447,10 @@ function Row({
                     onClick={() => {
                         setGeo(message.content.geo);
                         setOpenGeoModal(true);
-                    }}>
+                    }}
+                    aria-controls={geoModalId}
+                    aria-haspopup="dialog"
+                    aria-expanded={openGeoModal ? 'true' : undefined}>
                     <LocationOnOutlinedIcon />
                 </IconButton>
                 ) :
@@ -496,7 +510,10 @@ function Row({
                         //console.log(`Clicked on: ${message.content.image}`)
                         setMediaUrl(message.content.image);
                         setOpenImageModal(true);
-                    }}>
+                    }}
+                    aria-controls={imageModalId}
+                    aria-haspopup="dialog"
+                    aria-expanded={openImageModal ? 'true' : undefined}>
                     <ImageIcon />
                 </IconButton>
             </TableCell>);
@@ -508,7 +525,10 @@ function Row({
                         //console.log(`Clicked on: ${m.content.video}`)
                         setMediaUrl(message.content.video);
                         setOpenVideoModal(true);
-                    }}>
+                    }}
+                    aria-controls={videoModalId}
+                    aria-haspopup="dialog"
+                    aria-expanded={openVideoModal ? 'true' : undefined}>
                     <PlayCircleFilledIcon />
                 </IconButton>
             </TableCell>);
@@ -522,38 +542,14 @@ function Row({
             </TableCell>);
         }
     }
-
-    function EmptyReplyRow({ index, style }) {
-        return (
-            <Fragment>
-                <ListItem key={index} style={style}>
-                    <Skeleton animation="wave" sx={{ width: '100%' }} />
-                </ListItem>
-            </Fragment>
-        );
-    }
-
-    function ReplyRow({ index, style }) {
-        return (
-            <Fragment>
-                <ListItem key={index} style={style}>
-                    <ListItemText
-                        primary={`From @${replies[index].author}`}
-                        secondary={<Fragment>
-                            {`${replies[index].content.text}`}
-                        </Fragment>}
-                    />
-                </ListItem>
-            </Fragment>
-        );
-    }
 }
-
 
 export default function Squeals({ managed }) {
 
-    const geoModalId = "squeal-location-modal"
-
+    const geoModalId = "squeal-location-modal";
+    const imageModalId = "squeal-image-modal";
+    const videoModalId = "squeal-video-modal";
+    
 
     const [page, setPage] = useState(1);
     const [messagesPerPage, setMessagesPerPage] = useState(15);
@@ -768,8 +764,8 @@ export default function Squeals({ managed }) {
         <Fragment>
 
             <TableModals
-                imageModalId="squeal-image-modal"
-                videoModalId="squeal-video-modal"
+                imageModalId={imageModalId}
+                videoModalId={videoModalId}
                 geoModalId={geoModalId}
                 openImageModal={openImageModal}
                 openVideoModal={openVideoModal}
@@ -804,7 +800,7 @@ export default function Squeals({ managed }) {
     function getMessagesTable() {
 
         return (
-            <TableContainer component={'paper'}>
+            <TableContainer component={'paper'} aria-live="polite">
                 <Table aria-label='Squeals Table'>
                     <caption>Squeals by @{managed}.</caption>
                     <TableHead>
@@ -906,9 +902,15 @@ export default function Squeals({ managed }) {
                                     message={m}
                                     setMediaUrl={setMediaUrl}
                                     setOpenImageModal={setOpenImageModal}
+                                    openImageModal={openImageModal}
+                                    imageModalId={imageModalId}
                                     setOpenVideoModal={setOpenVideoModal}
+                                    openVideoModal={openVideoModal}
+                                    videoModalId={videoModalId}
                                     setGeo={setGeo}
-                                    setOpenGeoModal={setOpenGeoModal}/>)}
+                                    setOpenGeoModal={setOpenGeoModal}
+                                    openGeoModal={openGeoModal}
+                                    geoModalId={geoModalId}/>)}
 
                         {/* empty rows to avoid layout jumps on the last page */}
                         {((!fetchingMessages) && (emptyRows > 0)) && (
