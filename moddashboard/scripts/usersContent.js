@@ -16,9 +16,9 @@ class UserContent{
             let res = _.clone(d);
 
             res.member = (res.joinedChannels?.length) ? res.joinedChannels.join(', '): '-';
-            res['account type'] = res.accountType;
+            res['account type'] = res.admin ? "Administrator": ((res.accountType === 'pro') ? 'Pro User': 'Free User');
             res.editor = (res.editorChannels?.length) ? res.editorChannels.join(', ') : '-';
-            res.blocked = (res.blocked) ? 'true':'false';
+            res.blocked = res.blocked ? 'Yes': 'No';
             
             return res;
         }; 
@@ -37,6 +37,7 @@ class UserContent{
             headers, 
             '/users/', 
             after_row_select,
+            'Squealer Users',
             transform,
             (data, header) => (data[header.toLowerCase()]),
             25,
@@ -57,52 +58,59 @@ class UserContent{
         
         let modal = this.#makeModal(modal_id);
 
-        let filters_form = $('<form>', {
-            'class': 'row my-3 d-flex justify-content-center',
-            'id': 'user-search-widgets',
-        });
-
-        filters_form.append($('<div>', {
-                'class': 'col-md-8',
-            }).append($('<div>', {
-                    'class': 'input-group'
-                }).append($('<input>', {
-                        'name': 'handle',
-                        'type': 'text',
-                        'class': 'form-control',
-                        'placeholder': 'Search by Handle',
-                        'id': 'userSearchInput',
-                    })
-                )
-            )
-        );
-
-        filters_form.append($('<div>', {
-            'class': 'col-md-2',
-        }).append($('<div>', {
-            'class': 'form-group'
-        }).append($('<button>', {
-            'type': 'submit',
-            'class': 'btn btn-primary',
-            'text': 'Search',
-        }))));
 
         this.edit_button = $('<button>', {
             'type': 'button',
-            'class': 'btn btn-primary',
+            'class': 'btn btn-primary ml-2',
             'text': 'Edit',
             'disabled': true,
             'data-bs-toggle': 'modal',
-            'data-bs-target': '#'+modal_id,
+            'data-bs-target': '#' + modal_id,
+            'aria-controls': modal_id,
+            'aria-haspopup': "dialog",
+            'aria-expanded': undefined,
+        });
+
+        this.edit_button.on('click', () => {
+            this.edit_button.attr('aria-expanded', 
+                this.edit_button.attr('aria-expanded') === 'true' ? undefined: 'true');
         })
 
-        filters_form.append($('<div>', {
-            'class': 'col-md-2',
-        }).append($('<div>', {
-            'class': 'form-group'
-        }).append(this.edit_button)));
+        let edit_div = $('<div>', {
+            'class': 'd-flex flex-row-reverse col-md-2 py-2',
+        })
 
-        this.filters = filters_form;
+        edit_div.append(this.edit_button);
+
+        let form = $(`
+            <form class="col-md-10" id="user-search-widgets" role="search">
+                <div class="row my-2">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" name="handle" placeholder="Search by Handle..." id="userSearchInput" />
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" aria-label="Select User Type" id="select-user-type">
+                            <option value="all" selected>All Users</option>
+                            <option value="pro">Pro Users</option>
+                            <option value="user">Free Users</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="submit" class="btn btn-primary" value="Search" />
+                    </div>
+                
+                </div>
+            </form>
+        `);
+
+        let form_div = $('<div>', {
+            'class': 'row'
+        })
+
+        form_div.append(form);
+        form_div.append(edit_div);
+
+        this.filters = form;
 
         let dt = this.data_table;
 
@@ -117,10 +125,14 @@ class UserContent{
 
             if (query.admin) query.admin = true;
 
+            let user_type = $('select#select-user-type').val();
+
+            if (user_type !== 'all') query.accountType = user_type;
+
             dt.filter = query;
         })
 
-        this.container.append(this.filters);
+        this.container.append(form_div);
         this.container.append(modal);
         this.container.append(this.table_container);
         this.data_table.mount();

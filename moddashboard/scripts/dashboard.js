@@ -263,6 +263,7 @@ function makeLogoutButton() {
     res.click(function(event) {
         clearRefreshTokenInterval();
         localStorage.removeItem('modDashboardData');
+        socket?.disconnect();
         location.reload();
     })
 

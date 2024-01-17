@@ -42,6 +42,7 @@ class ChannelsContent {
             headers,
             '/channels/',
             after_row_select,
+            'Channels',
             transform,
             display,
             25,

@@ -13,6 +13,8 @@ class DataTable {
     #selected_item = null;
     #after_row_select;
 
+    #caption;
+
     #results_per_page;
     #page = 1;
     #pages = null;
@@ -24,10 +26,19 @@ class DataTable {
     #socket_prefix;
     #socket;
 
-    constructor(container, headers, endpoint, 
-        after_row_select, data_transform = _.identity, 
-        data_display = data_display_default, results_per_page = 25,
-        default_filter={}, socket_prefix='', socket=null) {
+    constructor(
+        container, 
+        headers, 
+        endpoint, 
+        after_row_select, 
+        caption,
+        data_transform = _.identity, 
+        data_display = data_display_default, 
+        results_per_page = 25,
+        default_filter={}, 
+        socket_prefix='', 
+        socket=null
+    ) {
         
         this.#headers = headers;
         this.#container = container;
@@ -35,6 +46,8 @@ class DataTable {
         this.#data_transform = data_transform;
         this.#data_display = data_display;
         this.#after_row_select = after_row_select;
+
+        this.#caption = caption;
         
         this.#results_per_page = results_per_page;
         this.#filter = default_filter;
@@ -171,7 +184,7 @@ class DataTable {
             this.#headers.map(header => {
 
                 let td = $('<td>', {
-                    'class': 'ellipsis-text'
+                    'class': `ellipsis-text`
                 });
                 let content = this.#data_display(transformed, header);
                 if (_.isArray(content)) {
@@ -191,7 +204,13 @@ class DataTable {
             });
         });
 
-        let table = $('<table>', { "class": "table table-hover" });
+        let table = $('<table>', { 
+            "class": "table table-hover",
+            'aria-live': 'polite',
+        });
+        table.append($('<caption>', {
+            text: this.#caption,
+        }))
 
         table.append(thead);
         table.append(tbody);
@@ -338,6 +357,7 @@ class DataTable {
 
         this.#socket?.on(`${this.#socket_prefix}:deleted`, (data) => {
 
+            // TODO
             let i = this.#data.findIndex(d => d.id === data.id)
 
             if (i >= 0) {

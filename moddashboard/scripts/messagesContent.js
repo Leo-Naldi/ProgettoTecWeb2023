@@ -87,6 +87,7 @@ class MessageContent{
             headers,
             '/messages/',
             after_row_select,
+            'Squeals',
             transform,
             display,
             25,
@@ -108,7 +109,7 @@ class MessageContent{
         let modal = this.#makeModal(modal_id);
 
         let s = `
-            <form id="message-search>     
+            <form id="message-search" role="search">     
                 <div class="my-3 form-group">
                     <label class="form-label" for="authorSearchInput">Author</label>
                     <input name="author" type="text" class="form-control" placeholder="Author..." id="authorSearchInput"> 
