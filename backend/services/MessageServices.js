@@ -61,7 +61,7 @@ class MessagesAggregate {
         this.authorDocField = null;
     }
 
-    matchTimePeriod(period) {
+    #matchTimePeriod(period) {
 
         if (period === 'today') period = 'day';
 
@@ -70,7 +70,7 @@ class MessagesAggregate {
         if (period !== 'all') {
 
             this.aggregate.match({
-                '$meta.created': {
+                'meta.created': {
                     '$gte': start,
                 }
             })
@@ -80,7 +80,7 @@ class MessagesAggregate {
     matchTimeFrame(before, after) {
         if (before) {
             this.aggregate.match({
-                '$meta.created': {
+                'meta.created': {
                     '$lte': (new dayjs(before)).toDate(),
                 }
             })
@@ -88,7 +88,7 @@ class MessagesAggregate {
 
         if (after) {
             this.aggregate.match({
-                '$meta.created': {
+                'meta.created': {
                     '$gte': (new dayjs(after)).toDate(),
                 }
             })
@@ -102,10 +102,10 @@ class MessagesAggregate {
             this.aggregate.match({
                 '$and': [
                     {
-                        '$reactions.positive': { '$gte': config.fame_threshold }
+                        'reactions.positive': { '$gte': config.fame_threshold }
                     },
                     {
-                        '$reactions.negative': { '$gte': config.fame_threshold }
+                        'reactions.negative': { '$gte': config.fame_threshold }
                     },
                 ]
             });
@@ -118,10 +118,10 @@ class MessagesAggregate {
             this.aggregate.match({
                 '$and': [
                     {
-                        '$reactions.positive': { '$gte': config.fame_threshold }
+                        'reactions.positive': { '$gte': config.fame_threshold }
                     },
                     {
-                        '$reactions.negative': { '$lt': config.fame_threshold }
+                        'reactions.negative': { '$lt': config.fame_threshold }
                     },
                 ]
             });
@@ -134,10 +134,10 @@ class MessagesAggregate {
             this.aggregate.match({
                 '$and': [
                     {
-                        '$reactions.negative': { '$gte': config.fame_threshold }
+                        'reactions.negative': { '$gte': config.fame_threshold }
                     },
                     {
-                        '$reactions.positive': { '$lt': config.fame_threshold }
+                        'reactions.positive': { '$lt': config.fame_threshold }
                     },
                 ]
             });
@@ -149,18 +149,18 @@ class MessagesAggregate {
                 this.aggregate.match({
                     '$and': [
                         {
-                            '$reactions.negative': { '$gte': config.danger_threshold }
+                            'reactions.negative': { '$gte': config.danger_threshold }
                         },
                         {
-                            '$reactions.positive': { '$gte': config.danger_threshold }
+                            'reactions.positive': { '$gte': config.danger_threshold }
                         },
                         {
                             '$or': [
                                 {
-                                    '$reactions.negative': { '$lt': config.fame_threshold }
+                                    'reactions.negative': { '$lt': config.fame_threshold }
                                 },
                                 {
-                                    '$reactions.positive': { '$lt': config.fame_threshold }
+                                    'reactions.positive': { '$lt': config.fame_threshold }
                                 },
                             ]
                         }
@@ -170,10 +170,10 @@ class MessagesAggregate {
                 this.aggregate.match({
                     '$and': [
                         {
-                            '$reactions.negative': { '$lt': config.danger_threshold }
+                            'reactions.negative': { '$lt': config.danger_threshold }
                         },
                         {
-                            '$reactions.positive': {
+                            'reactions.positive': {
                                 '$gte': config.danger_threshold,
                                 '$lt': config.fame_threshold,
                             }
@@ -184,10 +184,10 @@ class MessagesAggregate {
                 this.aggregate.match({
                     '$and': [
                         {
-                            '$reactions.positive': { '$lt': config.danger_threshold }
+                            'reactions.positive': { '$lt': config.danger_threshold }
                         },
                         {
-                            '$reactions.negative': {
+                            'reactions.negative': {
                                 '$gte': config.danger_threshold,
                                 '$lt': config.fame_threshold,
                             }
@@ -196,12 +196,10 @@ class MessagesAggregate {
                 });
             }
         }
-
-        return aggregate;
     }
 
     lookupDestUser(as_field='destUser_docs') {
-        aggregate.lookup({
+        this.aggregate.lookup({
             from: 'users',
             localField: 'destUser',
             foreignField: '_id',
@@ -212,7 +210,7 @@ class MessagesAggregate {
     }
 
     lookupDestChannel(as_field = 'destChannel_docs') {
-        aggregate.lookup({
+        this.aggregate.lookup({
             from: 'channels',
             localField: 'destChannel',
             foreignField: '_id',
@@ -223,39 +221,47 @@ class MessagesAggregate {
     }
 
     lookupAuthor(as_field='author_doc') {
-        aggregate.lookup({
+        this.aggregate.lookup({
             from: 'users',
             localField: 'author',
             foreignField: '_id',
             as: as_field,
         });
 
-        aggregate.unwind(as_field);
+        this.aggregate.unwind(as_field);
         this.authorDocField = as_field;
     }
 
     matchDest(dest) {
-        if (!_.isArray(dest)) {
-            dest = [dest];
-        }
 
-        let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)));
-        let names = dest?.filter(val => ((val.charAt(0) === '§') && (val.length > 1)));
+        if (dest) {
+            if (!_.isArray(dest)) {
+                dest = [dest];
+            }
+    
+    
+            let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)))
+                .map(h => h.slice(1));
+            let names = dest?.filter(val => ((val.charAt(0) === '§') && (val.length > 1)))
+                .map(name => name.slice(1));
+    
 
-        if (handles?.length) {
-            aggregate.match({
-                [`$${this.destUserDocsField}.handle`]: {
-                    '$in': handles,
-                }
-            })
-        }
+            if (handles?.length) {
 
-        if (names?.length) {
-            aggregate.match({
-                [`$${this.destChannelDocsField}.name`]: {
-                    '$in': names,
-                }
-            })
+                this.aggregate.match({
+                    [`${this.destUserDocsField}.handle`]: {  
+                        '$all': handles,
+                    }
+                })
+            }
+    
+            if (names?.length) {
+                this.aggregate.match({
+                    [`${this.destChannelDocsField}.name`]: {
+                        '$all': names,
+                    }
+                })
+            }
         }
     }
 
@@ -275,32 +281,31 @@ class MessagesAggregate {
 
         if (reqUser) {
             filter['$or'] = [
-                    { '$author': reqUser._id },
-                    { '$destUser': reqUser._id },
-                    { '$publicMessage': true },
-                    { '$destChannel': { '$in': reqUser.joinedChannels } },
+                    { 'author': reqUser._id },
+                    { 'destUser': reqUser._id },
+                    { 'publicMessage': true },
+                    { 'destChannel': { '$in': reqUser.joinedChannels } },
                 ]
         } else {
             filter['$and'] = [
                 {
-                    '$publicMessage': true,
+                    'publicMessage': true,
                 },
                 {
-                    '$official': true,
+                    'official': true,
                 }
             ]
         }
 
 
-        if (official) filter['$official'] = official;
-        if (author) filter['$author'] = author._id;
-        if (_.isBoolean(publicMessage)) filter['$publicMessage'] = publicMessage;
-        if (answering) filter['$answering'] = answering;
-        if (official) filter['$official'] = official;
-        
+
+        if (_.isBoolean(official)) filter.official = official;
+        if (author) filter.author = author._id;
+        if (_.isBoolean(publicMessage)) filter.publicMessage = publicMessage;
+        if (answering) filter.answering = new mongoose.Types.ObjectId(answering);
+
         if ((mentions?.length) || (keywords?.length) || (text?.length)) {
 
-            //logger.debug(keywords)
 
             let pattern = '^';
 
@@ -354,20 +359,21 @@ class MessagesAggregate {
 
             if (pattern !== '^') {
 
-                filter['$content.text'] = {
-                    '$regex': pattern,
-                    '$options': 'i',
-                }
+                filter['content.text'] = {
+                        '$regex': pattern,
+                        '$options': 'i',
+                        '$exists': true,
+                    };   
             }
-
-
         }
 
         if ((_.isString(author_filter)) && (author_filter?.length)) {
 
-            filter[`$${this.authorDocField}.handle`] = {
+            filter[`${this.authorDocField}.handle`] = {
+                '$exists': true,
                 '$regex': author_filter,
                 '$options': 'i'
+                
             }
         }
 
@@ -409,10 +415,10 @@ class MessagesAggregate {
 
         let documents_pipeline = [];
         if (page > 0) {
-            documents_pipeline.append({
-                '$skip': (page - 1) * result,
-            })
-            documents_pipeline.append({
+            documents_pipeline.push({
+                '$skip': (page - 1) * results_per_page,
+            });
+            documents_pipeline.push({
                 '$limit': results_per_page,
             })
         }
@@ -427,7 +433,7 @@ class MessagesAggregate {
 
     slice(page, results_per_page) {
         if (page > 0) {
-            this.aggregate.skip((page - 1) * result);
+            this.aggregate.skip((page - 1) * results_per_page);
             this.aggregate.limit(results_per_page);
         }
     }
@@ -454,19 +460,34 @@ class MessagesAggregate {
 
     parsePaginatedResults(results, page, results_per_page) {
 
+
+        if (results[0].documents.length === 0) results[0].meta = [{ total_results: 0 }];
+
         if (page > 0){
             return {
-                pages: Math.ceil(results.meta.total_results / results_per_page),
-                results: results.documents.map((d) => this.parseDocument(d)),
+                pages: Math.ceil(results[0].meta[0].total_results / results_per_page),
+                results: results[0].documents.map((d) => this.parseDocument(d)),
             } 
         } else {
             return {
                 pages: 1,
-                results: results.documents.map((d) => this.parseDocument(d)),
+                results: results[0].documents.map((d) => this.parseDocument(d)),
             } 
         }
     }
-}
+
+    async run() {
+        return await this.aggregate;
+    }
+
+    static get_update_ids(res, reqUser) {
+        if (reqUser) {
+            return _.pluck(res[0].documents.filter(d => d.handle !== reqUser.handle), '_id')
+        } else {
+            return _.pluck(res[0].documents, '_id');
+        }
+    }
+} 
 
 class MessageService {
 
@@ -770,11 +791,8 @@ class MessageService {
             .populate('destUser', 'handle _id')
     }
 
-    static async #updateImpressions(messages, reqUser) {
-        const update_ids = messages
-            .filter(m => !m.author._id.equals(reqUser?._id))
-            .map(m => m._id);
-
+    static async #updateImpressions(update_ids) {
+        
         await Message.updateMany({ _id: { $in: update_ids } },
             { $inc: { 'meta.impressions': 1 } });
     }
@@ -828,42 +846,41 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        let query = MessageService._addQueryChains({ 
-            query: Message.find(),
-            popular, 
-            unpopular, 
-            controversial, 
-            risk,
-            before,
-            after, 
-            dest, 
+        let aggr = new MessagesAggregate();
+
+        if ((answering) && (!mongoose.isValidObjectId(answering))) {
+            return Service.successResponse({
+                results: [],
+                pages: 0,
+            })
+        }
+
+        aggr.lookupAuthor();
+        aggr.matchFields({
             reqUser, 
             publicMessage, 
-            answering,
-            text, 
+            official,
+            answering, 
             mentions, 
-            keywords, 
-            official, 
+            keywords,
+            text, 
             author_filter: author,
-            sortField: sort,
-            page,
-            results_per_page,
-        })
+        });
+        aggr.matchFame(popular, unpopular, controversial, risk);
+        aggr.matchTimeFrame(before, after);
+        aggr.lookupDestChannel();
+        aggr.lookupDestUser();
+        aggr.matchDest(dest);
+        aggr.sort(sort);
+        aggr.countAndSlice(page, results_per_page);
 
-        //logger.info(query)
+        let res = await aggr.run();
 
-        let res = await query;
+        let updates = MessagesAggregate.get_update_ids(res, reqUser);
 
-        let updates = res;
+        MessageService.#updateImpressions(updates);
 
-        await MessageService.#updateImpressions(updates, reqUser);
-
-        return Service.successResponse(makeGetResBody({
-            docs: res,
-            page: page,
-            results_per_page: results_per_page,
-            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
-        }));
+        return Service.successResponse(aggr.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -909,9 +926,9 @@ class MessageService {
 
         let res = await query;
 
-        let updates = res;
+        let updates = res.filter(m => !m.author._id.equals(reqUser?._id));
 
-        await MessageService.#updateImpressions(updates, reqUser);
+        MessageService.#updateImpressions(updates);
 
         return Service.successResponse(makeGetResBody({
             docs: res,
@@ -957,38 +974,34 @@ class MessageService {
 
         let user = await User.findOne({ handle: handle });
 
-        let messagesQuery = MessageService._addQueryChains({ 
-            popular, 
-            unpopular, 
-            controversial, 
-            risk,
-            before, 
-            after, 
-            dest, 
-            page, 
-            reqUser, 
+        if (!user) {
+            return Service.rejectResponse({ message: `No user named ${handle}` });
+        }
+
+        let aggr = new MessagesAggregate();
+        
+        aggr.lookupAuthor();
+        aggr.matchFields({
+            reqUser,
+            publicMessage,
+            answering,
             author: user,
-            publicMessage, 
-            answering, 
-            reqUser, 
-            results_per_page,
-            sortField: sort,
-            page,
-            results_per_page,
-         })
+        });
+        aggr.matchFame(popular, unpopular, controversial, risk);
+        aggr.matchTimeFrame(before, after);
+        aggr.lookupDestChannel();
+        aggr.lookupDestUser();
+        aggr.matchDest(dest);
+        aggr.sort(sort);
+        aggr.countAndSlice(page, results_per_page);
 
-        let res = await messagesQuery;
+        let res = await aggr.run();
 
-        let updates = res;
+        let updates = MessagesAggregate.get_update_ids(res, reqUser);
 
-        await MessageService.#updateImpressions(updates, reqUser);
+        MessageService.#updateImpressions(updates);
 
-        return Service.successResponse(makeGetResBody({
-            docs: res,
-            page: page,
-            results_per_page: results_per_page,
-            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
-        }));
+        return Service.successResponse(aggr.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -1980,7 +1993,7 @@ class MessageService {
             query = MessageService.#populateMessageQuery(
                 Message.find({
                     _id: { $in: reactions.map(r => r.message._id) },
-                }).sort('-meta.created').skip(page * results_per_page).limit(results_per_page)
+                }).sort('-meta.created').skip((page - 1) * results_per_page).limit(results_per_page)
             );
         } else {
             query = MessageService.#populateMessageQuery(

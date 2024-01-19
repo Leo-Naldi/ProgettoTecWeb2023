@@ -60,7 +60,7 @@ function addRandomReplies(test_env, userIndex){
 
     for (let i = 0; i < messages.length; i++) {
         
-        let replies = _.random(1, 150);
+        let replies = _.random(1, 50);
         replies_counter += replies;
 
         let answeringIndex = test_env.midti(messages[i]._id);
