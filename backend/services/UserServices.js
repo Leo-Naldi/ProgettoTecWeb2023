@@ -94,9 +94,14 @@ class UserService {
         let users;
         if ((_.isBoolean(handleOnly)) && handleOnly) {
 
-            users = await UserService.getSecureUserRecords(filter)
+            let query = UserService.getSecureUserRecords(filter)
                 .sort('meta.created')
                 .select('handle');
+
+            if (page > 0)
+                query.skip(page * results_per_page).limit(results_per_page);
+
+            users = await query;
 
             return Service.successResponse(makeGetResBody({
                 docs: users,
@@ -108,6 +113,9 @@ class UserService {
 
             let query = UserService.getSecureUserRecords(filter)
                 .sort('meta.created');
+
+            if (page > 0)
+                query.skip(page * results_per_page).limit(results_per_page);
 
             users = await query
 
@@ -221,6 +229,8 @@ class UserService {
             aggregation.sort('-positive')
         } else aggregation.sort('-negative');
 
+        if (page > 0) aggregation.skip(page*results_per_page).limit(results_per_page);
+
         users = await aggregation;
 
         users = users.map(u => {
@@ -241,7 +251,9 @@ class UserService {
             u.id = u._id.toString();
 
             return u;
-        })
+        });
+
+
 
         return Service.successResponse(makeGetResBody({
             docs: users,

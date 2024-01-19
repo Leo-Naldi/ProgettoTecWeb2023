@@ -224,7 +224,12 @@ class ChannelServices{
         query.sort('created')
 
         if (namesOnly) {
-            const res = await query.select('name');
+            query.select('name');
+
+            if (page > 0)
+                query.skip(page * results_per_page).limit(results_per_page);
+
+            const res = await query;
 
             return Service.successResponse(makeGetResBody({
                 docs: res,
@@ -233,6 +238,9 @@ class ChannelServices{
                 results_f: r => _.pluck(r, 'name'),
             }));
         }
+
+        if (page > 0)
+            query.skip(page * results_per_page).limit(results_per_page);
 
         const res = await query;
 

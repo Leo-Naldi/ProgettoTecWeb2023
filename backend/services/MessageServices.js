@@ -15,6 +15,7 @@ const dayjs = require('dayjs');
 const UserService = require('./UserServices');
 const { makeGetResBody } = require('../utils/serviceUtils');
 const { deleteImage, deleteVideo } = require('../utils/deleteMedia');
+const { readFile } = require('fs/promises');
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -35,6 +36,437 @@ const allowedSortFields = [
     '-reactions.negative',
     '-negative',
 ]
+
+class MessagesAggregate {
+    
+    allowedSortFields = [
+        'meta.created',
+        'created',
+        'reactions.positive',
+        'positive',
+        'reactions.negative',
+        'negative',
+        '-meta.created',
+        '-created',
+        '-reactions.positive',
+        '-positive',
+        '-reactions.negative',
+        '-negative',
+    ];
+
+    constructor(aggregate = Message.aggregate()) {
+        this.aggregate = aggregate;
+        this.destUserDocsField = null;
+        this.destChannelDocsField = null;
+        this.authorDocField = null;
+    }
+
+    matchTimePeriod(period) {
+
+        if (period === 'today') period = 'day';
+
+        const start = dayjs().startOf(period).toDate();
+
+        if (period !== 'all') {
+
+            this.aggregate.match({
+                '$meta.created': {
+                    '$gte': start,
+                }
+            })
+        }
+    }
+
+    matchTimeFrame(before, after) {
+        if (before) {
+            this.aggregate.match({
+                '$meta.created': {
+                    '$lte': (new dayjs(before)).toDate(),
+                }
+            })
+        }
+
+        if (after) {
+            this.aggregate.match({
+                '$meta.created': {
+                    '$gte': (new dayjs(after)).toDate(),
+                }
+            })
+        }
+    }
+
+    matchFame(popular, unpopular, controversial, risk) {
+        if (controversial) {
+
+            // reactions
+            this.aggregate.match({
+                '$and': [
+                    {
+                        '$reactions.positive': { '$gte': config.fame_threshold }
+                    },
+                    {
+                        '$reactions.negative': { '$gte': config.fame_threshold }
+                    },
+                ]
+            });
+            // timeframe
+            this.#matchTimePeriod(controversial);
+
+        } else if (popular) {
+
+            // reactions
+            this.aggregate.match({
+                '$and': [
+                    {
+                        '$reactions.positive': { '$gte': config.fame_threshold }
+                    },
+                    {
+                        '$reactions.negative': { '$lt': config.fame_threshold }
+                    },
+                ]
+            });
+            // timeframe
+            this.#matchTimePeriod(popular);
+
+        } else if (unpopular) {
+
+            // reactions
+            this.aggregate.match({
+                '$and': [
+                    {
+                        '$reactions.negative': { '$gte': config.fame_threshold }
+                    },
+                    {
+                        '$reactions.positive': { '$lt': config.fame_threshold }
+                    },
+                ]
+            });
+            // timeframe
+            this.#matchTimePeriod(unpopular);
+
+        } else if (risk) {
+            if (risk === 'controversial') {
+                this.aggregate.match({
+                    '$and': [
+                        {
+                            '$reactions.negative': { '$gte': config.danger_threshold }
+                        },
+                        {
+                            '$reactions.positive': { '$gte': config.danger_threshold }
+                        },
+                        {
+                            '$or': [
+                                {
+                                    '$reactions.negative': { '$lt': config.fame_threshold }
+                                },
+                                {
+                                    '$reactions.positive': { '$lt': config.fame_threshold }
+                                },
+                            ]
+                        }
+                    ]
+                });
+            } else if (risk === 'popular') {
+                this.aggregate.match({
+                    '$and': [
+                        {
+                            '$reactions.negative': { '$lt': config.danger_threshold }
+                        },
+                        {
+                            '$reactions.positive': {
+                                '$gte': config.danger_threshold,
+                                '$lt': config.fame_threshold,
+                            }
+                        },
+                    ]
+                });
+            } else if (risk === 'unpopular') {
+                this.aggregate.match({
+                    '$and': [
+                        {
+                            '$reactions.positive': { '$lt': config.danger_threshold }
+                        },
+                        {
+                            '$reactions.negative': {
+                                '$gte': config.danger_threshold,
+                                '$lt': config.fame_threshold,
+                            }
+                        },
+                    ]
+                });
+            }
+        }
+
+        return aggregate;
+    }
+
+    lookupDestUser(as_field='destUser_docs') {
+        aggregate.lookup({
+            from: 'users',
+            localField: 'destUser',
+            foreignField: '_id',
+            as: as_field,
+        });
+
+        this.destUserDocsField = as_field;
+    }
+
+    lookupDestChannel(as_field = 'destChannel_docs') {
+        aggregate.lookup({
+            from: 'channels',
+            localField: 'destChannel',
+            foreignField: '_id',
+            as: as_field,
+        });
+
+        this.destChannelDocsField = as_field;
+    }
+
+    lookupAuthor(as_field='author_doc') {
+        aggregate.lookup({
+            from: 'users',
+            localField: 'author',
+            foreignField: '_id',
+            as: as_field,
+        });
+
+        aggregate.unwind(as_field);
+        this.authorDocField = as_field;
+    }
+
+    matchDest(dest) {
+        if (!_.isArray(dest)) {
+            dest = [dest];
+        }
+
+        let handles = dest?.filter(val => ((val.charAt(0) === '@') && (val.length > 1)));
+        let names = dest?.filter(val => ((val.charAt(0) === '§') && (val.length > 1)));
+
+        if (handles?.length) {
+            aggregate.match({
+                [`$${this.destUserDocsField}.handle`]: {
+                    '$in': handles,
+                }
+            })
+        }
+
+        if (names?.length) {
+            aggregate.match({
+                [`$${this.destChannelDocsField}.name`]: {
+                    '$in': names,
+                }
+            })
+        }
+    }
+
+    matchFields({
+        reqUser = null,
+        official = null,
+        author = null,
+        publicMessage = null,
+        answering = null, 
+        mentions = [],
+        keywords = [],
+        text = '', 
+        author_filter = '',
+    }) {
+        let filter = {};
+
+
+        if (reqUser) {
+            filter['$or'] = [
+                    { '$author': reqUser._id },
+                    { '$destUser': reqUser._id },
+                    { '$publicMessage': true },
+                    { '$destChannel': { '$in': reqUser.joinedChannels } },
+                ]
+        } else {
+            filter['$and'] = [
+                {
+                    '$publicMessage': true,
+                },
+                {
+                    '$official': true,
+                }
+            ]
+        }
+
+
+        if (official) filter['$official'] = official;
+        if (author) filter['$author'] = author._id;
+        if (_.isBoolean(publicMessage)) filter['$publicMessage'] = publicMessage;
+        if (answering) filter['$answering'] = answering;
+        if (official) filter['$official'] = official;
+        
+        if ((mentions?.length) || (keywords?.length) || (text?.length)) {
+
+            //logger.debug(keywords)
+
+            let pattern = '^';
+
+            if (_.isString(mentions)) {
+                mentions = [mentions]
+            } else if (!_.isArray(mentions)) {
+                mentions = []
+            }
+
+            if (_.isString(keywords)) {
+                keywords = [keywords]
+            } else if (!_.isArray(keywords)) {
+                keywords = []
+            }
+
+            if (!_.isString(text)) text = '';
+
+            if (keywords?.length) {
+
+                // Turn the mentions array into '(?=.*#kw1)(?=.*#kw2)(?=.*#kw3)...'
+                pattern += keywords.reduce((pattern, keyword) => {
+                    if (keyword.charAt(0) !== '#') {
+                        keyword = '#' + keyword.trim();
+                    }
+
+                    keyword = keyword.trim();
+                    pattern += `(?=.*${keyword})`;
+
+                    return pattern;
+                }, '');
+            }
+
+            if (mentions?.length) {
+
+                // Turn the mentions array into '(?=.*@u1)(?=.*@u2)(?=.*@u3)...'
+                pattern += mentions.reduce((pattern, mention) => {
+                    if (mention.charAt(0) !== '@') {
+                        mention = '@' + mention.trim();
+                    }
+
+                    mention = mention.trim();
+                    pattern += `(?=.*${mention})`;
+
+                    return pattern;
+                }, '');
+            }
+
+            if (text?.length) {
+                pattern += `(?=.*${text})`;
+            }
+
+            if (pattern !== '^') {
+
+                filter['$content.text'] = {
+                    '$regex': pattern,
+                    '$options': 'i',
+                }
+            }
+
+
+        }
+
+        if ((_.isString(author_filter)) && (author_filter?.length)) {
+
+            filter[`$${this.authorDocField}.handle`] = {
+                '$regex': author_filter,
+                '$options': 'i'
+            }
+        }
+
+        this.aggregate.match(filter);
+    }
+
+    sort(sortField) {
+        if (allowedSortFields.find(elem => elem === sortField)) {
+
+            switch (sortField) {
+                case 'created':
+                    this.aggregate.sort('meta.created')
+                    break;
+                case 'positive':
+                    this.aggregate.sort('reactions.positive')
+                    break;
+                case 'negative':
+                    this.aggregate.sort('reactions.negative')
+                    break;
+                case '-created':
+                    this.aggregate.sort('-meta.created')
+                    break;
+                case '-positive':
+                    this.aggregate.sort('-reactions.positive')
+                    break;
+                case '-negative':
+                    this.aggregate.sort('-reactions.negative')
+                    break;
+                default:
+                    this.aggregate.sort(sortField);
+                    break;
+            }
+        } else {
+            this.aggregate.sort('-meta.created')
+        }
+    }
+
+    countAndSlice(page, results_per_page) {
+
+        let documents_pipeline = [];
+        if (page > 0) {
+            documents_pipeline.append({
+                '$skip': (page - 1) * result,
+            })
+            documents_pipeline.append({
+                '$limit': results_per_page,
+            })
+        }
+
+        this.aggregate.facet({
+            "meta": [{
+                '$count': "total_results",
+            }],
+            "documents": documents_pipeline,
+        })
+    }
+
+    slice(page, results_per_page) {
+        if (page > 0) {
+            this.aggregate.skip((page - 1) * result);
+            this.aggregate.limit(results_per_page);
+        }
+    }
+
+    parseDocument(doc, deleteAuthor=false) {
+        doc.id = doc._id.toString();
+        doc.author = doc[this.authorDocField].handle;
+        doc.dest = [
+            ...doc[this.destChannelDocsField].map(c => `§${c.name}`),
+            ...doc[this.destUserDocsField].map(u => `@${u.handle}`),
+        ];
+
+        delete doc.__v;
+        delete doc[this.authorDocField];
+        delete doc[this.destChannelDocsField];
+        delete doc[this.destUserDocsField];
+        delete doc.destUser;
+        delete doc.destChannel;
+
+        if (deleteAuthor) delete doc.author;
+
+        return doc;
+    }
+
+    parsePaginatedResults(results, page, results_per_page) {
+
+        if (page > 0){
+            return {
+                pages: Math.ceil(results.meta.total_results / results_per_page),
+                results: results.documents.map((d) => this.parseDocument(d)),
+            } 
+        } else {
+            return {
+                pages: 1,
+                results: results.documents.map((d) => this.parseDocument(d)),
+            } 
+        }
+    }
+}
 
 class MessageService {
 
@@ -64,7 +496,9 @@ class MessageService {
         sortField=null, 
         publicMessage=null, 
         filterOnly=false,
-        answering=null 
+        answering=null ,
+        page,
+        results_per_page,
     } = 
         { query: Message.find(), 
             official: null, mentions: [], 
@@ -276,11 +710,12 @@ class MessageService {
             query.sort('-meta.created')
         }
 
-        let r = MessageService.#populateMessageQuery(query);
+        if (page > 0)
+            query.skip(page * results_per_page).limit(results_per_page)
 
-        return r;
-
+        return MessageService.#populateMessageQuery(query);
     }
+
 
     static #makeMessageObject(message, deleteAuthor = false) {
         let res = message.toObject?.() || message;
@@ -393,7 +828,7 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        let query = await MessageService._addQueryChains({ 
+        let query = MessageService._addQueryChains({ 
             query: Message.find(),
             popular, 
             unpopular, 
@@ -411,16 +846,15 @@ class MessageService {
             official, 
             author_filter: author,
             sortField: sort,
+            page,
+            results_per_page,
         })
+
+        //logger.info(query)
 
         let res = await query;
 
-        let updates;
-
-        if (page > 0)
-            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
-        else
-            updates = res;
+        let updates = res;
 
         await MessageService.#updateImpressions(updates, reqUser);
 
@@ -453,18 +887,29 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        const query = MessageService.#populateMessageQuery(
+        let query;
+        
+        if (page > 0) {
+
+            query = MessageService.#populateMessageQuery(
+                        Message.find({
+                            destChannel: reqChannel._id,
+                        }).skip(page * results_per_page).limit(results_per_page)
+                    );
+        } else {
+            query = MessageService.#populateMessageQuery(
                 Message.find({
                     destChannel: reqChannel._id,
-                }));
-        
+                })
+            );
+        }
+
+        if (page > 0)
+            query.skip(page * results_per_page).limit(results_per_page);
+
         let res = await query;
 
-        let updates;
-        if (page > 0)
-            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
-        else
-            updates = res;
+        let updates = res;
 
         await MessageService.#updateImpressions(updates, reqUser);
 
@@ -512,7 +957,7 @@ class MessageService {
 
         let user = await User.findOne({ handle: handle });
 
-        let messagesQuery = await MessageService._addQueryChains({ 
+        let messagesQuery = MessageService._addQueryChains({ 
             popular, 
             unpopular, 
             controversial, 
@@ -528,15 +973,13 @@ class MessageService {
             reqUser, 
             results_per_page,
             sortField: sort,
+            page,
+            results_per_page,
          })
 
         let res = await messagesQuery;
 
-        let updates;
-        if (page > 0)
-            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
-        else
-            updates = res;
+        let updates = res;
 
         await MessageService.#updateImpressions(updates, reqUser);
 
@@ -1531,19 +1974,25 @@ class MessageService {
 
         reactions = reactions.filter(r => r.message !== null);
 
-        let query = MessageService.#populateMessageQuery(Message.find({
-            _id: { $in: reactions.map(r => r.message._id) },
-        })).sort('-meta.created');
+        let query;
+
+        if (page > 0){
+            query = MessageService.#populateMessageQuery(
+                Message.find({
+                    _id: { $in: reactions.map(r => r.message._id) },
+                }).sort('-meta.created').skip(page * results_per_page).limit(results_per_page)
+            );
+        } else {
+            query = MessageService.#populateMessageQuery(
+                Message.find({
+                    _id: { $in: reactions.map(r => r.message._id) },
+                }).sort('-meta.created')
+            );
+        }
 
         let res = await query;
 
-        if (results_per_page <= 0) results_per_page = config.results_per_page;
-
-        let updates;
-        if (page > 0)
-            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
-        else 
-            updates = res;
+        let updates = res;
 
         await MessageService.#updateImpressions(updates, reqUser);
 
