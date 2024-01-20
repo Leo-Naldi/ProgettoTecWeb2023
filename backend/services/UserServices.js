@@ -99,7 +99,7 @@ class UserService {
                 .select('handle');
 
             if (page > 0)
-                query.skip(page * results_per_page).limit(results_per_page);
+                query.skip((page - 1) * results_per_page).limit(results_per_page);
 
             users = await query;
 
@@ -115,7 +115,7 @@ class UserService {
                 .sort('meta.created');
 
             if (page > 0)
-                query.skip(page * results_per_page).limit(results_per_page);
+                query.skip((page - 1) * results_per_page).limit(results_per_page);
 
             users = await query
 
@@ -229,7 +229,7 @@ class UserService {
             aggregation.sort('-positive')
         } else aggregation.sort('-negative');
 
-        if (page > 0) aggregation.skip(page*results_per_page).limit(results_per_page);
+        if (page > 0) aggregation.skip((page - 1)*results_per_page).limit(results_per_page);
 
         users = await aggregation;
 

@@ -227,7 +227,7 @@ class ChannelServices{
             query.select('name');
 
             if (page > 0)
-                query.skip(page * results_per_page).limit(results_per_page);
+                query.skip((page - 1) * results_per_page).limit(results_per_page);
 
             const res = await query;
 
@@ -240,7 +240,7 @@ class ChannelServices{
         }
 
         if (page > 0)
-            query.skip(page * results_per_page).limit(results_per_page);
+            query.skip((page - 1) * results_per_page).limit(results_per_page);
 
         const res = await query;
 

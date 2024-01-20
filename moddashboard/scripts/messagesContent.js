@@ -126,20 +126,13 @@ class MessageContent{
                     <label class="form-label" for="after-filter">After</label>
                     <input name="after" type="date" class="form-control" id="after-filter">
                 </div>
+                <div class="form-group my-2">
+                    <input type="submit" class="btn btn-primary" value="Search" />
+                </div>
             </form>
         `
 
         let filters_form = $(s);
-
-        filters_form.append($('<div>', {
-            'class': 'col-md-2',
-        }).append($('<div>', {
-            'class': 'form-group'
-        }).append($('<button>', {
-            'type': 'submit',
-            'class': 'btn btn-primary my-2',
-            'text': 'Search',
-        }))));
 
         this.edit_button = $('<button>', {
             'type': 'button',
@@ -148,13 +141,15 @@ class MessageContent{
             'disabled': true,
             'data-bs-toggle': 'modal',
             'data-bs-target': '#' + modal_id,
-        })
+            'aria-controls': modal_id,
+            'aria-haspopup': "dialog",
+            'aria-expanded': undefined,
+        });
 
-        filters_form.append($('<div>', {
-            'class': 'col-md-2',
-        }).append($('<div>', {
-            'class': 'form-group'
-        }).append(this.edit_button)));
+        this.edit_button.on('click', () => {
+            this.edit_button.attr('aria-expanded',
+                this.edit_button.attr('aria-expanded') === 'true' ? undefined : 'true');
+        })
 
         this.filters = filters_form;
 
@@ -186,6 +181,11 @@ class MessageContent{
         })
 
         this.container.append(this.filters);
+
+        this.container.append($('<div>', {
+            'class': 'd-flex flex-row-reverse',
+        }).append(this.edit_button));
+
         this.container.append(modal);
         this.container.append(this.table_container);
         this.data_table.mount();

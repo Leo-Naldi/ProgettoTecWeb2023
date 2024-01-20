@@ -110,6 +110,7 @@ class DataTable {
 
     #mountSpinner() {
         this.#table?.remove();
+        this.#pagination?.remove();
 
         this.#spinner = $(`
             <div class="d-flex justify-content-center mt-4">
