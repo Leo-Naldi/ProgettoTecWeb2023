@@ -69,9 +69,6 @@ class DataTable {
         this.#filter = f;
         this.#page = 1;
         this.#pages = null;
-        this.#selected_row = null;
-        this.#selected_item = null;
-        this.#after_row_select();
         this.mount();
     }
 
@@ -127,6 +124,12 @@ class DataTable {
     * Creates the table anew.
     */
     mount() {
+
+        this.#selected_row = null;
+        this.#selected_item = null;
+        this.#after_row_select();
+
+
         this.#container.empty();
         this.#mountSpinner();
 
@@ -148,6 +151,10 @@ class DataTable {
 
     #pageChanged() {
         this.#mountSpinner();
+
+        this.#selected_row = null;
+        this.#selected_item = null;
+        this.#after_row_select();
 
         this.#fetchData()
             .then(data => {
@@ -358,7 +365,6 @@ class DataTable {
 
         this.#socket?.on(`${this.#socket_prefix}:deleted`, (data) => {
 
-            // TODO
             let i = this.#data.findIndex(d => d.id === data.id)
 
             if (i >= 0) {

@@ -90,9 +90,10 @@ class UserContent{
                     </div>
                     <div class="col-md-2">
                         <select class="form-select" aria-label="Select User Type" id="select-user-type">
-                            <option value="all" selected>All Users</option>
+                            <option value="all" selected>Any</option>
                             <option value="pro">Pro Users</option>
                             <option value="user">Free Users</option>
+                            <option value="admin">Administrators</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -127,7 +128,12 @@ class UserContent{
 
             let user_type = $('select#select-user-type').val();
 
-            if (user_type !== 'all') query.accountType = user_type;
+            if ((user_type === 'user') || (user_type === 'pro')) {
+                query.accountType = user_type;
+                query.admin = false;
+            } else if (user_type === 'admin') {
+                query.admin = true;
+            }
 
             dt.filter = query;
         })
@@ -195,7 +201,7 @@ class UserContent{
         };
 
        let onHide = event => {
-            form.trigger('reset')
+            form.trigger('reset');
         };
 
         let modal = makeModDashboardModal(id, modal_headers, form, onSohw, onHide);
