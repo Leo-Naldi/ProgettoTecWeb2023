@@ -40,6 +40,13 @@ class SquealSocket {
             namespaces.add('/admin-io/');
         }
 
+        if (populatedMessage.answering) {
+            namespaces.add(`/user-io/${populatedMessage.answering.author.handle}`);
+            if (populatedMessage.answering.author.smm) {
+                namespaces.add(`/pro-io/${populatedMessage.answering.author.smm.handle}`);
+            }
+        }
+
         return namespaces;
     }
 
@@ -99,7 +106,7 @@ class SquealSocket {
         })
     }
 
-    static messageDeleted({ id, destHandles, smm_handle=null, official, socket }) {
+    static messageDeleted({ id, destHandles, smm_handle=null, answering_smm=null, official, socket }) {
         let namespaces = new Set(['/admin-io/']);
          
         destHandles.forEach(handle => namespaces.add(`/user-io/${handle}`));
@@ -110,6 +117,10 @@ class SquealSocket {
 
         if (smm_handle) {
             namespaces.add(`/pro-io/${smm_handle}`);
+        }
+
+        if (answering_smm) {
+            namespaces.add(`/pro-io/${answering_smm}`);
         }
 
         SquealSocket.emit({
