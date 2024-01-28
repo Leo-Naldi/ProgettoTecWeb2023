@@ -468,38 +468,29 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        let query;
-        
-        if (page > 0) {
+        let aggr = new MessagesAggregate(Message.aggregate()
+            .match({
+                destChannel: reqChannel._id
+            }))
 
-            query = MessageService.#populateMessageQuery(
-                        Message.find({
-                            destChannel: reqChannel._id,
-                        }).skip(page * results_per_page).limit(results_per_page)
-                    );
+        aggr.lookupAuthor();
+        aggr.lookupDestChannel();
+        aggr.lookupDestUser();
+        aggr.sort('-meta.created');
+
+        let res
+        if (page > 0) {
+            aggr.countAndSlice(page, results_per_page);
+            res = await aggr.run();
         } else {
-            query = MessageService.#populateMessageQuery(
-                Message.find({
-                    destChannel: reqChannel._id,
-                })
-            );
+            res = [{ documents: await aggr.run() }]
         }
 
-        if (page > 0)
-            query.skip(page * results_per_page).limit(results_per_page);
 
-        let res = await query;
-
-        let updates = res.filter(m => !m.author._id.equals(reqUser?._id));
-
+        let updates = MessagesAggregate.get_update_ids(res, reqUser);
         MessageService.#updateImpressions(updates);
 
-        return Service.successResponse(makeGetResBody({
-            docs: res,
-            page: page,
-            results_per_page: results_per_page,
-            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
-        }));
+        return Service.successResponse(MessagesAggregate.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -1558,34 +1549,31 @@ class MessageService {
 
         reactions = reactions.filter(r => r.message !== null);
 
-        let query;
+        let aggr = new MessagesAggregate(Message.aggregate()
+            .match({
+                _id: { $in: reactions.map(r => r.message._id) }
+            }));
 
-        if (page > 0){
-            query = MessageService.#populateMessageQuery(
-                Message.find({
-                    _id: { $in: reactions.map(r => r.message._id) },
-                }).sort('-meta.created').skip((page - 1) * results_per_page).limit(results_per_page)
-            );
+        
+
+        aggr.lookupAuthor();
+        aggr.lookupDestChannel();
+        aggr.lookupDestUser();
+        aggr.sort('-meta.created');
+
+        let res;
+        if (page > 0) {
+            aggr.countAndSlice(page, results_per_page);
+            res = await aggr.run();
         } else {
-            query = MessageService.#populateMessageQuery(
-                Message.find({
-                    _id: { $in: reactions.map(r => r.message._id) },
-                }).sort('-meta.created')
-            );
+            res = [{ documents: await aggr.run() }]
         }
 
-        let res = await query;
 
-        let updates = res;
+        let updates = MessagesAggregate.get_update_ids(res, reqUser);
+        MessageService.#updateImpressions(updates);
 
-        await MessageService.#updateImpressions(updates, reqUser);
-
-        return Service.successResponse(makeGetResBody({
-            docs: res,
-            page: page,
-            results_per_page: results_per_page,
-            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
-        }));
+        return Service.successResponse(MessagesAggregate.parsePaginatedResults(res, page, results_per_page));
     }
 
     static async getLikedMessages({ reqUser, handle, page=1, results_per_page=config.results_per_page }) {
