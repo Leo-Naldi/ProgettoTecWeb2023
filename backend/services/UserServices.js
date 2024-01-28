@@ -10,6 +10,7 @@ const dayjs = require("dayjs");
 
 const _ = require('underscore');
 const { makeGetResBody } = require('../utils/serviceUtils');
+const UsersAggregate = require('../utils/UsersAggregate');
 
 class UserService {
 
@@ -74,6 +75,7 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
+    /*
     static async getUsers({ handle, admin, accountType, handleOnly = false, page = 1,
         results_per_page = config.results_per_page,
     } = { page: 1, results_per_page: config.results_per_page }) {
@@ -94,21 +96,38 @@ class UserService {
         let users;
         if ((_.isBoolean(handleOnly)) && handleOnly) {
 
-            let query = UserService.getSecureUserRecords(filter)
-                .sort('meta.created')
-                .select('handle');
+            let aggr = User.aggregate()
+                .match(filter)
+                .project({ password: 0 })
+                .sort('-meta.created');
 
-            if (page > 0)
-                query.skip((page - 1) * results_per_page).limit(results_per_page);
+            let documents_pipeline = [];
+            if (page > 0) {
+                documents_pipeline.push({
+                    '$skip': (page - 1) * results_per_page,
+                });
+                documents_pipeline.push({
+                    '$limit': results_per_page,
+                })
+            }
 
-            users = await query;
+            aggr.facet({
+                "meta": [{
+                    '$count': "total_results",
+                }],
+                "documents": documents_pipeline,
+            })
 
-            return Service.successResponse(makeGetResBody({
-                docs: users,
-                page: page,
-                results_per_page: results_per_page,
-                results_f: r => _.pluck(r, 'handle'),
-            }));
+            res = await aggr;
+
+            let pages = (page <= 0) ? 1: Math.ceil(res[0].meta[0].total_results / results_per_page);
+
+            return Service.successResponse({
+                pages, 
+                results: res[0].documents.map(u => {
+                    u.id = u._id.toString();
+                })
+            });
         } else {
 
             let query = UserService.getSecureUserRecords(filter)
@@ -127,7 +146,7 @@ class UserService {
             }));
         }
 
-    }
+    }*/
 
     static async getUsersByPopularity({ handle, admin, accountType, handleOnly = false, page = 1,
         results_per_page = config.results_per_page, popularity=null,
@@ -140,6 +159,7 @@ class UserService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
+        /*
         if (popularity === null) {
             return UserService.getUsers({
                 handle, admin, accountType, handleOnly, page,
@@ -259,7 +279,21 @@ class UserService {
             docs: users,
             page: page,
             results_per_page: results_per_page,
-        }));
+        }));*/
+
+        let aggr = new UsersAggregate();
+
+        aggr.matchFields({
+            handle: handle, admin: admin, accountType: accountType,
+        })
+
+        aggr.lookup()
+        aggr.sort(popularity);
+        aggr.countAndSlice(page, results_per_page)
+
+        let res = await aggr.run();
+
+        return Service.successResponse(UsersAggregate.parsePaginatedResults(res, page, results_per_page))
     }
 
     static async getUser({ handle, includeReactions=true }) {
