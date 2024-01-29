@@ -7,6 +7,7 @@ const { logger } = require('../config/logging');
 const SquealSocket = require('../socket/Socket');
 const _ = require('underscore');
 const { makeGetResBody } = require('../utils/serviceUtils');
+const ChannelsAggregate = require('../utils/ChannelsAggregate');
 
 class ChannelServices{
 
@@ -97,10 +98,18 @@ class ChannelServices{
         if (_.isBoolean(publicChannel)) 
             channelsQuery.where('publicChannel').equals(publicChannel)
 
-        const res = await channelsQuery;
-        let r_arr = ChannelServices.#makeChannelObjectArray(res)
+        //const res = await channelsQuery;
+        //let r_arr = ChannelServices.#makeChannelObjectArray(res);
 
-        return Service.successResponse(ChannelServices.#trimChannelArray(r_arr, reqUser));
+
+        let aggr = new ChannelsAggregate(Channel.aggregate().match({ creator: user._id }));
+        
+        aggr.matchFields({ publicChannel: publicChannel })
+        aggr.lookup();
+
+        let res = await aggr.run();
+
+        return Service.successResponse(res.map(c => ChannelsAggregate.parseDocument(c, reqUser)));
 
     }
 
@@ -109,21 +118,14 @@ class ChannelServices{
 
         if (!handle) Service.rejectResponse({ message: `Did not provide a handle` })
         
-        let user = reqUser;
-        if (user.handle !== handle) user = await User.findOne({ handle: handle });
+        let aggr = new ChannelsAggregate();
 
-        if (!user) return Service.rejectResponse({ message: `No user named @${handle}` });
+        aggr.lookup();
+        aggr.matchFields({ member: handle });
 
-        let channels = await ChannelServices
-            .populateQuery(Channel.find({ _id: { $in: user.joinedChannels } }));
+        let res = await aggr.run();
 
-        //logger.info(channels[0].editors)
-        
-        return Service.successResponse(
-            ChannelServices.#trimChannelArray(
-                ChannelServices.#makeChannelObjectArray(channels), reqUser
-            )
-        )
+        return Service.successResponse(res.map(c => ChannelsAggregate.parseDocument(c, reqUser)));
     }
 
     // Get all channels that users have joined
@@ -131,21 +133,14 @@ class ChannelServices{
 
         if (!handle) Service.rejectResponse({ message: `Did not provide a handle` })
 
-        let user = reqUser;
-        if (user.handle !== handle) user = await User.findOne({ handle: handle });
+        let aggr = new ChannelsAggregate();
 
-        if (!user) return Service.rejectResponse({ message: `No user named @${handle}` });
+        aggr.lookup();
+        aggr.matchFields({ editor: handle });
 
-        let channels = await ChannelServices
-            .populateQuery(Channel.find({ _id: { $in: user.editorChannels } }));
+        let res = await aggr.run();
 
-        //logger.info(channels[0].editors)
-
-        return Service.successResponse(
-            ChannelServices.#trimChannelArray(
-                ChannelServices.#makeChannelObjectArray(channels), reqUser
-            )
-        )
+        return Service.successResponse(res.map(c => ChannelsAggregate.parseDocument(c, reqUser)));
     }
 
     // Get the handle of the creator of the channel based on the channel name 
@@ -178,83 +173,27 @@ class ChannelServices{
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        const query = ChannelServices.getPopulatedChannelsQuery();
+        let aggr = new ChannelsAggregate();
+        aggr.lookup();
+        aggr.matchFields({
+            publicChannel,
+            owner,
+            member,
+            official,
+            name,
+        });
+        aggr.sort('created');
+        aggr.countAndSlice(page, results_per_page);
 
-        if (name){ 
-            query.find({
-                name: {
-                    $regex: name,
-                    $options: 'i',
-                }
-            })
-        }
-
-        if (!reqUser) {
-            official = true;
-        }
-
-        if (_.isBoolean(official)) query.where('official').equals(official);
-
-        if (member) {
-            if (!reqUser) return Service.rejectResponse({ message: "Must be logged in to filter by membership" })
-        
-            let urec = reqUser;
-
-            if (member !== reqUser.handle) {
-                urec = await User.findOne({ handle: member });
-
-                if (!urec) return Service.rejectResponse({ message: `User with handle ${member} not found` })
-            }
-
-            query.where('_id').in(urec.joinedChannels);
-        }
-        
-        if (owner){
-            const ownerrec = await User.findOne({ handle: owner });
-
-            if (!ownerrec) return Service.successResponse([]); // no channels owned by a non existent user
-
-            query.where('creator').equals(ownerrec._id).populate('creator', 'handle');
-
-        }
-
-        if (_.isBoolean(publicChannel)) 
-            query.find({ publicChannel: publicChannel })
-
-        query.sort('created')
+        let res = await aggr.run();
 
         if (namesOnly) {
-            query.select('name');
+            let parsed = ChannelsAggregate.parsePaginatedResults(res, page, results_per_page, reqUser)
+            parsed.results = _.pluck(parsed.results, 'name');
 
-            if (page > 0)
-                query.skip((page - 1) * results_per_page).limit(results_per_page);
-
-            const res = await query;
-
-            return Service.successResponse(makeGetResBody({
-                docs: res,
-                results_per_page: results_per_page,
-                page: page,
-                results_f: r => _.pluck(r, 'name'),
-            }));
+            return Service.successResponse(parsed);
         }
-
-        if (page > 0)
-            query.skip((page - 1) * results_per_page).limit(results_per_page);
-
-        const res = await query;
-
-        return Service.successResponse(
-                makeGetResBody({
-                    docs: res,
-                    results_per_page: results_per_page,
-                    page: page,
-                    results_f: r => ChannelServices.#trimChannelArray(
-                            r.map(c => ChannelServices.#makeChannelObject(c)),
-                            reqUser,
-                        ),
-                })
-        );
+        return Service.successResponse(ChannelsAggregate.parsePaginatedResults(res, page, results_per_page, reqUser));
 
     }
 
@@ -262,16 +201,22 @@ class ChannelServices{
     static async getChannel({ name, reqUser = null }) {
         if (!name) return Service.rejectResponse({ message: "Must Provide a valid name" });
 
-        let channel = await ChannelServices.getPopulatedChannelQuery({ name: name })
+        let aggr = new ChannelsAggregate(Channel.aggregate().match({ name: name }));
+        aggr.lookup();
 
-        if (!channel) return Service.rejectResponse({ message: `Channnel ${name} not found` })
+        let res = await aggr.run();
 
-        if (!((reqUser) || (channel.official))) 
-            return Service.rejectResponse({ message: `Can only get official cannels without logging in.` }) 
+        if (res.length) {
+            if (!((reqUser) || (res[0].official))) {
 
-        let res = ChannelServices.#makeChannelObject(channel);
+                return Service.rejectResponse({ message: `Can only get official cannels without logging in.` })
+            }
+            
+            return Service.successResponse(ChannelsAggregate.parseDocument(res[0]));
+        }
 
-        return Service.successResponse(ChannelServices.#trimChannelObject(res, reqUser));
+        return Service.rejectResponse({ message: `Channnel ${name} not found` });
+
     }
 
     static async createChannel({ name, reqUser, description='', 
@@ -360,8 +305,14 @@ class ChannelServices{
         return Service.successResponse();
     }
 
-    static async writeChannel({ name, newName=null, 
-        owner=null, description=null, publicChannel=null, socket }) {
+    static async writeChannel({ 
+        name, 
+        newName=null, 
+        owner=null, 
+        description=null, 
+        publicChannel=null, 
+        socket 
+    }) {
         
         if (!(newName || owner || description || (_.isBoolean(publicChannel)))) 
             return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })

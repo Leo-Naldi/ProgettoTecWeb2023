@@ -11,6 +11,8 @@ const { logger } = require('../config/logging');
 const allowedSortFields = [
     'meta.created',
     'created',
+    '-meta.created',
+    '-created',
     'popular',
     '-popular',
     'unpopular',

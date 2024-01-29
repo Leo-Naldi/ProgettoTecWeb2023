@@ -6,12 +6,8 @@ const _ = require('underscore');
 
 
 const allowedSortFields = [
-    'meta.created',
     'created',
-    'popular',
-    '-popular',
-    'unpopular',
-    '-unpopular',
+    '-created',
 ]
 
 class ChannelsAggregate {
@@ -147,6 +143,7 @@ class ChannelsAggregate {
         owner = null, 
         publicChannel = null,
         member = null, 
+        editor = null,
         name = null, 
         official = null,
     }) {
@@ -170,9 +167,16 @@ class ChannelsAggregate {
         if (owner) {
             filter['creator_doc.handle'] = owner;
         }
+
         if (member) {
             filter.member_docs = {
                 '$elemMatch': { handle: member }
+            }
+        }
+
+        if (editor) {
+            filter.editor_docs = {
+                '$elemMatch': { handle: editor }
             }
         }
 
@@ -185,27 +189,12 @@ class ChannelsAggregate {
 
             switch (sortField) {
                 case 'created':
-                case 'meta.created':
-                    this.aggregate.sort('meta.created')
+                    this.aggregate.sort('created')
                     break;
                 case '-created':
-                case '-meta.created':
-                    this.aggregate.sort('-meta.created')
-                    break;
-                case 'popular':
-                    this.aggregate.sort('-positive_count')
-                    break;
-                case '-popular':
-                    this.aggregate.sort('positive_count')
-                    break;
-                case 'unpopular':
-                    this.aggregate.sort('-negative_count')
-                    break;
-                case '-unpopular':
-                    this.aggregate.sort('negative_count')
-                    break;
+                    this.aggregate.sort('-created')
                 default:
-                    this.aggregate.sort('-meta.created');
+                    this.aggregate.sort('-created');
                     break;
             }
         }
@@ -238,61 +227,49 @@ class ChannelsAggregate {
         }
     }
 
-    static parseDocument(u) {
-        u.smm = u.smm_doc?.handle;
-        u.managed = u.managed_docs.map(m => m.handle);
-        u.joinedChannels = u.joinedChannels_docs.map(c => c.name);
-        u.editorChannels = u.editorChannels_docs.map(c => c.name);
-        u.joinChannelRequests = u.joinChannelRequests_docs.map(c => c.name);
-        u.editorChannelRequests = u.editorChannelRequests_docs.map(c => c.name);
+    static parseDocument(c, reqUser) {
 
-        if (u.subscription) {
-            u.subscription.proPlan = u.proPlan_doc;
-            delete u.subscription.proPlan.__v;
-            u.subscription.proPlan.id = u.subscription.proPlan._id.toString();
+        c.creator = c.creator_doc.handle;
+        c.members = _.pluck(c.member_docs, 'handle');
+        c.editors = _.pluck(c.editor_docs, 'handle');
+        c.memberRequests = _.pluck(c.member_request_docs, 'handle');
+        c.editorRequests = _.pluck(c.editor_request_docs, 'handle');
+
+        c.id = c._id.toString();
+
+        if (!((c.publicChannel) ||
+            (reqUser && reqUser?.joinedChannels.some(id => id.equals(c._id))))) {
+
+            // private channels can only be viewed by members
+            delete c.members;
+            delete c.editors;
+            delete c.memberRequests;
+            delete c.editorRequests;
         }
 
-        u.liked = _.pluck(u.liked_docs, 'message');
-        u.disliked = _.pluck(u.disliked_docs, 'message');
-        u.total_likes = u.positive_count;
-        u.total_dislikes = u.negative_count;
+        delete c.member_docs;
+        delete c.editor_docs;
+        delete c.editor_request_docs;
+        delete c.member_request_docs;
+        delete c.creator_doc      
+        delete c.__v;
 
-        delete u.positive_count;
-        delete u.negative_count;
-        delete u.proPlan_doc;
-        delete u.smm_doc;
-        delete u.managed_docs;
-        delete u.editorChannelRequests_docs;
-        delete u.joinChannelRequests_docs;
-        delete u.editorChannels_docs;
-        delete u.joinedChannels_docs;
-        delete u.liked_docs;
-        delete u.disliked_docs
-        delete u.password;
-        delete u.__v;
-
-        u.id = u._id.toString();
-
-        return u;
+        return c;
     }
 
-    static parsePaginatedResults(results, page, results_per_page) {
-
-        logger.debug(results.length)
-        logger.debug(Object.keys(results[0]))
-        logger.debug(results[0].meta.length)
+    static parsePaginatedResults(results, page, results_per_page, reqUser) {
 
         if (results[0].documents.length === 0) results[0].meta = [{ total_results: 0 }];
 
         if (page > 0) {
             return {
                 pages: Math.ceil(results[0].meta[0].total_results / results_per_page),
-                results: results[0].documents.map((d) => ChannelsAggregate.parseDocument(d)),
+                results: results[0].documents.map((d) => ChannelsAggregate.parseDocument(d, reqUser)),
             }
         } else {
             return {
                 pages: 1,
-                results: results[0].documents.map((d) => ChannelsAggregate.parseDocument(d)),
+                results: results[0].documents.map((d) => ChannelsAggregate.parseDocument(d, reqUser)),
             }
         }
     }
