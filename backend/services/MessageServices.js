@@ -662,8 +662,16 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns 
      */
-    static async postUserMessage({ reqUser, handle, content, meta, dest=[], publicMessage=true,
-        answering=null, socket=null }) {
+    static async postUserMessage({ 
+        reqUser, 
+        handle, 
+        content, 
+        meta, 
+        dest=[], 
+        publicMessage=true,
+        answering=null, 
+        socket=null 
+    }) {
 
         let user = reqUser;
 
@@ -745,7 +753,7 @@ class MessageService {
 
         let answering_record;
         if (answering) {
-            answering_record = await Message.findById(answering).populate('author', 'handle');
+            answering_record = await Message.findById(answering).populate('author', '_id handle');
 
             if (!answering_record) 
                 return Service.rejectResponse({ message: `Message ${answering} given in the answering field not found` })
@@ -799,9 +807,9 @@ class MessageService {
             }
         });
         message.destUser = destUser;
-        message.destChannel = destChannel
+        message.destChannel = destChannel;
 
-        //logger.debug(message)
+        message.answering = answering_record;
 
         resbody = MessageService.#makeMessageObject(message);
 
@@ -974,7 +982,7 @@ class MessageService {
 
         if ((reactions) && (('positive' in reactions) || ('negative' in reactions))) {
 
-            ebody.reactions = new Object();
+            ebody.reactions = _.clone(message.reactions);
 
             if ('positive' in reactions) {
                 message.reactions.positive = reactions.positive;
@@ -991,9 +999,7 @@ class MessageService {
 
         if (text) {
             message.content.text = text;
-            ebody.content = {
-                text: text,
-            };
+            ebody.content = message.content;
         }
 
         if (_.isArray(dest)) {
@@ -1018,6 +1024,12 @@ class MessageService {
         }
 
         ebody.id = id;
+
+        message.meta = new Date();
+        ebody.meta = { 
+            ...message.meta,
+            lastModified: message.meta.lastModified,
+        }
 
         let err = null;
         try{

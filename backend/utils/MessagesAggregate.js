@@ -262,6 +262,15 @@ class MessagesAggregate {
         })
     }
 
+    lookup(){
+        this.lookupDestChannel();
+        this.lookupDestUser();
+        this.lookupAuthor();
+        this.lookupAuthorSmm();
+        this.lookupAnsweringWithAuthor();
+        this.lookupDestChannelMembers();
+    }
+
     matchDest(dest) {
 
         if (dest) {

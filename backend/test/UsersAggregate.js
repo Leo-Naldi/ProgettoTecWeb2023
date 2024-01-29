@@ -1,10 +1,4 @@
 const { expect } = require("chai");
-const User = require("../models/User");
-const dayjs = require('dayjs');
-const config = require("../config");
-const { logger } = require("../config/logging");
-const { resetDaily, resetWeekly, resetMonthly, renewSubscriptions } = require("../config/crons");
-const MessagesAggregate = require('../utils/MessagesAggregate');
 const Message = require("../models/Message");
 const _ = require('underscore');
 const UsersAggregate = require("../utils/UsersAggregate");
@@ -12,7 +6,7 @@ const Reaction = require("../models/Reactions");
 
 
 
-describe.only('Users Aggregate Tests', function(){
+describe('Users Aggregate Tests', function(){
 
     describe('Editor Channel Tests', function(){
 
@@ -380,7 +374,7 @@ describe.only('Users Aggregate Tests', function(){
                 expect(m).to.have.property('handle');
                 expect(m.handle).to.be.an('string');
 
-                expect(m.handle.includes('fv')).to.be.true;
+                expect(m.handle.toLowerCase().includes('fv')).to.be.true;
 
             })
         })

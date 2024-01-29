@@ -1,12 +1,9 @@
-const { mongoose } = require('mongoose');
-
-const _ = require('underscore');
-const Message = require('../models/Message');
-
 const config = require('../config');
 const dayjs = require('dayjs');
-const User = require('../models/User');
 const { logger } = require('../config/logging');
+const Channel = require('../models/Channel');
+const _ = require('underscore');
+
 
 const allowedSortFields = [
     'meta.created',
@@ -17,69 +14,35 @@ const allowedSortFields = [
     '-unpopular',
 ]
 
-class UsersAggregate {
+class ChannelsAggregate {
 
-    constructor(aggregate = User.aggregate()) {
+    constructor(aggregate = Channel.aggregate()) {
         this.aggregate = aggregate;
     }
 
-
-    lookupEditorChannels() {
-        this.aggregate.lookup({
-            from: 'channels',
-            localField: 'editorChannels',
-            foreignField: '_id',
-            as: 'editorChannels_docs',
-        })
-    }
-
-    lookupJoinedChannels() {
-        this.aggregate.lookup({
-            from: 'channels',
-            localField: 'joinedChannels',
-            foreignField: '_id',
-            as: 'joinedChannels_docs',
-        })
-    }
-
-    lookupEditorChannelRequests() {
-        this.aggregate.lookup({
-            from: 'channels',
-            localField: 'editorChannelRequests',
-            foreignField: '_id',
-            as: 'editorChannelRequests_docs',
-        })
-    }
-
-    lookupJoinedChannelRequests() {
-        this.aggregate.lookup({
-            from: 'channels',
-            localField: 'joinChannelRequests',
-            foreignField: '_id',
-            as: 'joinChannelRequests_docs',
-        })
-    }
-
-    lookupSmm() {
+    lookupCreator(){
         this.aggregate.lookup({
             from: 'users',
-            localField: 'smm',
+            localField: 'creator',
             foreignField: '_id',
-            as: 'smm_doc',
-        })
+            as: 'creator_doc',
+        });
 
-        this.aggregate.unwind('smm_doc');
+        this.aggregate.unwind('creator_doc');
     }
 
-    lookupManaged(){
+    lookupMembers() {
         this.aggregate.lookup({
             from: 'users',
-            let: { uid: '$_id' },
+            let: { cid: '$_id' },
             pipeline: [
                 {
-                    $match: {
-                        $expr: {
-                            $eq: [ '$smm', '$$uid' ]
+                    '$match': {
+                        '$expr': {
+                            '$in': [
+                                '$$cid',
+                                '$joinedChannels'
+                            ]
                         }
                     }
                 },
@@ -87,119 +50,134 @@ class UsersAggregate {
                     '$project': {
                         _id: 1,
                         handle: 1,
-                        smm: 1,
                     }
                 }
             ],
-            as: 'managed_docs'
-        })
+            as: 'member_docs',
+        });
     }
 
-    lookupLiked(){
+    lookupEditors() {
         this.aggregate.lookup({
-            from: 'reactions',
-            let: { uid: '$_id' },
+            from: 'users',
+            let: { cid: '$_id' },
             pipeline: [
                 {
-                    $match: {
-                        $expr: {
-                            $eq: ['$user', '$$uid']
-                        },
-                        'type': 'positive'
+                    '$match': {
+                        '$expr': {
+                            '$in': [
+                                '$$cid',
+                                '$editorChannels'
+                            ]
+                        }
                     }
                 },
                 {
                     '$project': {
-                        message: 1,
+                        _id: 1,
+                        handle: 1,
                     }
                 }
             ],
-            as: 'liked_docs'
-        })
+            as: 'editor_docs',
+        });
     }
-
-    lookupDisiked() {
+    
+    lookupMemberRequests() {
         this.aggregate.lookup({
-            from: 'reactions',
-            let: { uid: '$_id' },
+            from: 'users',
+            let: { cid: '$_id' },
             pipeline: [
                 {
-                    $match: {
-                        $expr: {
-                            $eq: ['$user', '$$uid']
-                        },
-                        'type': 'negative'
+                    '$match': {
+                        '$expr': {
+                            '$in': [
+                                '$$cid',
+                                '$joinChannelRequests'
+                            ]
+                        }
                     }
                 },
                 {
                     '$project': {
-                        message: 1,
+                        _id: 1,
+                        handle: 1,
                     }
                 }
             ],
-            as: 'disliked_docs'
-        })
+            as: 'member_request_docs',
+        });
     }
 
-    lookupReactionCounts(){
+    lookupEditorRequests() {
         this.aggregate.lookup({
-            from: 'messages',
-            localField: '_id',
-            foreignField: 'author',
-            as: 'messages_docs',
-        })
-            .unwind('messages_docs')
-        .group({
-            _id: '$_id',
-            positive_count: { $sum: "$messages_docs.reactions.positive" },
-            negative_count: { $sum: "$messages_docs.reactions.negative" },
-            doc: { $first: '$$ROOT' }
-        })
-        .replaceRoot({
-            $mergeObjects: ["$$ROOT", '$doc']
-        })
-        .project({
-            messages_docs: 0,
-            doc: 0,
-        })
-    }
-
-    lookupProPlan(){
-        this.aggregate.lookup({
-            from: 'plans',
-            localField: 'subscription.proPlan',
-            foreignField: '_id',
-            as: 'proPlan_doc'
-        })
-
-        this.aggregate.unwind('proPlan_doc')
+            from: 'users',
+            let: { cid: '$_id' },
+            pipeline: [
+                {
+                    '$match': {
+                        '$expr': {
+                            '$in': [
+                                '$$cid',
+                                '$editorChannelRequests'
+                            ]
+                        }
+                    }
+                },
+                {
+                    '$project': {
+                        _id: 1,
+                        handle: 1,
+                    }
+                }
+            ],
+            as: 'editor_request_docs',
+        });
     }
 
     lookup() {
-        this.lookupEditorChannelRequests()
-        this.lookupJoinedChannelRequests()
-        this.lookupEditorChannels()
-        this.lookupJoinedChannels()
-        this.lookupSmm();
-        this.lookupManaged();
-        this.lookupProPlan();
-        this.lookupDisiked();
-        this.lookupLiked();
-        this.lookupReactionCounts();
+        this.lookupCreator();
+        this.lookupMembers();
+        this.lookupEditors();
+        this.lookupMemberRequests();
+        this.lookupEditorRequests();
     }
 
     matchFields({
-        handle=null,
-        admin=null,
-        accountType=null,
+        owner = null, 
+        publicChannel = null,
+        member = null, 
+        name = null, 
+        official = null,
     }) {
         let filter = {};
 
-        if (handle) filter.handle = { $regex: handle, $options: 'i' };
-        if (_.isBoolean(admin)) filter.admin = admin;
-        if (accountType) filter.accountType = accountType;
+        if ((_.isString(name)) && (name?.length)) {
+            filter.name = {
+                $regex: name,
+                $options: 'i',
+            };
+        }
+
+        if (_.isBoolean(official)) {
+            filter.official = official;
+        }
+
+        if (_.isBoolean(publicChannel)) {
+            filter.publicChannel = publicChannel;
+        }
+
+        if (owner) {
+            filter['creator_doc.handle'] = owner;
+        }
+        if (member) {
+            filter.member_docs = {
+                '$elemMatch': { handle: member }
+            }
+        }
 
         this.aggregate.match(filter);
+
     }
 
     sort(sortField) {
@@ -278,7 +256,7 @@ class UsersAggregate {
         u.disliked = _.pluck(u.disliked_docs, 'message');
         u.total_likes = u.positive_count;
         u.total_dislikes = u.negative_count;
-        
+
         delete u.positive_count;
         delete u.negative_count;
         delete u.proPlan_doc;
@@ -300,17 +278,21 @@ class UsersAggregate {
 
     static parsePaginatedResults(results, page, results_per_page) {
 
+        logger.debug(results.length)
+        logger.debug(Object.keys(results[0]))
+        logger.debug(results[0].meta.length)
+
         if (results[0].documents.length === 0) results[0].meta = [{ total_results: 0 }];
 
         if (page > 0) {
             return {
                 pages: Math.ceil(results[0].meta[0].total_results / results_per_page),
-                results: results[0].documents.map((d) => UsersAggregate.parseDocument(d)),
+                results: results[0].documents.map((d) => ChannelsAggregate.parseDocument(d)),
             }
         } else {
             return {
                 pages: 1,
-                results: results[0].documents.map((d) => UsersAggregate.parseDocument(d)),
+                results: results[0].documents.map((d) => ChannelsAggregate.parseDocument(d)),
             }
         }
     }
@@ -320,4 +302,4 @@ class UsersAggregate {
     }
 }
 
-module.exports = UsersAggregate;
+module.exports = ChannelsAggregate;
