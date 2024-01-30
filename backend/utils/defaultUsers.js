@@ -49,12 +49,12 @@ function makeRandomGeoMessages(test_env, author_index=-1, min=10, max=20) {
     });
 }
 
-function addRandomReplies(test_env, userIndex){
+function addRandomReplies(test_env, userIndex, filter=[]){
     let messages = test_env.getUserMessages(userIndex);
 
     let replies_counter = 0
 
-    let authors = Array.from({ length: test_env.users.length }, (v, i) => i).filter(i => i !== userIndex);
+    let authors = Array.from({ length: test_env.users.length }, (v, i) => i).filter(i => !((i === userIndex) || (filter.some(j => i === j))));
 
     for (let i = 0; i < messages.length; i++) {
         
@@ -780,51 +780,6 @@ async function makeDefaultUsers() {
     u5startMessages *= 3;
     u6startMessages *= 3;
 
-    // new messages to make user 5 and 6 two messages away from increasing/decreasing characters
-    while (u5startMessages % (config.num_messages_reward - 2) !== 0) {
-
-
-        test_env.addRandomMessages({
-            week: 1,
-            authorIndex: u5_index,
-            reaction_function: popular_reaction,
-        })
-
-        u5startMessages++;
-    }
-
-    
-
-    while (u6startMessages % (config.num_messages_reward - 2) !== 0) {
-
-        test_env.addRandomMessages({
-            week: 1,
-            authorIndex: u6_index,
-            reaction_function: unpopular_reaction,
-        })
-
-        u6startMessages++;
-    }
-
-    // Generate a separate message for user5 and user6
-    test_env.addRandomMessages({
-        today: 1,
-        authorIndex: u5_index,
-        reaction_function: () => ({
-            positive: config.fame_threshold - 1,
-            negative: TestEnv.getRandom(0, 13),
-        }),
-    })
-
-    test_env.addRandomMessages({
-        today: 1,
-        authorIndex: u6_index,
-        reaction_function: () => ({
-            negative: config.fame_threshold - 1,
-            positive: TestEnv.getRandom(0, 13),
-        }),
-    })
-
     // Replies
     answering_users_indexes.map(i => {
         test_env.addRandomMessages({
@@ -997,7 +952,66 @@ async function makeDefaultUsers() {
     makeLocalTestData(test_env);
     makeRandomGeoMessages(test_env);
     makeRandomGeoMessages(test_env, u2_index, 3, 6);
-    addRandomReplies(test_env, u2_index);
+    addRandomReplies(test_env, u2_index, [u5_index, u6_index]);
+
+
+    // new messages to make user 5 and 6 two messages away from increasing/decreasing characters
+    let m_count = test_env.messages.filter(m => user5._id.equals(m.author))
+        .filter(m => ((m.reactions.positive >= config.fame_threshold) && (m.reactions.negative < config.fame_threshold)))
+        .length;
+
+    let n = Math.floor(m_count / config.num_messages_reward) * config.num_messages_reward + config.num_messages_reward - 1
+    
+    while (m_count < n) {
+
+        test_env.addRandomMessages({
+            week: 1,
+            authorIndex: u5_index,
+            reaction_function: popular_reaction,
+        })
+
+        m_count++;
+    }
+
+    m_count = test_env.messages.filter(m => user6._id.equals(m.author))
+        .filter(m => ((m.reactions.negative >= config.fame_threshold) && (m.reactions.positive < config.fame_threshold)))
+        .length;
+
+    n = Math.floor(m_count / config.num_messages_reward) * config.num_messages_reward + config.num_messages_reward - 1
+
+    while (m_count < n) {
+
+        test_env.addRandomMessages({
+            week: 1,
+            authorIndex: u6_index,
+            reaction_function: unpopular_reaction,
+        })
+
+        m_count++;
+    }
+
+    // Generate a separate message for user5 and user6
+    test_env.addRandomMessages({
+        today: 1,
+        authorIndex: u5_index,
+        reaction_function: () => ({
+            positive: config.fame_threshold - 1,
+            negative: TestEnv.getRandom(0, 13),
+        }),
+    })
+
+    test_env.messages.at(-1).meta.created = new Date()
+
+    test_env.addRandomMessages({
+        today: 1,
+        authorIndex: u6_index,
+        reaction_function: () => ({
+            negative: config.fame_threshold - 1,
+            positive: TestEnv.getRandom(0, 13),
+        }),
+    })
+
+    test_env.messages.at(-1).meta.created = new Date()
     
     await test_env.saveAll();
 

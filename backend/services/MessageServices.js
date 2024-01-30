@@ -1093,7 +1093,7 @@ class MessageService {
             ((num_inf_messages + 1) % config.num_messages_reward === 0)
             && (message.publicMessage || (message.destChannel?.length))) {
 
-            user = await User.findById(message.author).pupulate('smm', 'handle');
+            user = await User.findOne({ _id: message.author }).populate('smm', '_id handle');
             
             user.charLeft.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
             user.charLeft.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
@@ -1110,7 +1110,7 @@ class MessageService {
         try {
             message = await message.save();
             if (user) {
-                user = await user.depopulate();
+                user.smm = user.smm._id;
                 user = await user.save();
             }
 
@@ -1138,7 +1138,7 @@ class MessageService {
             if (user.smm) {
                 user.smm = { handle: smm_handle }
             }
-            SquealSocket.userChaged({
+            SquealSocket.userChanged({
                 populatedUser: message.author,
                 ebody: {
                     charLeft: user.charLeft,
@@ -1193,7 +1193,7 @@ class MessageService {
             ((num_fam_messages + 1) % config.num_messages_reward === 0)
             && (message.publicMessage || (message.destChannel?.length))) {
 
-            user = await User.findById(message.author).pupulate('smm', 'handle _id');
+            user = await User.findOne({ _id: message.author }).populate('smm', '_id handle');
 
 
             user.charLeft.day += Math.max(1, Math.ceil(config.daily_quote / 100));
@@ -1206,7 +1206,7 @@ class MessageService {
         try {
             message = await message.save();
             if (user) {
-                user = await user.depopulate();
+                user.smm = user.smm._id;
                 user = await user.save();
             }
 
@@ -1233,7 +1233,7 @@ class MessageService {
             if (user.smm) {
                 user.smm = { handle: smm_handle }
             }
-            SquealSocket.userChaged({
+            SquealSocket.userChanged({
                 populatedUser: user,
                 ebody: {
                     handle: user.handle,
