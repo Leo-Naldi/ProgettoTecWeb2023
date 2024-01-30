@@ -866,6 +866,7 @@ class MessageService {
                 socket: socket,
                 smm_handle: smm_handle,
                 answering_smm: m.answering?.author.smm?.handle,
+                publicMessage: m.publicMessage,
             })
         });
 

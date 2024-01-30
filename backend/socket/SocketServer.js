@@ -14,7 +14,8 @@ class SocketServer {
     static user_namespace = /^\/user-io\/(\w+)$/;
     static pro_namespace = /^\/pro-io\/(\w+)$/;
     static admin_namespace = '/admin-io/';
-    static public_namespace = '/public-io/'
+    static public_namespace = '/public-io/';
+    static public_feed_namespace = '/public-feed-io/';
 
     constructor(expressServer) {
         this.io = new Server(expressServer, {
@@ -62,6 +63,9 @@ class SocketServer {
             logger.debug(`Attempted socket connection to public namespace`);
             next();
         })
+
+        this.publicFeedNms = this.io.of(SocketServer.public_feed_namespace);
+        this.publicFeedNms.use(SocketServer.#middleWareWrapper(SocketServer.#getAuthStrat('userAuth')));
     }
 
     // socket io middleware is in the form (socket, next)

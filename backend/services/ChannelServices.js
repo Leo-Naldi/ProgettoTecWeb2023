@@ -52,35 +52,6 @@ class ChannelServices{
             .populate('editorRequests', 'handle _id');
     }
 
-    /**
-     * Maps #makeChannelObject onto the given channel record array.
-     * 
-     * @param {Channel[]} channels Channel records to turn into objects
-     * @returns An array of channel objects
-     */
-    static #makeChannelObjectArray(channels) {
-        return channels.map(c => ChannelServices.#makeChannelObject(c));
-    }
-
-
-    static #trimChannelObject(c, reqUser) {
-        if (!((c.publicChannel) ||
-            (reqUser && reqUser?.joinedChannels.some(id => id.equals(c._id))))) {
-
-            // private channels can only be viewed by members
-            delete c.members;
-            delete c.editors;
-            delete c.memberRequests;
-            delete c.editorRequests;
-        }
-
-        return c;
-    }
-
-    static #trimChannelArray(arr, reqUser) {
-        return arr.map(c => ChannelServices.#trimChannelObject(c, reqUser));
-    }
-
     // Get all channels created by the user
     static async getUserChannels({ reqUser, handle, publicChannel }){
         let user = reqUser;
