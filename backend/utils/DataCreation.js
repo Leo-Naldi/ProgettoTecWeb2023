@@ -17,6 +17,7 @@ const LoremIpsum = require("lorem-ipsum").LoremIpsum;
 
 const _ = require('underscore');
 const Reaction = require('../models/Reactions');
+const { logger } = require('../config/logging');
 
 
 /**
@@ -72,7 +73,7 @@ class TestEnv {
      * @param {Plan[]} proPlans Array of Pro plans to use to generate pro users
      * @param {string[]} image_urls Array of image urls to use in messages
     */
-    constructor(prefix, password, num_users=0, num_channels=0, proPlans=[], image_urls=[]) {
+    constructor(prefix, password, num_users=0, num_channels=0, proPlans=[]) {
     
         this.#prefix = prefix;
 
@@ -116,14 +117,6 @@ class TestEnv {
 
         for (let i = 0; i < num_users; i++) this.addTestUser()
         for (let i = 0; i < num_channels; i++) this.addRandomChannel()
-
-        /**
-         * Array of image urls to be used in message generation.
-         * 
-         * @type {string[]}
-         * @public
-         */
-        this.image_urls = image_urls;
 
         this.reactions = [];
     }
@@ -225,7 +218,6 @@ class TestEnv {
             reactions= { positive: 0, negative: 0 }, meta = null, answeringIndex=-1,
         }) {
 
-        let image_index = -1;
         const destUser = destUserIndexes.map(i => this.users[i]._id);
         
         let destChannel = destChannelIndexes.map(i => this.channels[i]);
@@ -238,8 +230,6 @@ class TestEnv {
         const content = new Object();
 
         if (text?.length) content.text = text;
-        
-        if (image_index >= 0) content.image = this.image_urls[image_index];
 
         const m = new Message({
             author, destUser, reactions, 
@@ -318,17 +308,7 @@ class TestEnv {
     /**
      * Creates a randomized non official channel and adds it to this.channels. name, description, members
      * creators, date of creation etc are chosen at random.
-     * test_env.addRandomMessages({ 
-                    today: 1,
-                    authorIndex: author_index,
-                });
-
-                test_env.messages.at(-1).content.image = 
-                    `http://localhost:8000/image/${h}/${img.name}`;
-                test_env.messages.at(-1).publicMessage = true;
-                test_env.messages.at(-1).destUser = [];
-                test_env.messages.at(-1).destChannel = [];
-                test_env.messages.at(-1).meta.created = (new dayjs()).toDate();
+     * 
      * @param {number} creatorInd The channel's creator index, if lower than 0 the creato is selected at random.
      * @param {number} min_members The minimum number of members.
      */
@@ -419,10 +399,10 @@ class TestEnv {
         let image_prob = 0.0;
         let author = (authorIndex >= 0) ? this.users[authorIndex] : this.users[TestEnv.getRandom(0, this.users.length)];
 
-        const possible_channels = this.channels.filter(c => 
-            author.editorChannels.find(id => c._id.equals(id)));
+        const possible_channels = _.pluck(this.channels.filter(c => 
+            author.editorChannels.find(id => c._id.equals(id))), '_id');
 
-        const possible_channels_indexes = possible_channels.map(c => this.cidti(c._id));
+        const possible_channels_indexes = possible_channels.map(cid => this.cidti(cid));
 
         const addMiniBulk = (period, amount) => {
 
@@ -567,13 +547,20 @@ class TestEnv {
      * @async
      */
     async saveAll() {
+
         await Promise.all([
-            ...this.users.map(u => u.save()),
             ...this.channels.map(c => c.save()),
+            ...this.users.map(u => u.save()),
             ...this.messages.map(m => m.save()),
             ...this.proPlans.map(p => p.save()),
             ...this.reactions.map(r => r.save()),
         ]);
+
+        this.channels = [];
+        this.users = [];
+        this.messages = [];
+        this.proPlans = [];
+        this.reactions = [];
     }
 
     /**

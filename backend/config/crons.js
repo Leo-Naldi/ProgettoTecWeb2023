@@ -6,6 +6,7 @@ const makeToken = require('../utils/makeToken.js');
 const config = require('./index.js');
 const { logger } = require('./logging.js');
 const dayjs = require('dayjs');
+const _ = require('underscore');
 
 const base = 'localhost:8000';
 const cron_handle = '__cron';
@@ -145,6 +146,7 @@ async function renewSubscriptions(socket) {
 }
 
 /**
+ * Function to reset all users's daily/weekly/montly characters.
  * 
  * @param {('day'|'week'|'month')} field the character field to update
  */
@@ -170,6 +172,14 @@ async function resetChars(field, socket) {
 
     await Promise.all(users.map(u => {
         u.charLeft[field] = quote + (u.subscription?.proPlan.extraCharacters[field] || 0)
+
+        if (u.handle === '__cron') {
+            u.charLeft[field] = 999999999;
+        }
+
+        if (_.contains(['fvPro', 'Nome Buffo1', 'Nome Buffo2'], u.handle) && (field === 'day')) {
+            u.charLeft.day = 50;
+        }
 
         if (socket) {
             SquealSocket.userChanged({
@@ -209,8 +219,7 @@ class SquealCrons {
     constructor(socket) {
 
         this.cat_cron = new CronJob(
-            '0 */10 * * * *', // every 10 minutes
-            // '*/10 * * * * *',
+            '0 0 * * * *', // every hour
             addSocketContext(getrandomCatFact, socket),
         )
 
@@ -218,8 +227,7 @@ class SquealCrons {
          * Cron job that runs every 10 minutes and executes {@link getRandomDogPicture}.
          */
         this.img_cron = new CronJob(
-            '0 */10 * * * *', // every 10 minutes
-            // '*/10 * * * * *',
+            '0 0 * * * *', // every hour
             addSocketContext(getRandomDogPicture, socket),
         )
 

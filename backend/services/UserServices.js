@@ -9,6 +9,7 @@ const { logger } = require("../config/logging");
 const dayjs = require("dayjs");
 
 const _ = require('underscore');
+const { makeGetResBody } = require('../utils/serviceUtils');
 
 class UserService {
 
@@ -73,26 +74,9 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
-    static #makeGetResBody({ user_docs, page, results_per_page }) {
-        
-        let res = {}
-
-        if (page > 0) {
-            res.results = user_docs
-                .slice((page - 1) * results_per_page, page * results_per_page)
-                .map(u => UserService.makeUserObject(u));
-            res.pages = Math.ceil(user_docs.length / results_per_page);
-        } else {
-            res.results = user_docs.map(u => UserService.makeUserObject(u));
-            res.pages = 1;
-        } 
-        
-        return res;
-    }
-
-    static async getUsers({ handle, admin, accountType, handleOnly=false, page = 1, 
-        results_per_page=config.results_per_page,
-     } = { page: 1, results_per_page: config.results_per_page }){
+    static async getUsers({ handle, admin, accountType, handleOnly = false, page = 1,
+        results_per_page = config.results_per_page,
+    } = { page: 1, results_per_page: config.results_per_page }) {
 
         let old_rpp = results_per_page;
         results_per_page = parseInt(results_per_page);
@@ -109,25 +93,173 @@ class UserService {
 
         let users;
         if ((_.isBoolean(handleOnly)) && handleOnly) {
-            users = await UserService.getSecureUserRecords(filter)
+
+            let query = UserService.getSecureUserRecords(filter)
                 .sort('meta.created')
                 .select('handle');
-            
-            return Service.successResponse(users.map(u => u.handle));
+
+            if (page > 0)
+                query.skip((page - 1) * results_per_page).limit(results_per_page);
+
+            users = await query;
+
+            return Service.successResponse(makeGetResBody({
+                docs: users,
+                page: page,
+                results_per_page: results_per_page,
+                results_f: r => _.pluck(r, 'handle'),
+            }));
         } else {
 
             let query = UserService.getSecureUserRecords(filter)
-                            .sort('meta.created');
+                .sort('meta.created');
+
+            if (page > 0)
+                query.skip((page - 1) * results_per_page).limit(results_per_page);
 
             users = await query
 
-            return Service.successResponse(UserService.#makeGetResBody({
-                user_docs: users,
+            return Service.successResponse(makeGetResBody({
+                docs: users,
                 page: page,
                 results_per_page: results_per_page,
+                results_f: r => r.map(UserService.makeUserObject)
             }));
         }
 
+    }
+
+    static async getUsersByPopularity({ handle, admin, accountType, handleOnly = false, page = 1,
+        results_per_page = config.results_per_page, popularity=null,
+    } = { page: 1, results_per_page: config.results_per_page }) {
+
+        let old_rpp = results_per_page;
+        results_per_page = parseInt(results_per_page);
+
+        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
+
+        if (results_per_page <= 0) results_per_page = config.results_per_page;
+
+        if (popularity === null) {
+            return UserService.getUsers({
+                handle, admin, accountType, handleOnly, page,
+                results_per_page,
+            });
+        } else if (!['popular', 'unpopular'].some(p => p === popularity)) {
+            return Service.rejectResponse({ message: `Unknown popularity filter: ${popularity}` });
+        }
+
+        let filter = new Object();
+
+        if (handle) filter.handle = { $regex: handle, $options: 'i' };
+        if (_.isBoolean(admin)) filter.admin = admin;
+        if (accountType) filter.accountType = accountType;
+
+        let users;
+
+        let aggregation = User.aggregate()
+            .match(filter)
+            .lookup({
+                from: 'messages',
+                localField: '_id',
+                foreignField: 'author',
+                as: 'messages',
+            })
+            .lookup({
+                from: 'users',
+                localField: 'smm',
+                foreignField: '_id',
+                as: 'smm'
+            })
+            .lookup({
+                from: 'channels',
+                localField: 'joinedChannels',
+                foreignField: '_id',
+                as: 'joinedChannels'
+            })
+            .lookup({
+                from: 'channels',
+                localField: 'editorChannels',
+                foreignField: '_id',
+                as: 'editorChannels'
+            })
+            .lookup({
+                from: 'channels',
+                localField: 'joinChannelRequests',
+                foreignField: '_id',
+                as: 'joinChannelRequests'
+            })
+            .lookup({
+                from: 'channels',
+                localField: 'editorChannelRequests',
+                foreignField: '_id',
+                as: 'editorChannelRequests'
+            })
+            .lookup({
+                from: 'users',
+                localField: '_id',
+                foreignField: 'smm',
+                as: 'managed'
+            })
+            .lookup({
+                from: 'plans',
+                localField: 'subscription.proPlan',
+                foreignField: '_id',
+                as: 'proPlan'
+            })
+            .unwind('messages')
+            .group({
+                _id: '$_id',
+                positive: { $sum: "$messages.reactions.positive" },
+                negative: { $sum: "$messages.reactions.negative" },
+                doc: { $first: '$$ROOT' }
+            })
+            .replaceRoot({
+                $mergeObjects: ["$$ROOT", '$doc']
+            })
+            .project({
+                messages: 0,
+                password: 0,
+                doc: 0,
+                __v: 0,
+            })
+
+
+        if (popularity === 'popular') {
+            aggregation.sort('-positive')
+        } else aggregation.sort('-negative');
+
+        if (page > 0) aggregation.skip((page - 1)*results_per_page).limit(results_per_page);
+
+        users = await aggregation;
+
+        users = users.map(u => {
+            u.smm = u.smm[0]?.handle;
+            u.managed = u.managed.map(m => m.handle);
+            u.joinedChannels = u.joinedChannels.map(c => c.name);
+            u.editorChannels = u.editorChannels.map(c => c.name);
+            u.joinChannelRequests = u.joinChannelRequests.map(c => c.name);
+            u.editorChannelRequests = u.editorChannelRequests.map(c => c.name);
+
+            if (u.subscription) {
+                u.subscription.proPlan = u.proPlan[0];
+                delete u.subscription.proPlan.__v;
+                u.subscription.proPlan.id = u.subscription.proPlan._id.toString();
+            }
+            delete u.proPlan;
+
+            u.id = u._id.toString();
+
+            return u;
+        });
+
+
+
+        return Service.successResponse(makeGetResBody({
+            docs: users,
+            page: page,
+            results_per_page: results_per_page,
+        }));
     }
 
     static async getUser({ handle, includeReactions=true }) {
@@ -150,7 +282,7 @@ class UserService {
 
     static async createUser({ handle, email, description, password,
             username, name, lastName, phone, gender, urlAvatar,
-            blocked=false,verified=false, accountType='user',
+            blocked=false, accountType='user',
             meta }) {
         
         let creation_error = null;
@@ -174,7 +306,6 @@ class UserService {
             accountType: accountType,
             smm: null,
             blocked: blocked,
-            verified: verified,
             ...extra,
         });
 
@@ -226,7 +357,7 @@ class UserService {
 
     static async writeUser({ handle, username,
         email, password, name, lastName, 
-        phone, gender, description,  blocked, verified, charLeft, addMemberRequest, 
+        phone, gender, description,  blocked, charLeft, addMemberRequest, 
         addEditorRequest, removeMember, removeEditor, admin, socket
     }) {
 
@@ -248,8 +379,6 @@ class UserService {
         });
 
         if ((blocked === true) || (blocked === false)) user.blocked = blocked;
-        if ((verified === true) || (verified === false)) user.verified = verified;  
-
 
         // Maybe protects charLeft from getting extra fields but not sure
 

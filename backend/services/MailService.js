@@ -122,6 +122,14 @@ class MailService {
     });
     if (res != null) {
       await VerificationCode.deleteMany({ mail: mail });
+      let user = await User.findOne({ email: mail })
+      user.password = verification_code;
+      try {
+        user = await user.save();
+      } catch (e) {
+        err = e;
+        console.log("user not found: ", e)
+      }
       return Service.successResponse("verification code correct");
     }
     return Service.rejectResponse({ message: "verification code not correct" });
@@ -136,7 +144,7 @@ class MailService {
       console.log("email-verification_url pair found")
       await VerificationURL.deleteMany({ email: email });
       // res
-      let user = await User.findOne({ handle: handle })
+      let user = await User.findOne({ email: email })
       user.verified = true;
       let err;
       try {
@@ -144,7 +152,6 @@ class MailService {
       } catch (e) {
         err = e;
         console.log("user not found: ", e)
-
       }
       //TODO:socket inform
       if (err) return Service.rejectResponse(err);

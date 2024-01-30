@@ -13,6 +13,10 @@ const SquealSocket = require('../socket/Socket');
 const Reaction = require('../models/Reactions');
 const dayjs = require('dayjs');
 const UserService = require('./UserServices');
+const { makeGetResBody } = require('../utils/serviceUtils');
+const { deleteImage, deleteVideo } = require('../utils/deleteMedia');
+const { readFile } = require('fs/promises');
+const MessagesAggregate = require('../utils/MessagesAggregate');
 
 /*
     Refer to doc/yaml/messages.yaml
@@ -26,7 +30,14 @@ const allowedSortFields = [
     'positive',
     'reactions.negative',
     'negative',
+    '-meta.created',
+    '-created',
+    '-reactions.positive',
+    '-positive',
+    '-reactions.negative',
+    '-negative',
 ]
+
 
 class MessageService {
 
@@ -38,13 +49,29 @@ class MessageService {
      * @returns The query or the query filter
      */
     static async _addQueryChains({ 
-        query=Message.find(), popular, unpopular, controversial, risk,
-        before, after, dest,
-        official=null, mentions=[], 
-        keywords=[], text='', author_filter='',
-        reqUser=null, author=null, sortField=null, publicMessage=null, filterOnly=false,
-        answering=null } = 
-        { query: Message.find(), page: 1, 
+        query=Message.find(), 
+        popular, 
+        unpopular, 
+        controversial, 
+        risk,
+        before, 
+        after, 
+        dest,
+        official=null, 
+        mentions=[], 
+        keywords=[], 
+        text='', 
+        author_filter='',
+        reqUser=null, 
+        author=null, 
+        sortField=null, 
+        publicMessage=null, 
+        filterOnly=false,
+        answering=null ,
+        page,
+        results_per_page,
+    } = 
+        { query: Message.find(), 
             official: null, mentions: [], 
             reqUser: null, author: null, 
             sortField: null, filterOnly: false,
@@ -103,27 +130,34 @@ class MessageService {
             
             let users = [], channels =[];
 
-            // only private messages you can see are the ones addressed to you or a channel you
-            // are a member of
-
             if (handles?.length) {
+                // some of the given handles did not exist
 
                 users = await User.find({ handle: { $in: handles.map(h => h.slice(1)) } });
+                
+                if (users.length !== handles.length) {
+                    return Message.find({ _id: null }); // will always return []
+                }
             }
 
             if (names?.length) {
+                // some of the given names did not exist
+
                 channels = await Channel.find({ name: { $in: names.map(n => n.slice(1)) } });
+                if (channels.length !== names.length) {
+                    return Message.find({ _id: null }); // will always return []
+                }
             }
 
             if (channels?.length) {
 
-                 query.where('destChannel').in(channels.map(c => c._id));
+                query.where('destChannel').in(_.pluck(channels, '_id'));
 
             }
             
             if (users?.length) {
 
-                query.where('destUser').in(users.map(u => u._id));
+                query.where('destUser').in(_.pluck(users, '_id'));
             } 
         } 
 
@@ -149,13 +183,13 @@ class MessageService {
 
             if (_.isString(mentions)) {
                 mentions = [mentions]
-            } else if (!Array.isArray(mentions)) {
+            } else if (!_.isArray(mentions)) {
                 mentions = []
             }
 
             if (_.isString(keywords)) {
                 keywords = [keywords]
-            } else if (!Array.isArray(keywords)) {
+            } else if (!_.isArray(keywords)) {
                 keywords = []
             }
 
@@ -206,6 +240,7 @@ class MessageService {
         }   
 
         if ((_.isString(author_filter)) && (author_filter?.length)) {
+            
             let uids = await User.find({
                 handle: { $regex: author_filter, $options: 'i' }
             }).select('_id');
@@ -229,6 +264,15 @@ class MessageService {
                 case 'negative':
                     query.sort('reactions.negative')
                     break;
+                case '-created':
+                    query.sort('-meta.created')
+                    break;
+                case '-positive':
+                    query.sort('-reactions.positive')
+                    break;
+                case '-negative':
+                    query.sort('-reactions.negative')
+                    break;
                 default:
                     query.sort(sortField);
                     break;
@@ -237,11 +281,12 @@ class MessageService {
             query.sort('-meta.created')
         }
 
-        let r = MessageService.#populateMessageQuery(query);
+        if (page > 0)
+            query.skip(page * results_per_page).limit(results_per_page)
 
-        return r;
-
+        return MessageService.#populateMessageQuery(query);
     }
+
 
     static #makeMessageObject(message, deleteAuthor = false) {
         let res = message.toObject?.() || message;
@@ -275,7 +320,21 @@ class MessageService {
         return messageArr.map(m => MessageService.#makeMessageObject(m, deleteAuthor));
     }
 
-    static #populateMessageQuery(query) {
+    static #populateMessageQuery(query, answering= false) {
+        if (answering) {
+            query.populate({
+                path: 'answering',
+                populate: {
+                    path: 'author',
+                    select: '_id handle smm',
+                    populate: {
+                        path: 'smm',
+                        select: '_id handle',
+                    }
+                }
+            })
+        }
+
         return query
             .populate({
                 path: 'author',
@@ -296,33 +355,10 @@ class MessageService {
             .populate('destUser', 'handle _id')
     }
 
-    static async #updateImpressions(messages, reqUser) {
-        const update_ids = messages
-            .filter(m => !m.author._id.equals(reqUser?._id))
-            .map(m => m._id);
-
+    static async #updateImpressions(update_ids) {
+        
         await Message.updateMany({ _id: { $in: update_ids } },
             { $inc: { 'meta.impressions': 1 } });
-    }
-
-    static #makeGetResBody({ message_docs, page, results_per_page, deleteAuthor=false }) {
-
-        let res = {}
-
-        if (page > 0) {
-            res.results = message_docs
-                .slice((page - 1) * results_per_page, page * results_per_page)
-                .map(m => MessageService.#makeMessageObject(m, deleteAuthor));
-            
-                res.pages = Math.ceil(message_docs.length / results_per_page);
-        } else {
-            res.results = message_docs.map(m => MessageService.#makeMessageObject(m, deleteAuthor));
-            res.pages = 1;
-        }
-
-        res.results.map(m => m.meta.impressions += 1)
-
-        return res;
     }
 
     /**
@@ -336,10 +372,36 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getMessages({ reqUser=null, page=1, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage, answering, text='', author='',
-        mentions = [], keywords = [], results_per_page=config.results_per_page, official=null,
-    }={ page: 1, reqUser: null }) {
+    static async getMessages({ 
+        reqUser=null, 
+        page=1, 
+        results_per_page=config.results_per_page, 
+        popular, 
+        unpopular, 
+        controversial, 
+        risk,
+        before, 
+        after, 
+        dest, 
+        publicMessage, 
+        answering, 
+        text='', 
+        author='',
+        mentions = [], 
+        keywords = [], 
+        official=null,
+        sort="-created",
+    } = {
+        page: 1, 
+        reqUser: null, 
+        results_per_page: config.results_per_page, 
+        text: '',
+        author: '',
+        mentions: [],
+        keywords: [],
+        official: null,
+        sort: "created", 
+    }) {
         
         let old_rpp = results_per_page;
         results_per_page = parseInt(results_per_page);
@@ -348,28 +410,41 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        let query = await MessageService._addQueryChains({ query: Message.find(),
-            popular, unpopular, controversial, risk,
-            before, after, dest, reqUser, publicMessage, answering,
-            text, mentions, keywords, official, author_filter: author,
-        })
+        let aggr = new MessagesAggregate();
 
-        let res = await query;
+        if ((answering) && (!mongoose.isValidObjectId(answering))) {
+            return Service.successResponse({
+                results: [],
+                pages: 0,
+            })
+        }
 
-        let updates;
+        aggr.lookupDestChannel();
+        aggr.lookupDestUser();
+        aggr.lookupAuthor();
+        aggr.matchFields({
+            reqUser, 
+            publicMessage, 
+            official,
+            answering, 
+            mentions, 
+            keywords,
+            text, 
+            author_filter: author,
+        });
+        aggr.matchFame(popular, unpopular, controversial, risk);
+        aggr.matchTimeFrame(before, after);
+        aggr.matchDest(dest);
+        aggr.sort(sort);
+        aggr.countAndSlice(page, results_per_page);
 
-        if (page > 0)
-            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
-        else
-            updates = res;
+        let res = await aggr.run();
 
-        await MessageService.#updateImpressions(updates, reqUser);
+        let updates = MessagesAggregate.get_update_ids(res, reqUser);
 
-        return Service.successResponse(MessageService.#makeGetResBody({
-            message_docs: res,
-            page: page,
-            results_per_page: results_per_page,
-        }));
+        MessageService.#updateImpressions(updates);
+
+        return Service.successResponse(aggr.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -378,8 +453,13 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getChannelMessages({ reqUser, name, reqChannel,
-        page=1, results_per_page=config.results_per_page }){
+    static async getChannelMessages({ 
+        reqUser, 
+        name, 
+        reqChannel,
+        page=1, 
+        results_per_page=config.results_per_page 
+    }){
         
         let old_rpp = results_per_page;
         results_per_page = parseInt(results_per_page);
@@ -388,25 +468,37 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        const query = MessageService.#populateMessageQuery(
+        let query;
+        
+        if (page > 0) {
+
+            query = MessageService.#populateMessageQuery(
+                        Message.find({
+                            destChannel: reqChannel._id,
+                        }).skip(page * results_per_page).limit(results_per_page)
+                    );
+        } else {
+            query = MessageService.#populateMessageQuery(
                 Message.find({
                     destChannel: reqChannel._id,
-                }));
-        
+                })
+            );
+        }
+
+        if (page > 0)
+            query.skip(page * results_per_page).limit(results_per_page);
+
         let res = await query;
 
-        let updates;
-        if (page > 0)
-            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
-        else
-            updates = res;
+        let updates = res.filter(m => !m.author._id.equals(reqUser?._id));
 
-        await MessageService.#updateImpressions(updates, reqUser);
+        MessageService.#updateImpressions(updates);
 
-        return Service.successResponse(MessageService.#makeGetResBody({
-            message_docs: res,
+        return Service.successResponse(makeGetResBody({
+            docs: res,
             page: page,
             results_per_page: results_per_page,
+            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
         }));
     }
 
@@ -416,8 +508,22 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns A message object array
      */
-    static async getUserMessages({ page = 1, reqUser, handle, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage, answering, results_per_page = config.results_per_page, }){
+    static async getUserMessages({ 
+        page = 1, 
+        reqUser, 
+        handle, 
+        popular, 
+        unpopular, 
+        controversial, 
+        risk,
+        before, 
+        after, 
+        dest, 
+        publicMessage, 
+        answering, 
+        results_per_page = config.results_per_page, 
+        sort="-created",
+    }){
         
         if (!handle) return Service.rejectResponse({ massage: "Must provide valid user handle" })
         
@@ -432,27 +538,34 @@ class MessageService {
 
         let user = await User.findOne({ handle: handle });
 
-        let messagesQuery = await MessageService._addQueryChains({ 
-            popular, unpopular, controversial, risk,
-            before, after, dest, page, reqUser, author: user,
-            publicMessage, answering, reqUser, results_per_page,
-         })
+        if (!user) {
+            return Service.rejectResponse({ message: `No user named ${handle}` });
+        }
 
-        let res = await messagesQuery;
+        let aggr = new MessagesAggregate();
+        
+        aggr.lookupAuthor();
+        aggr.matchFields({
+            reqUser,
+            publicMessage,
+            answering,
+            author: user,
+        });
+        aggr.matchFame(popular, unpopular, controversial, risk);
+        aggr.matchTimeFrame(before, after);
+        aggr.lookupDestChannel();
+        aggr.lookupDestUser();
+        aggr.matchDest(dest);
+        aggr.sort(sort);
+        aggr.countAndSlice(page, results_per_page);
 
-        let updates;
-        if (page > 0)
-            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
-        else
-            updates = res;
+        let res = await aggr.run();
 
-        await MessageService.#updateImpressions(updates, reqUser);
+        let updates = MessagesAggregate.get_update_ids(res, reqUser);
 
-        return Service.successResponse(MessageService.#makeGetResBody({
-            message_docs: res,
-            page: page,
-            results_per_page: results_per_page,
-        }));
+        MessageService.#updateImpressions(updates);
+
+        return Service.successResponse(aggr.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -492,8 +605,18 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns An object containing the message's stats
      */
-    static async getMessagesStats({ reqUser, handle, popular, unpopular, controversial, risk,
-        before, after, dest, publicMessage }) {
+    static async getMessagesStats({ 
+        reqUser, 
+        handle, 
+        popular, 
+        unpopular, 
+        controversial, 
+        risk,
+        before, 
+        after, 
+        dest, 
+        publicMessage 
+    }) {
         
         let author = null;
 
@@ -553,6 +676,20 @@ class MessageService {
 
         let user = reqUser;
 
+        if ((!content) || (!_.isObject(content))) {
+            return Service.rejectResponse({ message: "Must provide a valid content object" });
+        }
+
+        content = _.pick(content, 'text', 'image', 'geo', 'video');
+
+        if (_.isEmpty(content)) {   
+            return Service.rejectResponse({ message: "Allowed content fields are 'text', 'image', 'geo', 'video'" });
+        }
+
+        if ((content.video) && (content.image)) {
+            return Service.rejectResponse({ message: "A squeal cannot contain both an image and a video." });
+        }
+
         let destUser = dest?.filter(h => h.charAt(0) === '@').map(h => h.slice(1));
         let destChannel = dest?.filter(h => h.charAt(0) === '§').map(h => h.slice(1));
 
@@ -588,21 +725,31 @@ class MessageService {
 
         // Messaggi privati indirizzati a soli utenti non diminuiscono la quota
         let used_chars = false;
-        if ((publicMessage) || (destChannel?.length)) {
+        if ((publicMessage) || (destChannel.length)) {
 
             let min_left = Math.min(...Object.values(user.toObject().charLeft));
+
+            let required_chars = 0;
+
+            if (content.text) required_chars += content.text.length;
+            if (content.image) required_chars += 125;
+            if (content.geo) required_chars += 125;
+            if (content.video) required_chars += 125;
     
-            if (content.text && (min_left < content.text.length))
+            if (required_chars && (min_left < required_chars))
                 return Service.rejectResponse({
-                    message: `Attempted posting a message of ${content.text.length} characters with ${min_left} characters remaining`,
+                    message: `Attempted posting a message requiring ${required_chars} characters with 
+                        ${min_left} characters remaining. (Friendly reminder that images and geos are 125 
+                        characters each)`,
                 }, 418);
 
-            if (content.text) {
-                user.charLeft.day -= content.text.length;
-                user.charLeft.week -= content.text.length;
-                user.charLeft.month -= content.text.length;
-                used_chars = true;
+            user.charLeft = {
+                day: user.charLeft.day - required_chars,
+                week: user.charLeft.week - required_chars,
+                month: user.charLeft.month - required_chars,
             }
+            
+            used_chars = required_chars > 0;
         }
 
         let answering_record;
@@ -690,7 +837,9 @@ class MessageService {
      */
     static async deleteUserMessages({ reqUser, socket }) {
         
-        let messages = await MessageService.#populateMessageQuery(Message.find({ author: reqUser._id }))
+        let messages = await MessageService.#populateMessageQuery(Message.find({ author: reqUser._id }), true);
+
+        let image_ids = [];
 
         messages.map(m => {
             let smm_handle = m.author.smm?.handle;
@@ -704,16 +853,37 @@ class MessageService {
                 })
             })
 
+            if (m.answering) {
+                destHandles.add(m.answering.author.handle);
+            }
+
+            if (m.content.image) {
+                image_ids.push(m.content.image.split('/').pop());
+            }
+
             SquealSocket.messageDeleted({
                 id: m._id.toString(),
                 destHandles: destHandles,
                 socket: socket,
                 smm_handle: smm_handle,
+                answering_smm: m.answering?.author.smm?.handle,
             })
-        })
+        });
 
+        
         await Reaction.deleteMany({ message: { $in: messages.map(m => m._id) } })
         await Message.deleteMany({ author: reqUser._id });
+        
+        let gridfs_bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+            bucketName: 'images',
+        })
+        
+        await Promise.all(image_ids.map(async id => {
+            let obj_id = new mongoose.mongo.ObjectId(id)
+
+            await gridfs_bucket.delete(obj_id);
+            logger.debug(`Deleted image ${id}`);
+        }));
 
         return Service.successResponse();
     }
@@ -721,28 +891,36 @@ class MessageService {
     /**
      * Deletes a message
      */
-    static async deleteMessage({ id, socket }) {
+    static async deleteMessage({ reqUser, id, socket }) {
 
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
 
-        const message = await MessageService.#populateMessageQuery(Message.findById(id));
+        const message = await MessageService.#populateMessageQuery(Message.findOne({
+            _id: id,
+            author: reqUser._id,
+        }), true);
 
         if (message) {
 
             // delete local image associated to the user's message
-            if (message.content.image && message.content.image!=""){
-    
-                const imgPath = message.content.image;
-                //http://localhost:8000/f_user3/be4caaa4722f46f0bcae54903_picture.png
-                // imgPath = "files/f_user3/be4caaa4722f46f0bcae54903_picture.png"
-                let paths = imgPath.split("/");
-                let paths1 = paths.slice(paths.length - 2, paths.length)
-                let final_path = 'files/'+paths1.join('/')
-                fs.unlink(final_path, (err) => {
-                    if(err) throw err;
-                });
+            if (message.content.image){
+                let id = message.content.image.split('/').pop();
+                
+                await deleteImage(id);
+
+                logger.debug(`Deleted image ${id}`);
             }
+            
+            // delete local video associated to the user's message
+            if (message.content.video) {
+                let id = message.content.video.split('/').pop();
+
+                await deleteVideo(id);
+
+                logger.debug(`Deleted video  ${id}`);
+            }
+
         
             //logger.debug(message)
 
@@ -752,6 +930,7 @@ class MessageService {
             const official = message.official;
 
             message.destChannel.map(c => c.members.map(c => dests.add(c.handle)));
+            if (message.answering) dests.add(message.answering.author);
 
             await Reaction.deleteMany({ message: message._id });
             await message.deleteOne();
@@ -765,27 +944,42 @@ class MessageService {
                 publicMessage: public_message,
                 official: official,
                 smm_handle: smm_handle,
+                answering_smm: message.answering?.author.smm?.handle,
             })
     
             return Service.successResponse();
         }
 
-        return Service.rejectResponse({ message: `No message with id ${id}` });
-
+        return Service.rejectResponse({ message: `No message with id ${id} from user @${reqUser.handle}` });
     }
 
     /**
      * Modifies a message.
      */
-    static async postMessage({ id, reactions=null, text=null, socket }) {
+    static async postMessage({ reqUser, handle, id, reactions=null, text=null, dest=null, socket }) {
         
         if (!mongoose.isObjectIdOrHexString(id)) 
             return Service.rejectResponse({ message: "Invalid message id" })
     
-        let message = await Message.findById(id);
-        let ebody = new Object()
+        let message = await Message.findById(id).populate({
+            path: 'author',
+            select: 'handle _id editorChannels',
+            populate: {
+                path: 'editorChannels',
+                select: 'name _id',
+            }
+        });
 
-        if (!message) return Service.rejectResponse({ message: 'Message not found' })
+        if ((!message) || (message.author.handle !== handle)) {
+            return Service.rejectResponse({ message: `No message with id ${id} from user @${handle}` });
+        }
+        
+
+        let editor = _.pluck(message.author.editorChannels, "name");
+
+        message.author = message.author._id;
+        
+        let ebody = new Object()
 
         if ((reactions) && (('positive' in reactions) || ('negative' in reactions))) {
 
@@ -811,6 +1005,27 @@ class MessageService {
             };
         }
 
+        if (_.isArray(dest)) {
+
+            let dest_users = dest.filter(d => d.charAt(0) === '@').map(d => d.slice(1));
+            let dest_channel = dest.filter(d => d.charAt(0) === '§').map(d => d.slice(1));
+
+            let users = await User.find({ handle: { $in: dest_users } });
+            let channels = await Channel.find({ name: { $in: dest_channel } });
+
+            if (!reqUser.admin) {
+                channels = channels.filter(c => editor.some(cn => cn === c.name));
+            }
+
+            message.destUser = _.pluck(users, '_id');
+            message.destChannel = _.pluck(channels, '_id');
+
+            ebody.dest = [
+                ..._.pluck(users, 'handle').map(h => `@${h}`),
+                ..._.pluck(channels, 'name').map(n => `§${n}`)
+            ];
+        }
+
         ebody.id = id;
 
         let err = null;
@@ -820,7 +1035,7 @@ class MessageService {
             err = e;
         }
 
-        let message_record = await MessageService.#populateMessageQuery(Message.findById(id));
+        let message_record = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
         SquealSocket.messageChanged({
             populatedMessage: message_record,
@@ -831,7 +1046,7 @@ class MessageService {
         if (err) 
             return Service.rejectResponse({ message: 'Reaction object not valid' });
         
-        return Service.successResponse();
+        return Service.successResponse(MessageService.#makeMessageObject(message_record));
     }
 
     /**
@@ -905,12 +1120,13 @@ class MessageService {
         if (err)
             return Service.rejectResponse(err);
 
-        message = await MessageService.#populateMessageQuery(Message.findById(id));
+        message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
 
-        SquealSocket.reactionRecived({
+        SquealSocket.messageChanged({
             populatedMessage: message,
-            type: 'negative',
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
             socket: socket,
         });
 
@@ -999,14 +1215,15 @@ class MessageService {
         if (err)
             return Service.rejectResponse(err);
 
-        message = await MessageService.#populateMessageQuery(Message.findById(id));
+        message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
     
-        SquealSocket.reactionRecived({
+        SquealSocket.messageChanged({
             populatedMessage: message,
-            type: 'positive',
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
             socket: socket,
-        }); 
+        });
 
         if (user) {
             if (user.smm) {
@@ -1065,11 +1282,12 @@ class MessageService {
         if (err)
             return Service.rejectResponse(err);
 
-        message = await MessageService.#populateMessageQuery(Message.findById(id));
+        message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
-        SquealSocket.reactionDeleted({
+        SquealSocket.messageChanged({
             populatedMessage: message,
-            type: 'negative',
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
             socket: socket,
         });
 
@@ -1115,13 +1333,173 @@ class MessageService {
         if (err)
             return Service.rejectResponse(err);
 
-        message = await MessageService.#populateMessageQuery(Message.findById(id));
+        message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
-        SquealSocket.reactionDeleted({
+        SquealSocket.messageChanged({
             populatedMessage: message,
-            type: 'positive',
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
             socket: socket,
         });
+
+        return Service.successResponse();
+    };
+
+    /**
+     * Adds a dislike to a message for non-logged in users.
+     */
+    static async unregisteredAddNegativeReaction({ id, socket }) {
+
+        if (!mongoose.isObjectIdOrHexString(id))
+            return Service.rejectResponse({ message: "Invalid message id" })
+
+        let message = await Message.findById(id);
+
+        if (!((message) && (message?.official))) {
+            return Service.rejectResponse({ message: "Id not found" });
+        }
+
+        const num_inf_messages = await Message.find({ author: message.author._id })
+            .byPopularity('unpopular').count();
+
+        message.reactions.negative += 1;
+
+        let user = null;
+
+        if ((message.reactions.negative === config.fame_threshold) &&
+            ((num_inf_messages + 1) % config.num_messages_reward === 0)
+            && (message.publicMessage || (message.destChannel?.length))) {
+
+            user = await User.findById(message.author).pupulate('smm', 'handle');
+
+            user.charLeft.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
+            user.charLeft.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
+            user.charLeft.month -= Math.max(1, Math.ceil(config.monthly_quote / 100));
+
+            user.charLeft.day = Math.max(user.charLeft.day, 0);
+            user.charLeft.week = Math.max(user.charLeft.week, 0);
+            user.charLeft.month = Math.max(user.charLeft.month, 0);
+        }
+
+        let err = null;
+
+        let smm_handle = user?.smm?.handle;
+        try {
+            message = await message.save();
+            if (user) {
+                user = await user.depopulate();
+                user = await user.save();
+            }
+
+        } catch (e) {
+            err = e;
+            logger.error(`AddNegativeReaction Error: ${e.message}`);
+        }
+
+        if (err)
+            return Service.rejectResponse(err);
+
+        message = await MessageService.#populateMessageQuery(Message.findById(id), true);
+
+
+        SquealSocket.messageChanged({
+            populatedMessage: message,
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
+            socket: socket,
+        });
+
+        if (user) {
+            if (user.smm) {
+                user.smm = { handle: smm_handle }
+            }
+            SquealSocket.userChaged({
+                populatedUser: message.author,
+                ebody: {
+                    charLeft: user.charLeft,
+                },
+                socket: socket,
+            })
+        }
+
+        return Service.successResponse();
+    };
+
+    /**
+     * Adds a like to a message for non-logged in users.
+     */
+    static async unregisteredAddPositiveReaction({ id, socket }) {
+        if (!mongoose.isValidObjectId(id)) {
+
+            logger.error(`addPositiveReaction: ${id} is not a valid id`)
+            return Service.rejectResponse({ message: "Invalid message id" });
+        }
+
+        let message = await Message.findById(id);
+
+        if (!((message) && (message?.official))) {
+            logger.error(`addPositiveReaction: no message with id ${id}`)
+            return Service.rejectResponse({ message: "Id not found" });
+        }
+
+        const num_fam_messages = await Message.find({ author: message.author })
+            .byPopularity('popular').count();
+
+        message.reactions.positive += 1;
+
+        let user = null;
+
+        if ((message.reactions.positive === config.fame_threshold) &&
+            ((num_fam_messages + 1) % config.num_messages_reward === 0)
+            && (message.publicMessage || (message.destChannel?.length))) {
+
+            user = await User.findById(message.author).pupulate('smm', 'handle _id');
+
+
+            user.charLeft.day += Math.max(1, Math.ceil(config.daily_quote / 100));
+            user.charLeft.week += Math.max(1, Math.ceil(config.weekly_quote / 100));
+            user.charLeft.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
+        }
+
+        let err = null;
+        let smm_handle = user?.smm?.handle;
+        try {
+            message = await message.save();
+            if (user) {
+                user = await user.depopulate();
+                user = await user.save();
+            }
+        } catch (e) {
+            err = e;
+            logger.error(`AddPositiveReaction Error: ${e.message}`);
+        }
+
+        if (err)
+            return Service.rejectResponse(err);
+
+        message = await MessageService.#populateMessageQuery(Message.findById(id), true);
+
+
+        SquealSocket.messageChanged({
+            populatedMessage: message,
+            populatedMessageObject: MessageService.#makeMessageObject(message),
+            ebody: { id: message.id, reactions: message.reactions },
+            socket: socket,
+        });
+
+        if (user) {
+            if (user.smm) {
+                user.smm = { handle: smm_handle }
+            }
+            SquealSocket.userChaged({
+                populatedUser: user,
+                ebody: {
+                    handle: user.handle,
+                    charLeft: user.charLeft,
+                },
+                socket: socket,
+            })
+        }
 
         return Service.successResponse();
     };
@@ -1180,26 +1558,33 @@ class MessageService {
 
         reactions = reactions.filter(r => r.message !== null);
 
-        let query = MessageService.#populateMessageQuery(Message.find({
-            _id: { $in: reactions.map(r => r.message._id) },
-        })).sort('-meta.created');
+        let query;
+
+        if (page > 0){
+            query = MessageService.#populateMessageQuery(
+                Message.find({
+                    _id: { $in: reactions.map(r => r.message._id) },
+                }).sort('-meta.created').skip((page - 1) * results_per_page).limit(results_per_page)
+            );
+        } else {
+            query = MessageService.#populateMessageQuery(
+                Message.find({
+                    _id: { $in: reactions.map(r => r.message._id) },
+                }).sort('-meta.created')
+            );
+        }
 
         let res = await query;
 
-        if (results_per_page <= 0) results_per_page = config.results_per_page;
-
-        let updates;
-        if (page > 0)
-            updates = res.slice((page - 1) * results_per_page, page * results_per_page);
-        else 
-            updates = res;
+        let updates = res;
 
         await MessageService.#updateImpressions(updates, reqUser);
 
-        return Service.successResponse(MessageService.#makeGetResBody({
-            message_docs: res,
+        return Service.successResponse(makeGetResBody({
+            docs: res,
             page: page,
             results_per_page: results_per_page,
+            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
         }));
     }
 

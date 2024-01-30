@@ -5,21 +5,17 @@ const Message = require("../models/Message");
 const Plan = require("../models/Plan");
 const User = require("../models/User");
 const { makeDefaultUsers } = require("../utils/defaultUsers");
-const config = require('../config/index')
+const config = require('../config/index');
+const resetDB = require("../utils/resetDB");
 
 
 before(async function() {
-    this.timeout(10000);
+    this.timeout(30000);
     await mongoose.connect(config.db_test_url).then(async () => {
 
         logger.debug(`Connected DB at ${config.db_test_url}`);
 
-        // delete all tables and recreate them
-        await User.deleteMany({});
-        await Message.deleteMany({});
-        await Channel.deleteMany({});
-        await Plan.deleteMany({});
-
+        await resetDB()
         await makeDefaultUsers();
     });
 })

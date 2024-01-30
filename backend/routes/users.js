@@ -12,7 +12,7 @@ const { logger } = require('../config/logging');
 const UserRouter = express.Router();
 
 UserRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
-    await Controller.handleRequest(req, res, UserService.getUsers);
+    await Controller.handleRequest(req, res, UserService.getUsersByPopularity);
 })
 
 UserRouter.get('/:handle', getAuthMiddleware('basicAuth'),
@@ -123,7 +123,7 @@ UserRouter.delete('/:handle/messages/:id', getAuthMiddleware('basicAuth'), check
 })
 
 UserRouter.post('/:handle/messages/:id', getAuthMiddleware('basicAuth'), checkOwnUserOrAdmin, async (req, res) => {
-    
+    //logger.debug('hello');
     await Controller.handleRequest(req, res, MessageServices.postMessage);
 })
 

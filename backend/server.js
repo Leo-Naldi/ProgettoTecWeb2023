@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const cors = require('cors');
 const throttle = require('express-throttle-bandwidth')
+const path = require('path')
 
 const config = require('./config/index');
 
@@ -9,9 +10,7 @@ const UserRouter = require('./routes/users');
 const AuthRouter = require('./routes/auth');
 const MessageRouter = require('./routes/messages');
 const ChannelRouter = require('./routes/channel');
-const ImageRouter = require('./routes/image');
-const MailRouter = require('./routes/mail');
-const StripeRouter = require('./routes/stripe')
+const MailRouter = require('./routes/mail')
 
 const { logger, morganLogMiddleware } = require('./config/logging');
 const SocketServer = require('./socket/SocketServer');
@@ -19,6 +18,8 @@ const PlansRouter = require('./routes/plans');
 const PublicRouter = require('./routes/public');
 const DebugRouter = require('./routes/debug');
 const { SquealCrons } = require('./config/crons');
+const MediaRouter = require('./routes/media');
+const FrontendRouter = require('./routes/frontend');
 
 class ExpressServer {
     constructor() {
@@ -31,26 +32,37 @@ class ExpressServer {
             extended: false,
             limit: '50mb'
         }))
-        app.use('*', cors());
+
+        if (config.env === 'deploy') {
+            app.use(cors());
+            app.enable('trust proxy');
+        } else {
+            app.use('*', cors());
+        }
+        
         app.use((req, res, next) => {
             res.header('X-Requested-With')
             next()
         })
         app.use(throttle(1024 * 128)); //maybe useless, decide letter
-        app.use(express.static(config.folder));
         app.use(morganLogMiddleware);  // requests logger
+
+        //Static Files
+        app.use(express.static(config.smmdashboard_build_path));
+        app.use('/moddashboard', express.static(config.moddashboard_build_path));
+
 
         // Rutes
         app.use('/users', UserRouter);
         app.use('/auth', AuthRouter);
         app.use('/messages', MessageRouter);
         app.use('/channels', ChannelRouter);
-        app.use('/image', ImageRouter);
+        app.use('/media', MediaRouter);
         app.use('/mail', MailRouter);
-        app.use('/stripe', StripeRouter);
         app.use('/plans', PlansRouter);
         app.use('/public', PublicRouter);
         app.use('/debug', DebugRouter);
+        app.use('/frontend', FrontendRouter);
 
 
         this.app = app;

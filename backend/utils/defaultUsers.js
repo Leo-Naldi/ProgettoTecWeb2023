@@ -8,81 +8,13 @@ const TestEnv = require('./DataCreation');
 
 const fs = require('fs');
 const _ = require('underscore');
+const { logger } = require('../config/logging');
 
 
 const pw = '12345678';
 
-const monthly_plan = new Plan({
-    name: 'Monthly subscription plan',
-    price: 4.99,
-    period: 'month',
-    extraCharacters: {
-        day: 300,
-        week: 320 * 7,
-        month: 330 * 31,
-    },
-    pro: true,
-})
 
-const monthly_plan_not_pro = new Plan({
-    name: 'Monthly character plan',
-    price: 1.99,
-    period: 'month',
-    extraCharacters: {
-        day: 300,
-        week: 320 * 7,
-        month: 330 * 31,
-    },
-    pro: false,
-})
-
-const yearly_plan = new Plan({
-    name: 'Yearly subscription plan',
-    price: 49.99,
-    period: 'year',
-    extraCharacters: {
-        day: 300,
-        week: 320 * 7,
-        month: 330 * 31,
-    },
-    pro: true,
-});
-
-let image_urls = [
-    'https://picsum.photos/200/300',
-    'https://picsum.photos/400',
-    'https://picsum.photos/450/300',
-    'https://picsum.photos/450/900',
-    'https://picsum.photos/900/450',
-]
-
-const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan, monthly_plan_not_pro], image_urls);
-
-function makeMessagesWithImages() {
-    fs.readdirSync('./files').map(h => {
-        let author_index = test_env.uhti(h);
-        
-        if (author_index) {
-            fs.readdirSync(`./files/${h}`, { withFileTypes: true }).map(img => {
-    
-                test_env.addRandomMessages({ 
-                    today: 1,
-                    authorIndex: author_index,
-                });
-
-                test_env.messages.at(-1).content.image = 
-                    `http://localhost:8000/image/${h}/${img.name}`;
-                test_env.messages.at(-1).publicMessage = true;
-                test_env.messages.at(-1).destUser = [];
-                test_env.messages.at(-1).destChannel = [];
-                test_env.messages.at(-1).meta.created = (new dayjs()).toDate();
-            });
-        }
-    })
-}
-
-
-function makeLocalTestData() {
+function makeLocalTestData(test_env) {
     
     const num = 10;
 
@@ -93,10 +25,10 @@ function makeLocalTestData() {
         test_env.addTestUser({ handle: `lt_pro_user${i+num}`, pro: true, autoRenew: true }));
 }
 
-function makeRandomGeoMessages() {
+function makeRandomGeoMessages(test_env, author_index=-1, min=10, max=20) {
 
-    const author_index = _.random(test_env.users.length - 1);
-    const n = _.random(10, 20);
+    author_index = (author_index >= 0) ? author_index: _.random(test_env.users.length - 1);
+    const n = _.random(min, max);
 
     test_env.addRandomMessages({
         today: n,
@@ -117,10 +49,62 @@ function makeRandomGeoMessages() {
     });
 }
 
+function addRandomReplies(test_env, userIndex){
+    let messages = test_env.getUserMessages(userIndex);
+
+    let replies_counter = 0
+
+    let authors = Array.from({ length: test_env.users.length }, (v, i) => i).filter(i => i !== userIndex);
+
+    for (let i = 0; i < messages.length; i++) {
+        
+        let replies = _.random(1, 50);
+        replies_counter += replies;
+
+        let answeringIndex = test_env.midti(messages[i]._id);
+
+        for (let j = 0; j < replies; j++) {
+
+            let author_index = authors[_.random(authors.length - 1)];
+
+            test_env.addMessage({
+                authorIndex: author_index,
+                text: TestEnv.lorem.generateSentences(_.random(1, 6)),
+                answeringIndex: answeringIndex,
+                reactions: {
+                    positive: _.random(0, 1000),
+                    negative: _.random(0, 1000),
+                }
+            });
+
+        }
+        
+    }
+
+    let ind = test_env.addMessage({
+        authorIndex: userIndex,
+        text: TestEnv.lorem.generateSentences(2),
+    });
+
+    for (let i = 0; i < 1000; i++) {
+        let author_index = authors[_.random(authors.length - 1)];
+
+        test_env.addMessage({
+            authorIndex: author_index,
+            text: TestEnv.lorem.generateSentences(_.random(1, 6)),
+            answeringIndex: ind,
+            reactions: {
+                positive: _.random(0, 1000),
+                negative: _.random(0, 1000),
+            }
+        });
+    }
+}
+
 /**
  * Data used in postman tests at 
  */
-function makeTestData() {
+function makeTestData(test_env) {
 
     const l = 40
 
@@ -133,8 +117,9 @@ function makeTestData() {
     const test_pro_user_indexes = _.range(l).map(i =>
         test_env.addTestUser({ handle: `test_pro_user${i}`, pro: true }));
 
-    const channel_indexes = _.range(l).map(i =>
-        test_env.addTestChannel({ name: `test_channel${i}`, creatorIndex: creator_indexes[i] }));
+    const channel_indexes = _.range(l).map(i => {  
+        return test_env.addTestChannel({ name: `test_channel${i}`, creatorIndex: creator_indexes[i] });
+    });
 
     // add members test
     let i = 0
@@ -200,7 +185,7 @@ function makeTestData() {
     // delete user 
     i = 13
 
-    // change smm
+    // clogger.debug(`test_channel${i}`) hange smm
     i = 13
 
     // remove smm
@@ -283,10 +268,109 @@ function makeTestData() {
     channel = test_env.channels[channel_indexes[i]]
     test_env.users[test_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
     test_env.users[test_pro_user_indexes[i]].editorChannelRequests.addToSet(channel._id);
+
+    //post message
+    i = 26
+    test_env.addRandomMessages({
+        authorIndex: creator_indexes[i],
+        allTime: 1
+    });
+
+    _.last(test_env.messages).publicMessage = true;
+    _.last(test_env.messages).destUser = [];
+    _.last(test_env.messages).destChannel = [];
+
+    //post message as admin
+    i=27
+    test_env.addRandomMessages({
+        authorIndex: creator_indexes[i],
+        allTime: 1
+    });
+
+    _.last(test_env.messages).publicMessage = true;
+    _.last(test_env.messages).destUser = [];
+    _.last(test_env.messages).destChannel = [];
+
+    // remove all dests
+    i = 28
+    test_env.addMessage({
+        authorIndex: creator_indexes[i],
+        destChannelIndexes: [channel_indexes[i]],
+        destUserIndexes: [test_user_indexes[i], test_pro_user_indexes[i]],
+        text: TestEnv.lorem.generateSentences(1),
+    })
+
+    // edit official channel as admin
+    i = 29
+    channel = test_env.channels[channel_indexes[i]];
+    channel.official = true;
+    channel.name = channel.name.toUpperCase();
+
+    // delete official channel as admin
+    i = 30
+    channel = test_env.channels[channel_indexes[i]];
+    channel.official = true;
+    channel.name = channel.name.toUpperCase();
+
+    // delete user messages
+    i = 31
+    test_env.addRandomMessages({
+        authorIndex: test_user_indexes[i],
+        allTime: 10,
+        week: 10,
+        today: 10,
+    });
+
+    // delete message
+    i = 32
+    test_env.addRandomMessages({
+        authorIndex: test_user_indexes[i],
+        allTime: 1,
+    });
+
+    test_env.messages.at(-1).publicMessage = true;
 }
 
 
 async function makeDefaultUsers() {
+
+    const monthly_plan = new Plan({
+        name: 'Monthly subscription plan',
+        price: 4.99,
+        period: 'month',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: true,
+    })
+
+    const monthly_plan_not_pro = new Plan({
+        name: 'Monthly character plan',
+        price: 1.99,
+        period: 'month',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: false,
+    })
+
+    const yearly_plan = new Plan({
+        name: 'Yearly subscription plan',
+        price: 49.99,
+        period: 'year',
+        extraCharacters: {
+            day: 300,
+            week: 320 * 7,
+            month: 330 * 31,
+        },
+        pro: true,
+    });
+
+    const test_env = new TestEnv('main-db', pw, 0, 0, [monthly_plan, yearly_plan, monthly_plan_not_pro]);
 
     // Utenti richiesti
     const user1 = new User({
@@ -376,6 +460,28 @@ async function makeDefaultUsers() {
         }
     })
 
+    const userTesto = new User({
+        handle: 'testoh',
+        username: 'testoh',
+        email: 'profTesto@mail.com',
+        password: pw,
+        accountType: 'pro',
+        meta: {
+            created: (new dayjs()).subtract(TestEnv.getRandom(0, 3) + 2, 'years').toDate(),
+        },
+        subscription: {
+            proPlan: monthly_plan._id,
+            expires: (new dayjs()).add(1, 'month').toDate(),
+            autoRenew: true,
+        }
+    })
+
+    userTesto.charLeft = {
+        day: 5000,
+        week: 6000,
+        month: 7500,
+    }
+
     // Modify the character balance of user2, user5, user6
     user2.charLeft = {
         day: 50,
@@ -396,6 +502,7 @@ async function makeDefaultUsers() {
     user2.smm = user3._id;
     user5.smm = user3._id;
     user6.smm = user3._id;
+    userTesto.smm = user3._id;
 
     const u1_index = test_env.addUser(user1);
     const u2_index = test_env.addUser(user2);
@@ -403,6 +510,8 @@ async function makeDefaultUsers() {
     const u4_index = test_env.addUser(user4);
     const u5_index = test_env.addUser(user5);
     const u6_index = test_env.addUser(user6);
+
+    test_env.addUser(userTesto);
 
     const pro1_index = test_env.addTestUser({
         pro: true,
@@ -684,6 +793,8 @@ async function makeDefaultUsers() {
         u5startMessages++;
     }
 
+    
+
     while (u6startMessages % (config.num_messages_reward - 2) !== 0) {
 
         test_env.addRandomMessages({
@@ -780,7 +891,6 @@ async function makeDefaultUsers() {
             text: TestEnv.lorem.generateSentences(TestEnv.getRandom(1, 4))
         })
     }
-
 
     channel_requests_user.joinChannelRequests = [channel1._id, channel5._id, channel6._id];
     channel_requests_user.editorChannelRequests = [channel1._id, channel5._id, channel6._id];
@@ -883,11 +993,12 @@ async function makeDefaultUsers() {
 
     // add some messages with images
 
-    makeTestData();
-    makeMessagesWithImages();
-    makeLocalTestData();
-    makeRandomGeoMessages()
-
+    makeTestData(test_env);
+    makeLocalTestData(test_env);
+    makeRandomGeoMessages(test_env);
+    makeRandomGeoMessages(test_env, u2_index, 3, 6);
+    addRandomReplies(test_env, u2_index);
+    
     await test_env.saveAll();
 
     // Canali automatici

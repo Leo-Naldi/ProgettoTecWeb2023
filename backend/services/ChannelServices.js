@@ -6,6 +6,7 @@ const config = require('../config');
 const { logger } = require('../config/logging');
 const SquealSocket = require('../socket/Socket');
 const _ = require('underscore');
+const { makeGetResBody } = require('../utils/serviceUtils');
 
 class ChannelServices{
 
@@ -77,25 +78,6 @@ class ChannelServices{
 
     static #trimChannelArray(arr, reqUser) {
         return arr.map(c => ChannelServices.#trimChannelObject(c, reqUser));
-    }
-
-    static #makeGetResBody({ channel_docs, page, results_per_page, reqUser }) {
-
-        let res = {}
-
-        if (page > 0) {
-            res.results = ChannelServices.#trimChannelArray(channel_docs
-                .slice((page - 1) * results_per_page, page * results_per_page)
-                .map(c => ChannelServices.#makeChannelObject(c)), reqUser);
-
-            res.pages = Math.ceil(channel_docs.length / results_per_page);
-        } else {
-            res.results = ChannelServices.#trimChannelArray(channel_docs
-                .map(c => ChannelServices.#makeChannelObject(c)), reqUser);
-            res.pages = 1;
-        }
-
-        return res;
     }
 
     // Get all channels created by the user
@@ -242,18 +224,35 @@ class ChannelServices{
         query.sort('created')
 
         if (namesOnly) {
-            const res = await query.select('name');
-            return Service.successResponse(res.map(c => c.name));
+            query.select('name');
+
+            if (page > 0)
+                query.skip((page - 1) * results_per_page).limit(results_per_page);
+
+            const res = await query;
+
+            return Service.successResponse(makeGetResBody({
+                docs: res,
+                results_per_page: results_per_page,
+                page: page,
+                results_f: r => _.pluck(r, 'name'),
+            }));
         }
+
+        if (page > 0)
+            query.skip((page - 1) * results_per_page).limit(results_per_page);
 
         const res = await query;
 
         return Service.successResponse(
-                ChannelServices.#makeGetResBody({
-                    channel_docs: res,
+                makeGetResBody({
+                    docs: res,
                     results_per_page: results_per_page,
                     page: page,
-                    reqUser: reqUser,
+                    results_f: r => ChannelServices.#trimChannelArray(
+                            r.map(c => ChannelServices.#makeChannelObject(c)),
+                            reqUser,
+                        ),
                 })
         );
 
@@ -323,9 +322,9 @@ class ChannelServices{
         return Service.successResponse(ChannelServices.#makeChannelObject(res));
     }
 
-    static async deleteChannel({ name }) {
+    static async deleteChannel({ name, socket }) {
 
-        const channel = await Channel.findOne({ name: name });
+        let channel = await Channel.findOne({ name: name });
 
         if (!channel) return Service.rejectResponse({ message: `No channel called ${name}` })
 
@@ -348,8 +347,15 @@ class ChannelServices{
                 u.editorChannels = u.joinedChannels.filter(id => !id.equals(channel._id))
                 return u.save()
         }));
+
+        channel = channel.toObject();
+        channel.members = _.pluck(users, 'handle');
+
+        //logger.debug(JSON.stringify(channel.members))
         
-        await channel.deleteOne({ name: name });
+        await Channel.deleteOne({ name: name });
+
+        SquealSocket.channelDeleted({ populatedChannelObject: channel, socket })
 
         return Service.successResponse();
     }
@@ -357,7 +363,7 @@ class ChannelServices{
     static async writeChannel({ name, newName=null, 
         owner=null, description=null, publicChannel=null, socket }) {
         
-        if (!(newName || owner || description || (publicChannel === true) || (publicChannel === false))) 
+        if (!(newName || owner || description || (_.isBoolean(publicChannel)))) 
             return Service.rejectResponse({ message: "Must provide either newName, owner or description in request body" })
         
         let channel = await Channel.findOne({ name: name });

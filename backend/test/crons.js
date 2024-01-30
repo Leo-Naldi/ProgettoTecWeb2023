@@ -41,25 +41,43 @@ describe("Crons Tests", function() {
         it("Should renew the daily characters", async function(){
             expect(users).to.not.be.empty;
 
-            users.map(u => expect(u.charLeft.day)
-                .to.equal(config.daily_quote 
-                    + (u.subscription?.proPlan.extraCharacters.day || 0)));
+            users.map(u => {
+                if (u.handle !== '__cron'){
+                    expect(u.charLeft.day)
+                    .to.equal(config.daily_quote 
+                        + (u.subscription?.proPlan.extraCharacters.day || 0))
+                } else {
+                    expect(u.charLeft.day).to.equal(999999999);
+                }
+            });
         });
 
         it("Should renew the weekly characters", async function () {
             expect(users).to.not.be.empty;
 
-            users.map(u => expect(u.charLeft.week)
-                .to.equal(config.weekly_quote
-                    + (u.subscription?.proPlan.extraCharacters.week || 0)));
+            users.map(u => {
+                if (u.handle !== '__cron') {
+                    expect(u.charLeft.week)
+                        .to.equal(config.weekly_quote
+                            + (u.subscription?.proPlan.extraCharacters.week || 0))
+                } else {
+                    expect(u.charLeft.week).to.equal(999999999);
+                }
+            });
         });
         
         it("Should renew the monthly characters", async function () {
             expect(users).to.not.be.empty;
 
-            users.map(u => expect(u.charLeft.month)
-                .to.equal(config.monthly_quote
-                    + (u.subscription?.proPlan.extraCharacters.month || 0)));
+            users.map(u => {
+                if (u.handle !== '__cron') {
+                    expect(u.charLeft.month)
+                        .to.equal(config.monthly_quote
+                            + (u.subscription?.proPlan.extraCharacters.month || 0))
+                } else {
+                    expect(u.charLeft.month).to.equal(999999999);
+                }
+            });
         });
 
     });

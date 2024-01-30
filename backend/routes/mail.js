@@ -1,18 +1,7 @@
 const express = require("express");
-const passport = require("passport");
-
-const config = require("../config");
-
 const Controller = require("../controllers/Controller");
 const MailService = require("../services/MailService");
-const { logger } = require("../config/logging");
 
-const {
-  getAuthMiddleware,
-  checkOwnUserOrSMM,
-  checkNameCreator,
-  checkNameMember,
-} = require("../middleware/auth");
 
 const MailRouter = express.Router();
 

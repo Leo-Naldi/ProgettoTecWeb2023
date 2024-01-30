@@ -11,6 +11,10 @@ const { makeDefaultUsers } = require('./utils/defaultUsers');
 
 
 const crons = require('./config/crons');
+const Reaction = require('./models/Reactions');
+const resetDB = require('./utils/resetDB');
+const MessageService = require('./services/MessageServices');
+const MessagesAggregate = require('./utils/MessagesAggregate');
 
 
 mongoose.connect(config.db_url).then(async () => {
@@ -18,12 +22,10 @@ mongoose.connect(config.db_url).then(async () => {
     logger.info(`Connected DB at ${config.db_url}`);
     
     // delete all tables and recreate them
-    await User.deleteMany({});
-    await Message.deleteMany({});
-    await Channel.deleteMany({});
-    await Plan.deleteMany({});
+    await resetDB();
 
     await makeDefaultUsers();
+    
 
     const exp_server = new ExpressServer(crons);
 

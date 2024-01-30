@@ -36,7 +36,16 @@ class SquealSocket {
             namespaces.add(`/pro-io/${populatedMessage.author.smm.handle}`)
         }
 
-        //logger.debug(populatedMessage.author.smm.handle)
+        if (populatedMessage.publicMessage) {
+            namespaces.add('/admin-io/');
+        }
+
+        if (populatedMessage.answering) {
+            namespaces.add(`/user-io/${populatedMessage.answering.author.handle}`);
+            if (populatedMessage.answering.author.smm) {
+                namespaces.add(`/pro-io/${populatedMessage.answering.author.smm.handle}`);
+            }
+        }
 
         return namespaces;
     }
@@ -48,11 +57,15 @@ class SquealSocket {
             namespaces.add('/public-io/');
         }
 
+        if (populatedChannel.publicChannel) {
+            namespaces.add('/admin-io/');
+        }
+
         return namespaces;
     }
 
     static userChanged({ populatedUser, ebody, old_smm_handle, socket }) {
-        let nms = new Set([`/user-io/${populatedUser.handle}`]);
+        let nms = new Set([`/user-io/${populatedUser.handle}`, '/admin-io/']);
 
         //logger.debug(JSON.stringify(populatedUser))
         if (populatedUser.smm?.handle) nms.add(`/pro-io/${populatedUser.smm.handle}`);
@@ -75,7 +88,7 @@ class SquealSocket {
 
     static userDeleted({ handle, smm_handle=null, managed=[], socket }) {
         
-        let namespaces = new Set();
+        let namespaces = new Set(['/admin-io/']);
         
         if (smm_handle) {
             namespaces.add(`/pro-io/${smm_handle}`);
@@ -93,8 +106,8 @@ class SquealSocket {
         })
     }
 
-    static messageDeleted({ id, destHandles, smm_handle=null, official, socket }) {
-        let namespaces = new Set();
+    static messageDeleted({ id, destHandles, smm_handle=null, answering_smm=null, official, socket }) {
+        let namespaces = new Set(['/admin-io/']);
          
         destHandles.forEach(handle => namespaces.add(`/user-io/${handle}`));
 
@@ -104,6 +117,10 @@ class SquealSocket {
 
         if (smm_handle) {
             namespaces.add(`/pro-io/${smm_handle}`);
+        }
+
+        if (answering_smm) {
+            namespaces.add(`/pro-io/${answering_smm}`);
         }
 
         SquealSocket.emit({
@@ -142,6 +159,7 @@ class SquealSocket {
         });
     }
 
+    /*
     static reactionRecived({ populatedMessage, type, socket }) {
         
         let namespaces = SquealSocket.#makeNamespacesFromPopulatedMessage(populatedMessage);
@@ -165,6 +183,7 @@ class SquealSocket {
             eventBody: { id: populatedMessage._id.toString(), type: type },
         });
     }
+    */
 
     static channelChanged({ populatedChannelObject, ebody, socket }) {
         const namespaces = SquealSocket.#makeNamespacesFromPopulatedChannel(populatedChannelObject);
@@ -190,7 +209,7 @@ class SquealSocket {
             socket: socket,
             namespaces: namespaces,
             eventName: 'channel:deleted',
-            eventBody: { name: populatedChannelObject.name },
+            eventBody: { name: populatedChannelObject.name, id: populatedChannelObject._id.toString() },
         });
     }
 }

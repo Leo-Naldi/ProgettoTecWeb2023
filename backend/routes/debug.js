@@ -4,9 +4,11 @@ const User = require('../models/User');
 const { logger } = require('../config/logging');
 const Channel = require('../models/Channel');
 const _ = require('underscore');
-const Controller = require('../controllers/Controller');
-const MessageService = require('../services/MessageServices');
 const Reaction = require('../models/Reactions');
+const Plan = require('../models/Plan');
+const { makeDefaultUsers } = require('../utils/defaultUsers');
+const mongoose = require('mongoose');
+const resetDB = require('../utils/resetDB');
 
 
 /**
@@ -35,12 +37,36 @@ DebugRouter.get('/public_message', async (req, res) => {
         if (!author) return res.status(409).json({ message: `No user named @${req.query.author}` });
 
         filter.author = author._id;
+        logger.debug(req.query.author)
     }
+
 
     const message = await Message.findOne(filter);
 
     if (!message) {
-        return res.status(500).json({ message: 'No public message' });
+        return res.status(409).json({ message: 'No public message' });
+    }
+
+    return res.status(200).json({ id: message._id.toString() });
+});
+
+DebugRouter.get('/official_message', async (req, res) => {
+
+    let filter = { official: true };
+
+    if (req.query.author) {
+        const author = await User.findOne({ handle: req.query.author });
+
+        if (!author) return res.status(409).json({ message: `No user named @${req.query.author}` });
+
+        filter.author = author._id;
+    }
+
+
+    const message = await Message.findOne(filter);
+
+    if (!message) {
+        return res.status(409).json({ message: 'No public message' });
     }
 
     return res.status(200).json({ id: message._id.toString() });
@@ -195,5 +221,14 @@ DebugRouter.get('/:handle/reacted', async (req, res) => {
         negative: reactions.filter(r => r.type === 'negative').map(r => r.message),
     })
 });
+
+DebugRouter.post('/restart', async (req, res) => {
+    
+    await resetDB(true);
+
+    await makeDefaultUsers();
+
+    return res.sendStatus(200);
+})
 
 module.exports = DebugRouter;

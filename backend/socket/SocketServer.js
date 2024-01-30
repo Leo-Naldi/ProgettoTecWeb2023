@@ -13,7 +13,7 @@ class SocketServer {
 
     static user_namespace = /^\/user-io\/(\w+)$/;
     static pro_namespace = /^\/pro-io\/(\w+)$/;
-    static admin_namespace = /^\/admin-io\/(\w+)$/;
+    static admin_namespace = '/admin-io/';
     static public_namespace = '/public-io/'
 
     constructor(expressServer) {
@@ -43,10 +43,10 @@ class SocketServer {
             socket.emit("Hello There (pro)", { message: "General Kenobi (But Pro)" })
         })
 
-        this.adminNms = this.io.of(SocketServer.admin_namespace);  // /admin-io/handle
+        this.adminNms = this.io.of(SocketServer.admin_namespace);  // /admin-io/
 
         this.adminNms.use(SocketServer.#middleWareWrapper(SocketServer.#getAuthStrat('adminAuth')));
-        this.adminNms.use(matchReqHandleToToken);
+        //this.adminNms.use(matchReqHandleToToken);
 
         this.adminNms.on('connection', (socket) => {
             socket.emit("Hello There (admin)", { message: "General Kenobi (But admin)" })

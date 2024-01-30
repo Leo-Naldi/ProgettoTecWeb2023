@@ -98,6 +98,26 @@ async function checkNameCreator(req, res, next) {
 }
 
 /**
+ * Middleware for the edit channel endpoint. Checks that either the requesting 
+ * user is /:name/'s creator or that /:name/ is an official channel and requesting
+ * user is an admin.
+ * 
+ * @param {Express.Request} req The request object
+ * @param {Express.Response} res The response object
+ * @param {Express.NextFunction} next The next middleware
+ */
+async function checkNameCreatorOrAdmin(req, res, next) {
+    const channel = await Channel.findOne({ name: req.params.name });
+
+    if (!channel) return res.status(409).json({ message: `No channel named ${req.params.name}1` })
+
+    if (!(req.user?._id.equals(channel.creator) || ((req.user.admin) && (channel.official))))
+        return res.status(401).json({ message: 'Only the creator can modify the channel' });
+
+    next();
+}
+
+/**
  * Checks weather requesting user is /:handle or an admin.
  * 
  * @param {Express.Request} req The request object
@@ -138,6 +158,7 @@ module.exports = {
     checkOwnUser,
     checkOwnUserOrSMM,
     checkNameCreator,
+    checkNameCreatorOrAdmin,
     checkOwnUserOrAdmin,
     checkNameMember
 };
