@@ -131,6 +131,8 @@ const config = {
   logs_dir: path.join(rootPath, 'logs'),
   smmdashboard_build_path: path.resolve(rootPath, '..', 'smmdashboard', 'build'),
   moddashboard_build_path: path.resolve(rootPath, '..', 'moddashboard'),
+  app_url: process.env.APP_ADDR_PREFIX, // app base url
+
 };
 
 module.exports = config;

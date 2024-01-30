@@ -100,6 +100,11 @@ const UserSchema = mongoose.Schema(
             default: false,
             required: true,
         },
+        verified:{
+            type:Boolean,
+            default:false,
+            required: true
+        },
         accountType: {
             type: String,
             trim: true,
