@@ -22,9 +22,9 @@ mongoose.connect(config.db_url).then(async () => {
     logger.info(`Connected DB at ${config.db_url}`);
     
     // delete all tables and recreate them
-    //await resetDB();
+    await resetDB();
 
-    //await makeDefaultUsers();
+    await makeDefaultUsers();
     
 
     const exp_server = new ExpressServer(crons);
