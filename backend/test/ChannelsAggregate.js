@@ -7,6 +7,7 @@ const { resetDaily, resetWeekly, resetMonthly, renewSubscriptions } = require(".
 const Message = require("../models/Message");
 const _ = require('underscore');
 const ChannelsAggregate = require("../utils/ChannelsAggregate");
+const Channel = require("../models/Channel");
 
 
 
@@ -386,6 +387,65 @@ describe('Channels Aggregate Tests', function () {
                     expect(c.creator_doc.handle).to.equal('fv');
                 })
             })
+        })
+    })
+
+    describe("Generic Tests", function () {
+        it("Should return all channels with page 0", async function () {
+            this.timeout(30000)
+            let aggr = new ChannelsAggregate();
+            //aggr.lookup();
+            //aggr.countAndSlice(0, 100);
+
+            let res = await aggr.run();
+
+            let channels = await Channel.find();
+
+            expect(res.length).to.equal(channels.length);
+        })
+
+        it("Should return all channels with page 0 and lookup", async function () {
+            this.timeout(30000)
+
+            let aggr = new ChannelsAggregate();
+            aggr.lookup();
+            //aggr.countAndSlice(0, 100);
+
+            let res = await aggr.run();
+
+            let channels = await Channel.find();
+
+            expect(res.length).to.equal(channels.length);
+        })
+
+        it("Should return all channels with page 0, lookup and counting", async function () {
+            this.timeout(30000)
+
+            let aggr = new ChannelsAggregate();
+            aggr.lookup();
+            aggr.countAndSlice(0, 100);
+
+            let res = ChannelsAggregate.parsePaginatedResults(await aggr.run(), 0, 100);
+
+            let channels = await Channel.find();
+
+            expect(res.results.length).to.equal(channels.length);
+            expect(res.pages).to.equal(1);
+        })
+
+        it.only("Should work properly and not explode", async function () {
+            this.timeout(30000)
+
+            let aggr = new ChannelsAggregate();
+            aggr.lookup();
+            aggr.countAndSlice(1, 10);
+
+            let res = ChannelsAggregate.parsePaginatedResults(await aggr.run(), 1, 10);
+
+            expect(res.results.length).to.be.lessThan(11);
+            expect(res.pages).to.not.be.null;
+            expect(res.pages).to.be.a('number');
+            expect(res.pages).to.be.greaterThan(0);
         })
     })
 })

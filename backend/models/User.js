@@ -137,6 +137,7 @@ const UserSchema = mongoose.Schema(
             // Id del social media manager
             type: mongoose.ObjectId, 
             ref: 'User',
+            default: null,
         },
         lastLoggedin: Date,
         // Account per cui fa da smms

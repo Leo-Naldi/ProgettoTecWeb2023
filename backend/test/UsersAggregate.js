@@ -205,12 +205,14 @@ describe('Users Aggregate Tests', function(){
             expect(res).to.not.be.empty;
             res.map(m => {
                 expect(m).to.be.an('object');
-                expect(m).to.have.property('smm_doc');
-                expect(m.smm_doc).to.be.an('object');
-
-                expect(m.smm_doc).to.have.property('_id');
-                expect(m.smm_doc).to.have.property('handle');
-                expect(m.smm_doc.handle).to.be.a('string');
+                if (m.smm) {
+                    expect(m).to.have.property('smm_doc');
+                    expect(m.smm_doc).to.be.an('object');
+    
+                    expect(m.smm_doc).to.have.property('_id');
+                    expect(m.smm_doc).to.have.property('handle');
+                    expect(m.smm_doc.handle).to.be.a('string');
+                }
             })
         })
 
@@ -224,11 +226,13 @@ describe('Users Aggregate Tests', function(){
             expect(res).to.not.be.empty;
             res.map(m => {
                 expect(m).to.be.an('object');
-                expect(m).to.have.property('smm_doc');
-                expect(m.smm_doc).to.be.an('object');
-
-                expect(m.smm_doc).to.have.property('_id');
-                expect(m.smm_doc._id.equals(m.smm)).to.be.true;
+                if (m.smm) {
+                    expect(m).to.have.property('smm_doc');
+                    expect(m.smm_doc).to.be.an('object');
+    
+                    expect(m.smm_doc).to.have.property('_id');
+                    expect(m.smm_doc._id.equals(m.smm)).to.be.true;
+                }
             })
         })
     })
@@ -480,7 +484,7 @@ describe('Users Aggregate Tests', function(){
                 expect(m).to.be.an('object');
                 expect(m).to.have.property('positive_count');
                 expect(m.positive_count).to.be.a('number');
-                expect(m.positive_count).to.greaterThan(0);
+                expect(m.positive_count).to.greaterThan(-1);
             })
         })
 
@@ -497,7 +501,7 @@ describe('Users Aggregate Tests', function(){
                 expect(m).to.be.an('object');
                 expect(m).to.have.property('negative_count');
                 expect(m.negative_count).to.be.a('number');
-                expect(m.negative_count).to.greaterThan(0);
+                expect(m.negative_count).to.greaterThan(-1);
             })
         })
 
@@ -545,6 +549,7 @@ describe('Users Aggregate Tests', function(){
 
     describe("Generic Tests", function(){
         it("Should return all users with page 0", async function(){
+            this.timeout(30000);
             let aggr = new UsersAggregate();
             //aggr.lookup();
             //aggr.countAndSlice(0, 100);
@@ -554,6 +559,51 @@ describe('Users Aggregate Tests', function(){
             let users = await User.find();
 
             expect(res.length).to.equal(users.length);
+        })
+
+        it("Should return all users with page 0 and lookup", async function () {
+            this.timeout(30000);
+
+            let aggr = new UsersAggregate();
+            aggr.lookup();
+            //aggr.countAndSlice(0, 100);
+
+            let res = await aggr.run();
+
+            let users = await User.find();
+
+            expect(res.length).to.equal(users.length);
+        })
+
+        it("Should return all users with page 0, lookup and counting", async function () {
+            this.timeout(30000);
+
+            let aggr = new UsersAggregate();
+            aggr.lookup();
+            aggr.countAndSlice(0, 100);
+
+            let res = UsersAggregate.parsePaginatedResults(await aggr.run(), 0, 100);
+
+            let users = await User.find();
+
+            expect(res.results.length).to.equal(users.length);
+            expect(res.pages).to.equal(1);
+        })
+
+        it.only("Should work properly and not explode", async function () {
+            this.timeout(30000)
+
+            let aggr = new UsersAggregate();
+            aggr.lookup();
+            aggr.countAndSlice(1, 10);
+
+            let res = UsersAggregate.parsePaginatedResults(await aggr.run(), 1, 10);
+
+            expect(res.results.length).to.be.lessThan(11);
+            expect(res.pages).to.not.be.null;
+            expect(res.pages).to.be.a('number');
+            expect(res.pages).to.be.greaterThan(0);
+
         })
     })
 

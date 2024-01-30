@@ -5,6 +5,7 @@ const Message = require('../models/Message');
 
 const config = require('../config');
 const dayjs = require('dayjs');
+const { logger } = require('../config/logging');
 
 const allowedSortFields = [
     'meta.created',
@@ -25,6 +26,7 @@ class MessagesAggregate {
 
     constructor(aggregate = Message.aggregate().match({})) {
         this.aggregate = aggregate;
+        this.count_aggregate = null;
     }
 
     #matchTimePeriod(period) {
@@ -203,7 +205,7 @@ class MessagesAggregate {
             as: 'author_smm_doc',
         })
 
-        this.aggregate.unwind('author_smm_doc');
+        this.aggregate.unwind({ path: '$author_smm_doc', preserveNullAndEmptyArrays: true });
     }
 
     lookupAnsweringWithAuthor() {
@@ -214,7 +216,7 @@ class MessagesAggregate {
             as: 'answering_doc',
         });
 
-        this.aggregate.unwind('answering_doc');
+        this.aggregate.unwind({ path: '$answering_doc', preserveNullAndEmptyArrays: true });
 
         this.aggregate.lookup({
             from: 'users',
@@ -223,7 +225,7 @@ class MessagesAggregate {
             as: 'answering_author_doc',
         })
 
-        this.aggregate.unwind('answering_author_doc');
+        this.aggregate.unwind({ path: '$answering_author_doc', preserveNullAndEmptyArrays: true });
 
         this.aggregate.lookup({
             from: 'users',
@@ -232,7 +234,7 @@ class MessagesAggregate {
             as: 'answering_author_smm_doc',
         })
 
-        this.aggregate.unwind('answering_author_smm_doc');
+        this.aggregate.unwind({ path: '$answering_author_smm_doc', preserveNullAndEmptyArrays: true });
     }
 
     lookupDestChannelMembers(){
@@ -449,22 +451,11 @@ class MessagesAggregate {
 
     countAndSlice(page, results_per_page) {
 
-        let documents_pipeline = [];
+        this.count_aggregate = Message.aggregate(this.aggregate.pipeline()).count('total_results');
         if (page > 0) {
-            documents_pipeline.push({
-                '$skip': (page - 1) * results_per_page,
-            });
-            documents_pipeline.push({
-                '$limit': results_per_page,
-            })
+            this.aggregate.skip((page - 1) * results_per_page);
+            this.aggregate.limit(results_per_page);
         }
-
-        this.aggregate.facet({
-            "meta": [{
-                '$count': "total_results",
-            }],
-            "documents": documents_pipeline,
-        })
     }
 
     slice(page, results_per_page) {
@@ -488,6 +479,9 @@ class MessagesAggregate {
         delete doc.destUser_docs;
         delete doc.destUser;
         delete doc.destChannel;
+        delete doc.answering_doc;
+        delete doc.answering_author_doc;
+        delete doc.answering_author_smm_doc;
 
         doc.meta.impressions += 1;
 
@@ -515,7 +509,18 @@ class MessagesAggregate {
     }
 
     async run() {
-        return await this.aggregate;
+        if (!this.count_aggregate)
+            return await this.aggregate;
+
+        let res = await Promise.all([
+            this.aggregate,
+            this.count_aggregate,
+        ])
+
+        if (res[0].length)
+            return [{ meta: [{ total_results: res[1][0].total_results }], documents: res[0] }]
+
+        return [{ meta: [{ total_results: 0 }], documents: res[0] }]
     }
 
     static get_update_ids(res, reqUser) {

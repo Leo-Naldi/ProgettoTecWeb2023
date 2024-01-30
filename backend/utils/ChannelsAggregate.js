@@ -14,6 +14,7 @@ class ChannelsAggregate {
 
     constructor(aggregate = Channel.aggregate().match({})) {
         this.aggregate = aggregate;
+        this.count_aggregate = null;
     }
 
     lookupCreator(){
@@ -202,22 +203,11 @@ class ChannelsAggregate {
 
     countAndSlice(page, results_per_page) {
 
-        let documents_pipeline = [];
+        this.count_aggregate = Channel.aggregate(this.aggregate.pipeline()).count('total_results');
         if (page > 0) {
-            documents_pipeline.push({
-                '$skip': (page - 1) * results_per_page,
-            });
-            documents_pipeline.push({
-                '$limit': results_per_page,
-            })
+            this.aggregate.skip((page - 1) * results_per_page);
+            this.aggregate.limit(results_per_page);
         }
-
-        this.aggregate.facet({
-            "meta": [{
-                '$count': "total_results",
-            }],
-            "documents": documents_pipeline,
-        })
     }
 
     slice(page, results_per_page) {
@@ -275,7 +265,18 @@ class ChannelsAggregate {
     }
 
     async run() {
-        return await this.aggregate;
+        if (!this.count_aggregate)
+            return await this.aggregate;
+
+        let res = await Promise.all([
+            this.aggregate,
+            this.count_aggregate,
+        ])
+
+        if (res[0].length)
+            return [{ meta: [{ total_results: res[1][0].total_results }], documents: res[0] }]
+
+        return [{ meta: [{ total_results: 0 }], documents: res[0] }]
     }
 }
 

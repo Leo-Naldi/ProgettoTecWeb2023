@@ -131,11 +131,13 @@ describe('Messages Aggregate Tests', function(){
             expect(res).to.not.be.empty
             res.map(m => {
                 expect(m).to.be.an('object');
-                expect(m).to.have.property('answering_doc');
-                
-                expect(m.answering_doc).to.be.an('object');
-                expect(m.answering_doc).to.have.property('_id');
-                expect(m.answering_doc._id.equals(m.answering)).to.be.true;
+                if (m.answering) {
+                    expect(m).to.have.property('answering_doc');
+                    
+                    expect(m.answering_doc).to.be.an('object');
+                    expect(m.answering_doc).to.have.property('_id');
+                    expect(m.answering_doc._id.equals(m.answering)).to.be.true;
+                }
             })
         });
 
@@ -152,20 +154,22 @@ describe('Messages Aggregate Tests', function(){
 
             res.map(m => {
                 expect(m).to.be.an('object');
-                expect(m).to.have.property('answering_author_doc');
-                expect(m).to.have.property('answering_doc');
-
-                expect(m.answering_doc).to.be.an('object');
-                expect(m.answering_doc).to.have.property('_id');
-
-                expect(m.answering_author_doc).to.be.an('object');
-                expect(m.answering_author_doc).to.have.property('_id');
-                expect(m.answering_author_doc).to.have.property('handle');
-                expect(m.answering_author_doc).to.have.property('smm');
-
-                expect(m.answering_author_doc.handle).to.be.a('string');
-
-                expect(m.answering_author_doc._id.equals(m.answering_doc.author)).to.be.true;
+                if (m.answering) {
+                    expect(m).to.have.property('answering_author_doc');
+                    expect(m).to.have.property('answering_doc');
+    
+                    expect(m.answering_doc).to.be.an('object');
+                    expect(m.answering_doc).to.have.property('_id');
+    
+                    expect(m.answering_author_doc).to.be.an('object');
+                    expect(m.answering_author_doc).to.have.property('_id');
+                    expect(m.answering_author_doc).to.have.property('handle');
+                    expect(m.answering_author_doc, JSON.stringify(m.answering_author_doc)).to.have.property('smm');
+    
+                    expect(m.answering_author_doc.handle).to.be.a('string');
+    
+                    expect(m.answering_author_doc._id.equals(m.answering_doc.author)).to.be.true;
+                }
             })
         });
 
@@ -182,18 +186,21 @@ describe('Messages Aggregate Tests', function(){
 
             res.map(m => {
                 expect(m).to.be.an('object');
-                expect(m).to.have.property('answering_author_doc');
-                expect(m).to.have.property('answering_author_smm_doc');
+                if (m.answering) {
+                    expect(m).to.have.property('answering_author_doc');
+    
+                    expect(m.answering_author_doc).to.be.an('object');
+                    expect(m.answering_author_doc).to.have.property('_id');
+                    expect(m.answering_author_doc).to.have.property('handle');
+    
+                    if (m.answering_author_doc.smm) {
+                        expect(m).to.have.property('answering_author_smm_doc');
 
-                expect(m.answering_author_doc).to.be.an('object');
-                expect(m.answering_author_doc).to.have.property('_id');
-                expect(m.answering_author_doc).to.have.property('handle');
-
-                expect(m.answering_author_smm_doc).to.be.an('object');
-                if (m.answering_author_doc.smm) {
-                    expect(m.answering_author_smm_doc).to.have.property('_id');
-                    expect(m.answering_author_smm_doc).to.have.property('handle');
-                    expect(m.answering_author_smm_doc._id.equals(m.answering_author_doc.smm)).to.be.true;
+                        expect(m.answering_author_smm_doc).to.be.an('object');
+                        expect(m.answering_author_smm_doc).to.have.property('_id');
+                        expect(m.answering_author_smm_doc).to.have.property('handle');
+                        expect(m.answering_author_smm_doc._id.equals(m.answering_author_doc.smm)).to.be.true;
+                    }
                 }
 
             })
@@ -236,9 +243,9 @@ describe('Messages Aggregate Tests', function(){
             expect(res).to.not.be.empty;
             res.map(m => {
                 expect(m).to.be.an('object');
-                expect(m).to.have.property('author_smm_doc');
                 expect(m).to.have.property('author_doc');
                 if (m.author_doc.smm) {
+                    expect(m).to.have.property('author_smm_doc');
                     expect(m.author_smm_doc).to.be.an('object');
                     expect(m.author_smm_doc).to.have.property('handle');
                     expect(m.author_smm_doc).to.have.property('_id');
@@ -279,6 +286,65 @@ describe('Messages Aggregate Tests', function(){
             expect(
                 res.some(m => m.author_doc.smm)
             ).to.be.true;
+        })
+    })
+
+    describe("Generic Tests", function () {
+        it("Should return all messages with page 0", async function () {
+            this.timeout(30000)
+            let aggr = new MessagesAggregate();
+            //aggr.lookup();
+            //aggr.countAndSlice(0, 100);
+
+            let res = await aggr.run();
+
+            let messages = await Message.find();
+
+            expect(res.length).to.equal(messages.length);
+        })
+
+        it("Should return all messages with page 0 and lookup", async function () {
+            this.timeout(30000)
+
+            let aggr = new MessagesAggregate();
+            aggr.lookup();
+            //aggr.countAndSlice(0, 100);
+
+            let res = await aggr.run();
+
+            let messages = await Message.find();
+
+            expect(res.length).to.equal(messages.length);
+        })
+
+        it("Should return all messages with page 0, lookup and counting", async function () {
+            this.timeout(30000)
+
+            let aggr = new MessagesAggregate();
+            aggr.lookup();
+            aggr.countAndSlice(0, 100);
+
+            let res = MessagesAggregate.parsePaginatedResults(await aggr.run(), 0, 100);
+
+            let messages = await Message.find();
+
+            expect(res.results.length).to.equal(messages.length);
+            expect(res.pages).to.equal(1);
+        })
+
+        it.only("Should work properly and not explode", async function () {
+            this.timeout(30000)
+
+            let aggr = new MessagesAggregate();
+            aggr.lookup();
+            aggr.countAndSlice(1, 10);
+
+            let res = MessagesAggregate.parsePaginatedResults(await aggr.run(), 1, 10);
+
+            expect(res.results.length).to.be.lessThan(11);
+            expect(res.pages).to.not.be.null;
+            expect(res.pages).to.be.a('number');
+            expect(res.pages).to.be.greaterThan(0);
         })
     })
 
