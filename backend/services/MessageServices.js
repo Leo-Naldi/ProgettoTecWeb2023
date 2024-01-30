@@ -444,7 +444,7 @@ class MessageService {
 
         MessageService.#updateImpressions(updates);
 
-        return Service.successResponse(aggr.parsePaginatedResults(res, page, results_per_page));
+        return Service.successResponse(MessagesAggregate.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -556,7 +556,7 @@ class MessageService {
 
         MessageService.#updateImpressions(updates);
 
-        return Service.successResponse(aggr.parsePaginatedResults(res, page, results_per_page));
+        return Service.successResponse(MessagesAggregate.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
