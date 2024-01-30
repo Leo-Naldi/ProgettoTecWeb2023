@@ -21,7 +21,7 @@ const allowedSortFields = [
 
 class UsersAggregate {
 
-    constructor(aggregate = User.aggregate()) {
+    constructor(aggregate = User.aggregate().match({})) {
         this.aggregate = aggregate;
     }
 

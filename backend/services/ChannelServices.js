@@ -64,15 +64,6 @@ class ChannelServices{
                 return Service.rejectResponse({ message: `No user named ${handle}` })
         }
 
-        let channelsQuery = ChannelServices.getPopulatedChannelsQuery({ creator: user._id });
-
-        if (_.isBoolean(publicChannel)) 
-            channelsQuery.where('publicChannel').equals(publicChannel)
-
-        //const res = await channelsQuery;
-        //let r_arr = ChannelServices.#makeChannelObjectArray(res);
-
-
         let aggr = new ChannelsAggregate(Channel.aggregate().match({ creator: user._id }));
         
         aggr.matchFields({ publicChannel: publicChannel })

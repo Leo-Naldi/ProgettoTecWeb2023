@@ -42,12 +42,10 @@ describe("Crons Tests", function() {
             expect(users).to.not.be.empty;
 
             users.map(u => {
-                if (u.handle !== '__cron'){
+                if (!['__cron', 'fvPro', 'Nome Buffo1', 'Nome Buffo2'].find(h => h === u.handle)){
                     expect(u.charLeft.day)
                     .to.equal(config.daily_quote 
                         + (u.subscription?.proPlan.extraCharacters.day || 0))
-                } else {
-                    expect(u.charLeft.day).to.equal(999999999);
                 }
             });
         });

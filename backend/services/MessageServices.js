@@ -410,7 +410,6 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        let aggr = new MessagesAggregate();
 
         if ((answering) && (!mongoose.isValidObjectId(answering))) {
             return Service.successResponse({
@@ -418,6 +417,7 @@ class MessageService {
                 pages: 0,
             })
         }
+        let aggr = new MessagesAggregate();
 
         aggr.lookupDestChannel();
         aggr.lookupDestUser();

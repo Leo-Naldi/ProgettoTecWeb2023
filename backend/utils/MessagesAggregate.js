@@ -23,7 +23,7 @@ const allowedSortFields = [
 
 class MessagesAggregate {
 
-    constructor(aggregate = Message.aggregate()) {
+    constructor(aggregate = Message.aggregate().match({})) {
         this.aggregate = aggregate;
     }
 

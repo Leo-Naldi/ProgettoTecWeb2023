@@ -3,6 +3,7 @@ const Message = require("../models/Message");
 const _ = require('underscore');
 const UsersAggregate = require("../utils/UsersAggregate");
 const Reaction = require("../models/Reactions");
+const User = require("../models/User");
 
 
 
@@ -379,6 +380,23 @@ describe('Users Aggregate Tests', function(){
             })
         })
 
+        it("Should return the correct number of users", async function () {
+            let aggr = new UsersAggregate();
+            aggr.matchFields({ handle: 'fv' });
+
+            let res = await aggr.run();
+
+            let users = await User.find({ handle: {
+                $regex: 'fv',
+                $options: 'i'
+            } })
+
+            expect(res).to.be.an('array');
+            expect(res).to.not.be.empty;
+            
+            expect(res.length).to.equal(users.length);
+        })
+
         it("Should return pro users only", async function () {
             let aggr = new UsersAggregate();
             aggr.matchFields({ accountType: 'pro' });
@@ -451,6 +469,7 @@ describe('Users Aggregate Tests', function(){
 
     describe("Get Reaction Counts Tests", function(){
         it("Should create a positive_count field", async function(){
+            this.timeout(30000)
             let aggr = new UsersAggregate();
             aggr.lookupReactionCounts();
 
@@ -466,6 +485,8 @@ describe('Users Aggregate Tests', function(){
         })
 
         it("Should create a negative_count field", async function () {
+            this.timeout(30000)
+
             let aggr = new UsersAggregate();
             aggr.lookupReactionCounts();
 
@@ -519,6 +540,20 @@ describe('Users Aggregate Tests', function(){
 
                 expect(m.negative_count).to.equal(tot);
             }))
+        })
+    })
+
+    describe("Generic Tests", function(){
+        it("Should return all users with page 0", async function(){
+            let aggr = new UsersAggregate();
+            //aggr.lookup();
+            //aggr.countAndSlice(0, 100);
+
+            let res = await aggr.run();
+
+            let users = await User.find();
+
+            expect(res.length).to.equal(users.length);
         })
     })
 

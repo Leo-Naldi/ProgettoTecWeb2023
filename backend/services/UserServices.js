@@ -170,9 +170,13 @@ class UserService {
         aggr.sort(popularity);
         aggr.countAndSlice(page, results_per_page)
 
-        let res = await aggr.run();
+        let res = UsersAggregate.parsePaginatedResults(await aggr.run(), page, results_per_page)
 
-        return Service.successResponse(UsersAggregate.parsePaginatedResults(res, page, results_per_page))
+        if (handleOnly) {
+            res.results = _.pluck(res.results, 'handle');
+        }
+
+        return Service.successResponse(res)
     }
 
     static async getUser({ handle, includeReactions=true }) {

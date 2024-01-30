@@ -12,7 +12,7 @@ const allowedSortFields = [
 
 class ChannelsAggregate {
 
-    constructor(aggregate = Channel.aggregate()) {
+    constructor(aggregate = Channel.aggregate().match({})) {
         this.aggregate = aggregate;
     }
 

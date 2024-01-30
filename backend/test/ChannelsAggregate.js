@@ -10,7 +10,7 @@ const ChannelsAggregate = require("../utils/ChannelsAggregate");
 
 
 
-describe.only('Channels Aggregate Tests', function () {
+describe('Channels Aggregate Tests', function () {
 
     describe('Lookup Member Tests', function(){
         it("Should create a member_docs field", async function(){
