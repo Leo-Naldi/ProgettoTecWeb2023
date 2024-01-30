@@ -444,7 +444,7 @@ class MessageService {
 
         MessageService.#updateImpressions(updates);
 
-        return Service.successResponse(aggr.parsePaginatedResults(res, page, results_per_page));
+        return Service.successResponse(MessagesAggregate.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -468,38 +468,29 @@ class MessageService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        let query;
-        
-        if (page > 0) {
+        let aggr = new MessagesAggregate(Message.aggregate()
+            .match({
+                destChannel: reqChannel._id
+            }))
 
-            query = MessageService.#populateMessageQuery(
-                        Message.find({
-                            destChannel: reqChannel._id,
-                        }).skip(page * results_per_page).limit(results_per_page)
-                    );
+        aggr.lookupAuthor();
+        aggr.lookupDestChannel();
+        aggr.lookupDestUser();
+        aggr.sort('-meta.created');
+
+        let res
+        if (page > 0) {
+            aggr.countAndSlice(page, results_per_page);
+            res = await aggr.run();
         } else {
-            query = MessageService.#populateMessageQuery(
-                Message.find({
-                    destChannel: reqChannel._id,
-                })
-            );
+            res = [{ documents: await aggr.run() }]
         }
 
-        if (page > 0)
-            query.skip(page * results_per_page).limit(results_per_page);
 
-        let res = await query;
-
-        let updates = res.filter(m => !m.author._id.equals(reqUser?._id));
-
+        let updates = MessagesAggregate.get_update_ids(res, reqUser);
         MessageService.#updateImpressions(updates);
 
-        return Service.successResponse(makeGetResBody({
-            docs: res,
-            page: page,
-            results_per_page: results_per_page,
-            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
-        }));
+        return Service.successResponse(MessagesAggregate.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -565,7 +556,7 @@ class MessageService {
 
         MessageService.#updateImpressions(updates);
 
-        return Service.successResponse(aggr.parsePaginatedResults(res, page, results_per_page));
+        return Service.successResponse(MessagesAggregate.parsePaginatedResults(res, page, results_per_page));
     }
 
     /**
@@ -671,8 +662,16 @@ class MessageService {
      * @param {Object} param0 The request values
      * @returns 
      */
-    static async postUserMessage({ reqUser, handle, content, meta, dest=[], publicMessage=true,
-        answering=null, socket=null }) {
+    static async postUserMessage({ 
+        reqUser, 
+        handle, 
+        content, 
+        meta, 
+        dest=[], 
+        publicMessage=true,
+        answering=null, 
+        socket=null 
+    }) {
 
         let user = reqUser;
 
@@ -754,7 +753,7 @@ class MessageService {
 
         let answering_record;
         if (answering) {
-            answering_record = await Message.findById(answering).populate('author', 'handle');
+            answering_record = await Message.findById(answering).populate('author', '_id handle');
 
             if (!answering_record) 
                 return Service.rejectResponse({ message: `Message ${answering} given in the answering field not found` })
@@ -808,9 +807,9 @@ class MessageService {
             }
         });
         message.destUser = destUser;
-        message.destChannel = destChannel
+        message.destChannel = destChannel;
 
-        //logger.debug(message)
+        message.answering = answering_record;
 
         resbody = MessageService.#makeMessageObject(message);
 
@@ -867,6 +866,7 @@ class MessageService {
                 socket: socket,
                 smm_handle: smm_handle,
                 answering_smm: m.answering?.author.smm?.handle,
+                publicMessage: m.publicMessage,
             })
         });
 
@@ -983,7 +983,7 @@ class MessageService {
 
         if ((reactions) && (('positive' in reactions) || ('negative' in reactions))) {
 
-            ebody.reactions = new Object();
+            ebody.reactions = _.clone(message.reactions);
 
             if ('positive' in reactions) {
                 message.reactions.positive = reactions.positive;
@@ -1000,9 +1000,7 @@ class MessageService {
 
         if (text) {
             message.content.text = text;
-            ebody.content = {
-                text: text,
-            };
+            ebody.content = message.content;
         }
 
         if (_.isArray(dest)) {
@@ -1027,6 +1025,12 @@ class MessageService {
         }
 
         ebody.id = id;
+
+        message.meta = new Date();
+        ebody.meta = { 
+            ...message.meta,
+            lastModified: message.meta.lastModified,
+        }
 
         let err = null;
         try{
@@ -1089,7 +1093,7 @@ class MessageService {
             ((num_inf_messages + 1) % config.num_messages_reward === 0)
             && (message.publicMessage || (message.destChannel?.length))) {
 
-            user = await User.findById(message.author).pupulate('smm', 'handle');
+            user = await User.findOne({ _id: message.author }).populate('smm', '_id handle');
             
             user.charLeft.day -= Math.max(1, Math.ceil(config.daily_quote / 100));
             user.charLeft.week -= Math.max(1, Math.ceil(config.weekly_quote / 100));
@@ -1106,7 +1110,7 @@ class MessageService {
         try {
             message = await message.save();
             if (user) {
-                user = await user.depopulate();
+                user.smm = user.smm._id;
                 user = await user.save();
             }
 
@@ -1134,7 +1138,7 @@ class MessageService {
             if (user.smm) {
                 user.smm = { handle: smm_handle }
             }
-            SquealSocket.userChaged({
+            SquealSocket.userChanged({
                 populatedUser: message.author,
                 ebody: {
                     charLeft: user.charLeft,
@@ -1189,7 +1193,7 @@ class MessageService {
             ((num_fam_messages + 1) % config.num_messages_reward === 0)
             && (message.publicMessage || (message.destChannel?.length))) {
 
-            user = await User.findById(message.author).pupulate('smm', 'handle _id');
+            user = await User.findOne({ _id: message.author }).populate('smm', '_id handle');
 
 
             user.charLeft.day += Math.max(1, Math.ceil(config.daily_quote / 100));
@@ -1202,7 +1206,7 @@ class MessageService {
         try {
             message = await message.save();
             if (user) {
-                user = await user.depopulate();
+                user.smm = user.smm._id;
                 user = await user.save();
             }
 
@@ -1229,7 +1233,7 @@ class MessageService {
             if (user.smm) {
                 user.smm = { handle: smm_handle }
             }
-            SquealSocket.userChaged({
+            SquealSocket.userChanged({
                 populatedUser: user,
                 ebody: {
                     handle: user.handle,
@@ -1558,34 +1562,31 @@ class MessageService {
 
         reactions = reactions.filter(r => r.message !== null);
 
-        let query;
+        let aggr = new MessagesAggregate(Message.aggregate()
+            .match({
+                _id: { $in: reactions.map(r => r.message._id) }
+            }));
 
-        if (page > 0){
-            query = MessageService.#populateMessageQuery(
-                Message.find({
-                    _id: { $in: reactions.map(r => r.message._id) },
-                }).sort('-meta.created').skip((page - 1) * results_per_page).limit(results_per_page)
-            );
+        
+
+        aggr.lookupAuthor();
+        aggr.lookupDestChannel();
+        aggr.lookupDestUser();
+        aggr.sort('-meta.created');
+
+        let res;
+        if (page > 0) {
+            aggr.countAndSlice(page, results_per_page);
+            res = await aggr.run();
         } else {
-            query = MessageService.#populateMessageQuery(
-                Message.find({
-                    _id: { $in: reactions.map(r => r.message._id) },
-                }).sort('-meta.created')
-            );
+            res = [{ documents: await aggr.run() }]
         }
 
-        let res = await query;
 
-        let updates = res;
+        let updates = MessagesAggregate.get_update_ids(res, reqUser);
+        MessageService.#updateImpressions(updates);
 
-        await MessageService.#updateImpressions(updates, reqUser);
-
-        return Service.successResponse(makeGetResBody({
-            docs: res,
-            page: page,
-            results_per_page: results_per_page,
-            results_f: r => r.map(m => MessageService.#makeMessageObject(m))
-        }));
+        return Service.successResponse(MessagesAggregate.parsePaginatedResults(res, page, results_per_page));
     }
 
     static async getLikedMessages({ reqUser, handle, page=1, results_per_page=config.results_per_page }) {

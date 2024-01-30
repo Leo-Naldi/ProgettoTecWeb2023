@@ -10,6 +10,7 @@ const dayjs = require("dayjs");
 
 const _ = require('underscore');
 const { makeGetResBody } = require('../utils/serviceUtils');
+const UsersAggregate = require('../utils/UsersAggregate');
 
 class UserService {
 
@@ -74,6 +75,7 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
+    /*
     static async getUsers({ handle, admin, accountType, handleOnly = false, page = 1,
         results_per_page = config.results_per_page,
     } = { page: 1, results_per_page: config.results_per_page }) {
@@ -94,21 +96,38 @@ class UserService {
         let users;
         if ((_.isBoolean(handleOnly)) && handleOnly) {
 
-            let query = UserService.getSecureUserRecords(filter)
-                .sort('meta.created')
-                .select('handle');
+            let aggr = User.aggregate()
+                .match(filter)
+                .project({ password: 0 })
+                .sort('-meta.created');
 
-            if (page > 0)
-                query.skip((page - 1) * results_per_page).limit(results_per_page);
+            let documents_pipeline = [];
+            if (page > 0) {
+                documents_pipeline.push({
+                    '$skip': (page - 1) * results_per_page,
+                });
+                documents_pipeline.push({
+                    '$limit': results_per_page,
+                })
+            }
 
-            users = await query;
+            aggr.facet({
+                "meta": [{
+                    '$count': "total_results",
+                }],
+                "documents": documents_pipeline,
+            })
 
-            return Service.successResponse(makeGetResBody({
-                docs: users,
-                page: page,
-                results_per_page: results_per_page,
-                results_f: r => _.pluck(r, 'handle'),
-            }));
+            res = await aggr;
+
+            let pages = (page <= 0) ? 1: Math.ceil(res[0].meta[0].total_results / results_per_page);
+
+            return Service.successResponse({
+                pages, 
+                results: res[0].documents.map(u => {
+                    u.id = u._id.toString();
+                })
+            });
         } else {
 
             let query = UserService.getSecureUserRecords(filter)
@@ -127,7 +146,7 @@ class UserService {
             }));
         }
 
-    }
+    }*/
 
     static async getUsersByPopularity({ handle, admin, accountType, handleOnly = false, page = 1,
         results_per_page = config.results_per_page, popularity=null,
@@ -140,126 +159,20 @@ class UserService {
 
         if (results_per_page <= 0) results_per_page = config.results_per_page;
 
-        if (popularity === null) {
-            return UserService.getUsers({
-                handle, admin, accountType, handleOnly, page,
-                results_per_page,
-            });
-        } else if (!['popular', 'unpopular'].some(p => p === popularity)) {
-            return Service.rejectResponse({ message: `Unknown popularity filter: ${popularity}` });
-        }
+        
+        let aggr = new UsersAggregate();
 
-        let filter = new Object();
+        aggr.matchFields({
+            handle: handle, admin: admin, accountType: accountType,
+        })
 
-        if (handle) filter.handle = { $regex: handle, $options: 'i' };
-        if (_.isBoolean(admin)) filter.admin = admin;
-        if (accountType) filter.accountType = accountType;
+        aggr.lookup()
+        aggr.sort(popularity);
+        aggr.countAndSlice(page, results_per_page)
 
-        let users;
+        let res = await aggr.run();
 
-        let aggregation = User.aggregate()
-            .match(filter)
-            .lookup({
-                from: 'messages',
-                localField: '_id',
-                foreignField: 'author',
-                as: 'messages',
-            })
-            .lookup({
-                from: 'users',
-                localField: 'smm',
-                foreignField: '_id',
-                as: 'smm'
-            })
-            .lookup({
-                from: 'channels',
-                localField: 'joinedChannels',
-                foreignField: '_id',
-                as: 'joinedChannels'
-            })
-            .lookup({
-                from: 'channels',
-                localField: 'editorChannels',
-                foreignField: '_id',
-                as: 'editorChannels'
-            })
-            .lookup({
-                from: 'channels',
-                localField: 'joinChannelRequests',
-                foreignField: '_id',
-                as: 'joinChannelRequests'
-            })
-            .lookup({
-                from: 'channels',
-                localField: 'editorChannelRequests',
-                foreignField: '_id',
-                as: 'editorChannelRequests'
-            })
-            .lookup({
-                from: 'users',
-                localField: '_id',
-                foreignField: 'smm',
-                as: 'managed'
-            })
-            .lookup({
-                from: 'plans',
-                localField: 'subscription.proPlan',
-                foreignField: '_id',
-                as: 'proPlan'
-            })
-            .unwind('messages')
-            .group({
-                _id: '$_id',
-                positive: { $sum: "$messages.reactions.positive" },
-                negative: { $sum: "$messages.reactions.negative" },
-                doc: { $first: '$$ROOT' }
-            })
-            .replaceRoot({
-                $mergeObjects: ["$$ROOT", '$doc']
-            })
-            .project({
-                messages: 0,
-                password: 0,
-                doc: 0,
-                __v: 0,
-            })
-
-
-        if (popularity === 'popular') {
-            aggregation.sort('-positive')
-        } else aggregation.sort('-negative');
-
-        if (page > 0) aggregation.skip((page - 1)*results_per_page).limit(results_per_page);
-
-        users = await aggregation;
-
-        users = users.map(u => {
-            u.smm = u.smm[0]?.handle;
-            u.managed = u.managed.map(m => m.handle);
-            u.joinedChannels = u.joinedChannels.map(c => c.name);
-            u.editorChannels = u.editorChannels.map(c => c.name);
-            u.joinChannelRequests = u.joinChannelRequests.map(c => c.name);
-            u.editorChannelRequests = u.editorChannelRequests.map(c => c.name);
-
-            if (u.subscription) {
-                u.subscription.proPlan = u.proPlan[0];
-                delete u.subscription.proPlan.__v;
-                u.subscription.proPlan.id = u.subscription.proPlan._id.toString();
-            }
-            delete u.proPlan;
-
-            u.id = u._id.toString();
-
-            return u;
-        });
-
-
-
-        return Service.successResponse(makeGetResBody({
-            docs: users,
-            page: page,
-            results_per_page: results_per_page,
-        }));
+        return Service.successResponse(UsersAggregate.parsePaginatedResults(res, page, results_per_page))
     }
 
     static async getUser({ handle, includeReactions=true }) {

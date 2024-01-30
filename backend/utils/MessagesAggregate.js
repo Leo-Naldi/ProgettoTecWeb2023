@@ -262,6 +262,15 @@ class MessagesAggregate {
         })
     }
 
+    lookup(){
+        this.lookupDestChannel();
+        this.lookupDestUser();
+        this.lookupAuthor();
+        this.lookupAuthorSmm();
+        this.lookupAnsweringWithAuthor();
+        this.lookupDestChannelMembers();
+    }
+
     matchDest(dest) {
 
         if (dest) {
@@ -465,7 +474,7 @@ class MessagesAggregate {
         }
     }
 
-    parseDocument(doc, deleteAuthor = false) {
+    static parseDocument(doc, deleteAuthor = false) {
         doc.id = doc._id.toString();
         doc.author = doc.author_doc.handle;
         doc.dest = [
@@ -480,12 +489,14 @@ class MessagesAggregate {
         delete doc.destUser;
         delete doc.destChannel;
 
+        doc.meta.impressions += 1;
+
         if (deleteAuthor) delete doc.author;
 
         return doc;
     }
 
-    parsePaginatedResults(results, page, results_per_page) {
+    static parsePaginatedResults(results, page, results_per_page) {
 
 
         if (results[0].documents.length === 0) results[0].meta = [{ total_results: 0 }];
@@ -493,12 +504,12 @@ class MessagesAggregate {
         if (page > 0) {
             return {
                 pages: Math.ceil(results[0].meta[0].total_results / results_per_page),
-                results: results[0].documents.map((d) => this.parseDocument(d)),
+                results: results[0].documents.map((d) => MessagesAggregate.parseDocument(d)),
             }
         } else {
             return {
                 pages: 1,
-                results: results[0].documents.map((d) => this.parseDocument(d)),
+                results: results[0].documents.map((d) => MessagesAggregate.parseDocument(d)),
             }
         }
     }

@@ -4,13 +4,12 @@ const dayjs = require('dayjs');
 const config = require("../config");
 const { logger } = require("../config/logging");
 const { resetDaily, resetWeekly, resetMonthly, renewSubscriptions } = require("../config/crons");
-const MessagesAggregate = require('../utils/MessagesAggregate');
 const Message = require("../models/Message");
 const _ = require('underscore');
 
 
 
-describe.only('Messages Aggregate Tests', function(){
+describe('Messages Aggregate Tests', function(){
 
     describe('Dest Channel Members Tests', function(){
 

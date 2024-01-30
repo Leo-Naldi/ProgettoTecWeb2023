@@ -182,13 +182,16 @@ DebugRouter.get('/channel/member/:handle', async (req, res) => {
         return res.status(409).json({ message: `User did not join any channels containing messagess` });
     }
 
-    let cids = new Set();
+    let cids = [];
     
-    messages.map(m => m.destChannel.map(cid => cids.add(cid)));
-    cids = Array.from(cids);
-    cids = cids.filter(cid => user.joinedChannels.some(id => id.equals(cid)));
+    messages.map(m => m.destChannel.map(cid => {
+        if (user.joinedChannels.some(id => id.equals(cid))) {
+            cids.push(cid.toString());
+        }
+    }));
 
-    const channels = await Channel.find({ _id: { $in: cids } });
+    const channels = await Channel.find({ _id: { $in: _.uniq(cids).map(cid => new mongoose.Types.ObjectId(cid)) } });
+
 
     if (!channels?.length) {
         return res.status(500).json({ message: 'No joined channel' });
