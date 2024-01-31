@@ -320,6 +320,9 @@ function TableModals({
 }
 
 function Row({ 
+    open,
+    onOpen,
+    onClose,
     message, 
     setMediaUrl, 
     setOpenImageModal, 
@@ -338,7 +341,6 @@ function Row({
     const destUser = message.dest.filter(d => d.charAt(0) === '@');
 
 
-    const [open, setOpen] = useState(false);
     const [replies, setReplies] = useState(null);
     const [fetchingReplies, setFetchingReplies] = useState(false);
     const [page, setPage] = useState(1);
@@ -357,7 +359,7 @@ function Row({
                 page: p,
                 answering: message.id,
                 sort: '-positive',
-                results_per_page: 200,
+                results_per_page: 100,
             }
         }).then(res => res.json())
             .then(answers => {
@@ -368,12 +370,13 @@ function Row({
     }
 
     const handleChangeOpen = (val) => {
-        setOpen(val);
 
         if (val) {
+            onOpen();
             fetchReplies(1)
             setPage(1);
         } else {
+            onClose();
             setReplies(null);
             setPage(1);
         }
@@ -953,7 +956,10 @@ export default function Squeals({ managed }) {
 
                         {/* actual messages */}
                         {(!fetchingMessages) && messages.map(
-                            m => <Row
+                            (m, i) => <Row
+                                    open={(i === openRowIndex)}
+                                    onOpen={() => setOpenRowIndex(i)}
+                                    onClose={() => setOpenRowIndex(-1)}
                                     message={m}
                                     setMediaUrl={setMediaUrl}
                                     setOpenImageModal={setOpenImageModal}
