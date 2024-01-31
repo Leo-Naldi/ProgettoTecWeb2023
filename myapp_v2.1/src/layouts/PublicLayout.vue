@@ -35,7 +35,7 @@
     <q-drawer :breakpoint="600"  :mini="miniStateR.value" @mouseover="miniStateR.value = false"
       @mouseout="miniStateR.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="320" show-if-above
       v-model="rightDrawerOpen" side="right" bordered>
-      <TrendsSideBar @mouseover="miniStateR.value = false"  v-show="rightDrawerOpen === true  && miniStateR.value == false && router.currentRoute.value.name != 'DisploreHashtagPublic'" class="q-ma-md"  />
+      <!-- <TrendsSideBar @mouseover="miniStateR.value = false"  v-show="rightDrawerOpen === true  && miniStateR.value == false && router.currentRoute.value.name != 'DisploreHashtagPublic'" class="q-ma-md"  /> -->
       <ChannelSideBar @mouseover="miniStateR.value = false"  v-show="rightDrawerOpen === true  && miniStateR.value == false && router.currentRoute.value.name != 'DisploreChannelPublic'"  class="q-ma-md" />
       <q-icon name="fa-solid fa-arrow-trend-up" class="bg-grey-2 q-my-md round  q-px-md q-mini-drawer-only flex" size="xs"/>
       <q-icon name="fa-solid fa-users-rectangle" class="bg-grey-2 q-my-md q-px-md round q-mini-drawer-only flex " size="xs" />
@@ -49,7 +49,7 @@ import { defineComponent, ref,reactive, onMounted, watch, computed, toRefs, onUn
 import EssentialLink from "components/EssentialLink.vue";
 import { useQuasar } from "quasar";
 import { useRouter } from "vue-router";
-import TrendsSideBar from "src/components/sidebar/TrendsSideBar.vue";
+// import TrendsSideBar from "src/components/sidebar/TrendsSideBar.vue";
 import ChannelSideBar from "src/components/sidebar/ChannelSideBar.vue";
 
 const linksList = [
@@ -71,7 +71,7 @@ export default defineComponent({
 
   components: {
     EssentialLink,
-    TrendsSideBar,
+    // TrendsSideBar,
     ChannelSideBar,
 },
   data() {

@@ -66,7 +66,6 @@ watch(
   ()=> usePostStore().getSocketPost,
   (v)=>{
     var routerParam = router.currentRoute.value.params
-    console.log("怎么没有回复，", routerParam, JSON.parse(JSON.stringify(v)).answering,  JSON.parse(JSON.stringify(v)).answering===routerParam.postId)
     if (routerParam && JSON.parse(JSON.stringify(v)).answering === routerParam.postId){
       postInfo.replies.unshift(v)
     }
