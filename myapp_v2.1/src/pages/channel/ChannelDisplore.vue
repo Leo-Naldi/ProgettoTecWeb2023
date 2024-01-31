@@ -34,22 +34,6 @@ export default {
     const store_channel = logged.value? computed(()=>useChannelStore().getChannelLists) : computed(()=>useChannelStore().getOfficialChannlLists)
     const allowFilter= ref(false)
 
-    // watch(allowFilter, (newV)=>{
-    //   if(newV!=true){
-    //     channel_list.value = store_channel.value
-    //     console.log("？？？", computed(()=>useChannelStore().getChannelLists))
-    //   }
-    //   else{
-    //     const list_joinedChannels = userJson.value.joinedChannels
-
-    //     const filteredData = store_channel.filter(obj1 => !list_joinedChannels.some(obj2 => obj2.name === obj1.name));
-    //     // console.log("ifFiltewwwwwwwwwr: ", filteredData)
-
-    //     channel_list.value = filteredData
-    //   }
-    // },{immediate:true, deep:true})
-
-
     return {
       allowFilter,
       store_channel,
@@ -72,31 +56,16 @@ export default {
         this.channel_list = this.store_channel
       }
       else{
-        // TODO: 只有登录用户才可享用的过滤已追踪的频道
+        // TODO: only logged user can filter followed channel
         const list_joinedChannels = getUser().joinedChannels
 
         const filteredData = JSON.parse(JSON.stringify(this.store_channel)).filter(obj1 => !list_joinedChannels.some(obj2 => obj2.name === obj1.name));
-        // console.log("ifFiltewwwwwwwwwr: ", filteredData)
 
         this.channel_list = filteredData
-        console.log("准备过滤啦！", list_joinedChannels, JSON.parse(JSON.stringify(this.store_channel)), this.channel_list)
       }
     },
 
   },
-  // 只是 debug 用的
-  mounted(){
-    this.channel_list = this.store_channel
-    // const toRaw_hashTrend = toRaw(this.channel_list)
-    // console.log("channel displore get filtered value toRaw is: ", toRaw_hashTrend)
-    // const toRaw_public = toRaw(this.stored_public_channel)
-    // console.log("channel displore get filtered value computed: ", this.channel_list)
-    // console.log("channel displore get value toRaw is: ", toRaw_public)
-    // console.log("channel displore get value computed: ", this.stored_public_channel)
-    // const toRaw_all = toRaw(this.stored_all_channel)
-    // console.log("channel displore get value toRaw is: ", toRaw_all)
-    // console.log("channel displore get value computed: ", this.stored_all_channel)
-  }
 }
 </script>
 

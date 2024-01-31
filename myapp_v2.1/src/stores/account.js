@@ -2,7 +2,6 @@ import { defineStore } from "pinia";
 
 import AUTH from "src/common/apiconfig";
 
-import { format } from "date-fns";
 import { showPositive, showNegative } from "src/common/utils";
 // import { userStore } from "src/common/myStore";
 import { useUserStore } from "src/stores/user";
@@ -39,7 +38,6 @@ export const useAccountStore = defineStore("account", {
         useUserStore().setUser(my_user, mytoken)
         this.router.push({ name: "Home" });
         this.hasLoggedin = true;
-        // console.log("这是 login 返回的结果：", response, response.status)
 //
         }
         return response;

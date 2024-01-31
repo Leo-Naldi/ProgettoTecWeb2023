@@ -1,11 +1,9 @@
 <template>
   <q-page padding>
     <ShowPost v-for="post2 in postInfo.post" :key="post2.id" :replies=postInfo.replies :showReply="true" v-bind="post2" />
-    <!-- <q-btn @click="pressMe">pressMe</q-btn> -->
     <q-separator class="divider" color="grey-2" size="10px" />
     <router-view :key="router.fullPath"></router-view>
 
-    <!-- <NewShowPost :author="info.post[0].author"></NewShowPost> -->
     <WritePost :author="postInfo.author" :id="postInfo.id"/>
 
     <q-separator class="divider" color="grey-2" size="10px" />
@@ -70,7 +68,6 @@ watch(
 watch(
   ()=> usePostStore().getSocketPost,
   (v)=>{
-    console.log("【PostDetails】 监听 socket_posts 的变化！", v)
     if (routerParam && v.answering === routerParam.postId){
       postInfo.replies.unshift(v)
     }
@@ -83,7 +80,6 @@ watch(
 onMounted(() => {
   const paramId = routerParam.postId;
   if (typeof paramId !== 'undefined') {
-    // console.log("now you're searching post2: ", paramId);
     fetchPost(paramId);
     fetchPostReplies(paramId)
   }

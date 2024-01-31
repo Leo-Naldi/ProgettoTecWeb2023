@@ -101,12 +101,10 @@ export const useMapStore = defineStore("map", {
       })
       this.lines.addLayer(line)
     },
-    // 新增方法：动态添加标记
     addDynamicMarker(center, popup="") {
       var marker = popup? L.marker(center).bindPopup(popup): L.marker(center);
       this.markers.addLayer(marker);
 
-      // 如果之前有线，将新的标记与之前的线相连
       if (this.lines.getLayers().length > 0) {
         const lastLine = this.lines.getLayers()[this.lines.getLayers().length - 1];
         const lastLatLng = lastLine.getLatLngs()[lastLine.getLatLngs().length - 1];
@@ -118,7 +116,6 @@ export const useMapStore = defineStore("map", {
       }
     },
 
-    // 新增方法：动态添加线
     addDynamicLine(positions) {
       const bounds = L.latLngBounds();
 
@@ -127,13 +124,11 @@ export const useMapStore = defineStore("map", {
         this.addMarker(position); // 添加标记
         bounds.extend(position);
 
-        // 如果不是第一个点，将当前点与前一个点相连
         if (i > 0) {
           this.addPolyline([positions[i - 1], position])
         }
       }
 
-      // 如果之前有线，将最后一个标记与之前的线相连
       if (this.lines.getLayers().length > 0) {
         const lastLine = this.lines.getLayers()[this.lines.getLayers().length - 1];
         const lastLatLng = lastLine.getLatLngs()[lastLine.getLatLngs().length - 1];

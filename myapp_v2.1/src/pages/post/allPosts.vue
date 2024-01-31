@@ -1,7 +1,6 @@
 <template>
   <q-page class="relative-position">
       <div class="tooltip" @click="resetSocketList()" v-if="socket_post_list.length > 0">
-        <!-- <q-btn flat class="center" @click="showMore()">You have unread posts!</q-btn> -->
         <p class="center">You have unread posts!</p>
       </div>
       <q-list v-if="showSocket!=false">
@@ -53,22 +52,20 @@ export default {
     async function onLoad(index, done) {
       const res = isLogged ? await usePostStore().fetchPosts(userJson.liked, userJson.disliked) : await usePostStore().fetchOfficialPosts()
       if (res && res.length > 0) {
-        done(); // 数据加载完成后调用 done() 函数
+        done();
       } else {
-        isDisabled.value = true; // 数据为空，禁用 infinite scroll
+        isDisabled.value = true; // disable infinite scroll
       }
     }
     const resetSocketList = () => {
       socket_list.value = socket_list.value.concat(usePostStore().getSocketPosts)
       showSocket.value = true
-      // console.log("为什么点击后什么都没有展示？？", socket_list.value, usePostStore().getSocketPosts)
       usePostStore().resetSocketList()
     }
 
     return {
       router_name: useRouter().currentRoute.value.name,
       hasCliked,
-      // showMore,
       resetSocketList,
       showSocket,
       socket_list,
@@ -116,13 +113,10 @@ export default {
 
 .show-tooltip
   position: absolute
-  // top: 5rem
-  // // left: 2rem
   width: 300px
   top: 2%
   left: 20%
   text-align: center
-  // transform: translate(-50%, -50%)
   z-index: 2
 .show-post
   border-radius:12px

@@ -73,23 +73,7 @@ export default {
     }
   },
   methods: {
-    // async modifyMail(){
-    //   console.log("[InsertPopup] 输入的邮箱格式应该不正确：", this.email(this.toModify). this.toModify)
-    //   if (this.email(this.toModify)==true){
-    //     var submitForm = { email: this.toModify }
-    //     await modifyEmail(submitForm)
-    //   }
-    //   else{
-    //     showNegative("email format not correct! Please check and insert again!")
-    //   }
-    // },
     async verifyMailHandler() {
-      // TODO: 确定输入的邮箱符合邮箱的格式
-/*       if (this.toModify != this.localMail && this.consentChangeMail) {
-        console.log("not true but consent modify")
-        await this.modifyMail()
-      }
-      else  */
       var localHandle = useUserStore().getUserHandle
       var localToken = useUserStore().getUserToken
       if (this.email(this.toModify)!=true){
@@ -101,14 +85,12 @@ export default {
       else{
         showNegative("email not correct! Please check and insert again!")
       }
-      // 如果邮箱相同就只是发送生成验证网址的邮件，否则就先发送修改邮箱的 API 然后发送生成验证网址的邮件
       console.log("verify mail to send is: ", this.toModify, this.localMail, localHandle, localToken)
     },
     async handleInsert() {
       console.log("props data is:", this.$props.insertData)
       switch (this.$props.insertData) {
         case 1:
-          // TODO: 确定输入的邮箱符合邮箱的格式
           var submitForm = { email: this.toModify }
           await modifyEmail(submitForm)
           break;

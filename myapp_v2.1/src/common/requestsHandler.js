@@ -4,7 +4,6 @@ import { GOOGLEKEY } from "./myGlobals";
 import { showPositive, showNegative } from "./utils";
 import useValidation from "./validation";
 
-//TODO: 错误的情况一律弹出负面的 toast: 请前往控制台查看具体信息
 
 /**************************************
  *                                    *
@@ -68,7 +67,7 @@ export async function cancelPlan() {
  *                                    *
  **************************************/
 export async function fetchUser(user_name) {
-  // console.log("fetchUSer 传递的 handle 参数为：", user_name)
+  // console.log("fetchUSer param：", user_name)
   try {
     const response = await API.user(user_name);
     return response.data;
@@ -81,7 +80,7 @@ export async function fetchUser(user_name) {
 export async function fetchUserLiked(user_name) {
   try {
     const response = await API.search_user_liked(user_name);
-    // console.log("fetchUserLiked 函数返回的结果是：", response.data, user_name)
+    // console.log("fetchUserLiked res：", response.data, user_name)
     return response.data.results;
   } catch (error) {
     console.log("search user liked posts error!!!", error);
@@ -89,7 +88,6 @@ export async function fetchUserLiked(user_name) {
   }
 }
 
-// 频道查看成员的基本信息弹窗显示
 export async function userhandleToJson(arr_user) {
   try {
     const promises = arr_user.map((handle) => API.user(handle));
@@ -333,8 +331,6 @@ export async function searchChannel(channel_name) {
  *                Post                *
  *                                    *
  **************************************/
-// 两个正向和 负向的 id 列表
-// 需要传递点过赞的列表和点过踩的列表
 export async function markReactions(idPos, idNeg, posts) {
   return posts.map(obj2 => {
     if (idPos.includes(obj2.id)) {
@@ -352,6 +348,7 @@ export async function markReactions(idPos, idNeg, posts) {
  *              Hashtag               *
  *                                    *
  **************************************/
+// given coordinates, find country
 export async function getCountryFromLocation(location) {
   // const test1= "https://maps.googleapis.com/maps/api/geocode/json?latlng=40.714224,-73.961452&key="+process.env.GOOGLEKEY
   // const response = await fetch(test1)
@@ -363,10 +360,7 @@ export async function getCountryFromLocation(location) {
     const country = data.results[0].address_components.find((component) =>
       component.types.includes("country")
     );
-    // console.log("谷歌geocoding 找到的城市名为：", country);
-    // return country ? country.long_name : "";
     return country ? country.short_name : "";
   }
-  // console.log("我在找：",location)
   return "";
 }

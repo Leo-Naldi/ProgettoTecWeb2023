@@ -49,23 +49,9 @@
 
       </q-card-actions>
     </q-card>
-<!--     <div class="q-pt-md" style="display:flex; align-items: center; justify-content: center">
-    <q-btn color="primary">Pay</q-btn>
-    </div> -->
   </div>
 </template>
 
-<!-- <script>
-import { ref } from 'vue'
-
-export default {
-  setup () {
-    return {
-      tab: ref('basic')
-    }
-  }
-}
-</script> -->
 
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue'
@@ -83,9 +69,9 @@ const fetchPlanData = async () => {
   const data = await getPlans()
   planDetails.basic= computed(()=>data.filter( obj => !obj.pro))
   planDetails.subscriptions= computed(()=>data.filter( obj => obj.pro))
-  console.log("plan page get plan: ", data)
-  console.log("plan page get basic plan: ", planDetails.basic)
-  console.log("plan page get subscription plan: ", planDetails.subscriptions)
+  // console.log("plan page get plan: ", data)
+  // console.log("plan page get basic plan: ", planDetails.basic)
+  // console.log("plan page get subscription plan: ", planDetails.subscriptions)
 }
 
 const buyPlan = async(planChoice)=>{
@@ -95,7 +81,7 @@ const buyPlan = async(planChoice)=>{
     "autoRenew": autoRenew.value
   }
   const data = await changePlan(submit_data)
-  console.log("plan page buy plan res: ", data)
+  // console.log("plan page buy plan res: ", data)
 }
 
 

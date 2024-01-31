@@ -2,7 +2,6 @@
   <div class="q-px-md">
     <q-card flat square>
       <q-card-section class="q-pa-none q-py-md row">
-        <!-- <div class="col-sm-6 col-xs-12 q-pb-sm"> -->
         <div>
           <q-tabs v-model="settingsTab" align="left" active-color="primary" active-bg-color="blue-1" class="text-grey-10"
             vertical>
@@ -81,18 +80,6 @@
                   </q-item-section>
                 </q-item>
 
-                <!--               <q-separator inset="" spaced="10px" />
-                <q-item>
-                  <q-item-section>
-                    <q-item-label>Auto Renew</q-item-label>
-                    <q-item-label class="text-grey-6">
-                      autoRenew plan
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle v-model="autoRenew" checked-icon="check" color="primary" unchecked-icon="clear" />
-                  </q-item-section>
-                </q-item> -->
                 <q-separator inset="" spaced="10px" />
                 <q-item v-if="storedUser.subscription">
                   <q-item-section>
@@ -102,7 +89,6 @@
                   </q-item-section>
                   <q-item-section avatar>
                     <q-btn flat unelevated color="primary" label="Cancel" @click="cancelPlan = true">
-                      <!-- <q-popup-proxy></q-popup-proxy> -->
                       <q-dialog v-model="cancelPlan" persistent>
 
                         <ConfirmPopup :confirm-data="5">
@@ -156,7 +142,6 @@
                 <q-item>
                   <q-item-section>
                     <q-item-label>email</q-item-label>
-                    <!-- TODO: update email here if modified  -->
                     <q-item-label class="text-grey-6">
                       change bined email
                     </q-item-label>
@@ -203,9 +188,6 @@
                     </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
-                    <!-- TODO: 在这里输入邮箱，如果和用户注册的邮箱不同就顺便修改用户的邮箱，然后往这个邮箱发送验证邮件 -->
-                     <!-- TODO: 如果邮箱与用户的不同就弹出提示：你输入了与注册的邮箱不同的邮箱！点击确认将修改邮箱，同时会往新邮箱发送验证网址；
-                          如果相同就弹出提示：验证网址已经发送到你的邮箱！点击网址验证你的账户 -->
                     <q-btn flat unelevated color="primary" label="Verify" @click="verifyAccount = true">
                       <q-popup-proxy>
                         <div class="flex flex-center" style="width: 400px;position:absolute;">

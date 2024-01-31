@@ -16,12 +16,11 @@
           <strong>{{ author ? author : "Null" }}</strong>
           <span class="text-grey-7 q-ml-sm">@{{ author ? author : "Null" }}
             <!--
-              // OK 但是有点卡
+              // OK but will blocc and this makes site slower
               <div class="q-ml-sm rounded-rectangle" >
                 <p style="display:inline">{{ userDetails.admin? Admin:userDetails.accountType }}</p>
               </div> -->
           </span>
-          <!-- <span class="text-grey-7 q-ml-sm">&bull; 2h </span> -->
           <span class="text-grey-7 q-ml-sm">&bull; {{ relativeDate(meta.created) }} ago</span>
         </div>
         <q-btn flat round color="grey-5" icon="more_horiz" @click.stop>
@@ -53,7 +52,6 @@
       <ShowMap v-if="content.geo && content.geo.coordinates.length != 0" :mapId="_id" :my-position="content.geo.coordinates" />
 
       <div class="my-buttons q-mt-sm q-ml-sm text-grey-7">
-        <!-- TODO:对这几个v-if 的鼠标移动上去有 tooltip 什么时候才满足条件 -->
         <div class="my-button" id="dislike">
           <q-btn flat round :color="hasLiked.disliked ? 'black' : 'grey'" :icon="hasLiked.disliked
             ? 'fa-sharp fa-solid fa-thumbs-down'
@@ -346,7 +344,6 @@ function NegReactionHandler(id) {
   }
 }
 
-const showReplies = (id) => { alert("查看回复！") };
 
 
 const userDetails = reactive({
@@ -355,7 +352,6 @@ const userDetails = reactive({
   accountType: "user"
 })
 onMounted(async () => {
-  // console.log("userDetails 查找用户传递的 handle 参数为： ", paramId)
   if(ifLoggedRouter){
     try{
       const data = await fetchUser(props.author)

@@ -41,8 +41,7 @@ export default defineComponent({
   },
   methods:{
     async fetchLogin() {
-      console.log("[App.vue] 的 fetchLogin!")
-      //TODO:继承反应计数
+      console.log("start to fetchLogin data!")
       // await this.fetchChannels()
       await useUserStore().handleUserJson(getUser())
       // console.log("liked: ", getUser().liked)
@@ -54,30 +53,28 @@ export default defineComponent({
       await useChannelStore().fetchAllChannelName()
       await useChannelStore().fetchAutoCompleteChannels()
 
-      await usePostStore().fetchLoggedUserPosts()   // 用来确认是否有给自己的消息
+      await usePostStore().fetchLoggedUserPosts()
 
     },
     async fetchPublic(){
-      console.log("[App.vue] 的 fetchPublic!!!!")
-      // await this.fetchOfficialPosts()
+      console.log("start to fetchPublic data!")
       await useChannelStore().fetchOfficialChannels()
       // for (var tweet of usePostStore().getOfficialPosts) {
-      //   usePostStore().updateHashTag(tweet);  // 获得 hashtagTrends 以及 trendList
+      //   usePostStore().updateHashTag(tweet);  // get hashtagTrends and trendList
       // }
     },
   },
   watch:{
     isLoggedin(newV){
-      // console.log("【App.vue】应该监听是否登录 如果登录了就开始抓取登录后的数据", newV)
       if(newV==true){
-        console.log("【App.vue】监听到了登录")
+        console.log("【App.vue】login action is detected!")
         this.fetchLogin()
         this.startLoggedInSocket()
       }
       else{
-        console.log("【App.vue】监听到了登出")
+        console.log("【App.vue】logout action is detected")
         this.fetchPublic()
-        // this.startNoLoginSocket()
+        this.startNoLoginSocket()
       }
     },
   },
@@ -92,7 +89,6 @@ export default defineComponent({
       this.startNoLoginSocket()
     }
     else if(this.isLoggedin && this.getSocket==null){
-      // 把 local 里的 userJson 同步到 store 里
       useUserStore().userLocalToStore()
       await this.fetchLogin()
       this.startLoggedInSocket()

@@ -1,4 +1,3 @@
-<!-- TODO:点击显示更多，默认只显示关键字和提及的搜索 -->
 <template>
   <div class="trend-container bg-grey-2 q-pa-md">
     <div class="flex justify-between items-center q-px-md q-py-sm">

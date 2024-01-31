@@ -8,13 +8,9 @@
         <div class="avatar">
           <q-avatar size="9rem" color="blue-6" text-color="white">
             <img src="https://cdn.quasar.dev/img/avatar2.jpg" />
-            <!-- <q-badge class="verified" > -->
             <div v-if="userDetails.verified">
               <q-icon name="fa-solid fa-circle-check" class="verified" size="3.5rem" />
             </div>
-            <!-- </q-badge> -->
-<!--  -->
-            <!-- {{ userDetails.userName[0] }} -->
           </q-avatar>
         </div>
       </div>
@@ -23,9 +19,6 @@
         <br>
         <br>
 
- <!--        <div class="flex justify-end">
-          <q-btn outline rounded style="color: goldenrod" icon="edit" label="Edit profile" @click="editProfile()" />
-        </div> -->
         <div class="q-mt-md">
           <q-item-label class="text-subtitle1 flex justify-between">
             <div class="text-bold">{{ userDetails.userName }}</div>
@@ -91,13 +84,9 @@
           v-if="userMessageDetails.userMedias.length <= 0">No user Medias!</p>
       </q-list>
       <q-list v-if="isActive === 'likes'" separator>
-        <!-- <ShowPost v-for="post in userAgrees" :key="post.id" v-bind="post" class="q-py-md" clickable /> -->
         <ShowPost v-for="post in userMessageDetails.userAgrees" :key="post.id" v-bind="post" class="q-py-md" clickable />
-        <!-- {{ userDetails.liked }} -->
         <p style="display:flex;align-items: center; justify-content:center"
           v-if="userMessageDetails.userAgrees.length <= 0">No user Likes!</p>
-          <!-- <p style="display:flex;align-items: center; justify-content:center"
-          v-if="userAgrees.length <= 0">No user Likes!</p> -->
       </q-list>
     </div>
   </q-page>
@@ -146,14 +135,12 @@ const userMessageDetails = reactive({
 
 const fetchUserMessages = async (paramId) => {
   userMessageDetails.userPosts = await postStore.fetchUserPosts(paramId)
-  // console.log("抓取用户发出的推文：", userMessageDetails.userPosts, paramId)
   userMessageDetails.userMedias = computed(() => userMessageDetails.userPosts.filter(obj => obj.content !== undefined && obj.content.image != undefined))
   userMessageDetails.userReplies = computed(() => userMessageDetails.userPosts.filter(obj => obj.answering !== undefined))
 
 }
 
 const fetchUserData = async (paramId) => {
-  // console.log("userDetails 查找用户传递的 handle 参数为： ", paramId)
   const data = await fetchUser(paramId)
   userDetails.handle = data.handle
   userDetails.userName = data.username

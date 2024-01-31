@@ -68,7 +68,7 @@ export default {
     },
     mouseOver() {
       const current_buttonText = this.buttonText
-      // console.log("【channelButton】 button 上的文字为："+current_buttonText)
+      // console.log("【channelButton】 button text is："+current_buttonText)
       if (current_buttonText === this.follow_text) {
         this.buttonText = this.request_text;
       }
@@ -130,17 +130,13 @@ export default {
     }
   },
   mounted() {
-    // console.log("[ChannelButton] 的 userJson 的值为：", this.user_json)
-    // const user_json = JSON.parse(JSON.stringify(user_json1.value))
     const list_joinedChannels = this.user_json.joinedChannels.map(obj => obj.name);
     const list_joinedChannelRequests = this.user_json.joinChannelRequests
     const list_createdChannels = this.user_json.createdChannels.map(obj => obj.name);
-    console.log()
     this.isMember = list_joinedChannels.includes(this.$props.channel_name)
     this.isCreator = list_createdChannels.includes(this.$props.channel_name)
     this.isRequestingMember = list_joinedChannelRequests.includes(this.$props.channel_name)
     this.buttonText = this.isCreator? this.created_text : this.isMember ? this.following_text : this.isRequestingMember? this.requesting_text : this.follow_text
-    // console.log("[ChannelButton] "+this.$props.channel_name+" 的 member, creator, requesting 的判断结果为：", this.isMember, this.isCreator, this.isRequestingMember, this.buttonText)
   }
 }
 </script >

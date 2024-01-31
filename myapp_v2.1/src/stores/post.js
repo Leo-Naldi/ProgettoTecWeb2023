@@ -23,10 +23,10 @@ export const usePostStore = defineStore("post", {
     allOfficialPosts: [], // post_list without login
     hideList: [],   // logged user can hide posts
     bookmarks: [],  // logged user can collection post in bookmarks
-    userPosts: [],  // 通知用：是否有给当前登录用户的回复
+    userPosts: [],  // if has reply to current user
 
-    socket_posts: [], // 专门用来存放用户登录以后收到的消息
-    socket_post: {},  // 专门用来存放socket的最新消息，只有一条消息
+    socket_posts: [], // socket posts
+    socket_post: {},  // current socket post
 
 
     fetchedPages: [], //fetchedPages num
@@ -77,30 +77,19 @@ export const usePostStore = defineStore("post", {
       this.fetchedPages=[]
     },
     searchAndUpdateHashtag(post, hashtag){
-      // const hashtagStore = useHashtagStore()
-      // const res = hashtagStore.searchHashtag(hashtag);
-      // console.log("更新hashtag 查找结果是否存在：", res, "长度为；", res.length);
-      // if ((res.length = 0)) {
-      //   hashtagStore.addHashtag(hashtag); // 意味着是个新 tag
-      // }
-      // search hashtag list with data
-      if (this.hashtagTrends[hashtag]) {      // 如果这个 Store 里已经有相关的数据
+      if (this.hashtagTrends[hashtag]) {
         const check_duplicate = this.hashtagTrends[hashtag].find(
           (iter) => iter.id === post.id
-        );  // 是否已经存了同样的数据
+        );
         if (!check_duplicate){
-          this.hashtagTrends[hashtag].unshift(post); //不存在就放进去
-          // console.log("更新 hashtag 没有重复的")
+          this.hashtagTrends[hashtag].unshift(post);
         }
         else{
-          // console.log("更新 hashtag 有重复的")
 
         }
       } else {
-        this.hashtagTrends[hashtag] = [post];  //存在这个 store 里了， #tag: [{...}] 的形式
+        this.hashtagTrends[hashtag] = [post];  // format: #tag: [{...}]
       }
-      // console.log("【post.js】makeClickable 的 searchAndUpdateHashtag 找到的 hashtag 是", hashtag, "post 是：", post)
-      // console.log("【post.js】makeClickable 的 searchAndUpdateHashtag 更新的结果是：", this.hashtagTrends)
     },
     makeClickable(post, obj) {
       var regex = /(?:#|@|§)[\w\-]+/g;
@@ -115,44 +104,17 @@ export const usePostStore = defineStore("post", {
           route = API.channelDetails(match.slice(1));
         }
         return (
-          // '<router-link  @click.stop.prevent to="' +route +'">' + match + "</router-link>"
           '<a  @click.stop.prevent href="' + route + '">' + match + " </a>"
         );
       });
 
       return converted_html;
     },
-    /*  未登录用户转为登录时可以选择是否把本地数据上传到云端。解决冲突的方式：
-        为真的话就在array2 里找 array1 的每一个元素，并用 array1 的 liked 和 disliked 覆盖 array2 的；（本地覆盖远程，覆盖远程的数据）
-        为假的话就直接返回 array2 （云端覆盖本地，放弃未登录时的数据）
-    */
-    resolveConflict(array1, array2, useFirstArray, likedArr, dislikedArr, useLocal) {
-      if(useLocal){
-        // 如果决定使用本地的数据，就用本地的 liked 和 disliked 覆盖云端的 liked 和 disliked
 
-      }
-
-    if (useFirstArray) {
-      if (array1.every(obj => !obj.liked && !obj.disliked)) {
-        return [...array2];
-      }
-
-      return array2.map(obj2 => {
-        const obj1 = array1.find(obj1 => obj1.id === obj2.id);
-        if (obj1) {
-          return { ...obj2, liked: obj1.liked, disliked: obj1.disliked };
-        }
-        return obj2;
-      });
-    } else {
-      return [...array2];
-    }
-  },
 
     reactionsToPosts(reactions, posts, value){
         if(reactions.length<=0)
           return posts;
-          // 从用户的喜欢过的 id 的列表里寻找并填充布林值
         return posts.map(obj2 => {
           const obj1 = reactions.find(obj1 => obj1 === obj2.id);
           if (obj1) {
@@ -250,11 +212,9 @@ export const usePostStore = defineStore("post", {
       }
     },
     // update local posts lists
-    // 更改为更新到 socket_posts
     updatePosts(data){
       let res = this.messageHandler(data);
       this.socket_posts.unshift(res);
-      // console.log("【post.js updatePost】 socket 更新的新的推文为什么没有高亮？！", res, data)
       return res
     },
     setUserPost(arr) {
@@ -278,7 +238,6 @@ export const usePostStore = defineStore("post", {
         '#rt': [ 'dgasjkljsdkl #et dsajjwkhe #rt dsfas' ]
       ]
     */
-    // 按照hashtag 分类汇总推文
     updateHashTag(tweet) {
       const hashtagStore = useHashtagStore();
       const check_valid = tweet.content && tweet.content.text; //需要有文本内容才有效
@@ -287,7 +246,6 @@ export const usePostStore = defineStore("post", {
         const if_newTag = check_valid.match(/#\w+/g) || []; //是否包含hashtag
         // var res_arr = [];
 
-        // 有可能包含不止一个 tag
         if_newTag.forEach(async (hashtag) => {
           // if contains geo TODO:ok
 /*           if (tweet.content.geo) {
@@ -307,23 +265,18 @@ export const usePostStore = defineStore("post", {
           } */
           // this.trendList= res_arr
 
-          // 查找是不是已经有这个tag 的记录了
           const res = hashtagStore.searchHashtag(hashtag);
           // console.log("this is the result of hashtag store search: ", res);
           if ((res.length = 0)) {
-            hashtagStore.addHashtag(hashtag); // 意味着是个新 tag
+            hashtagStore.addHashtag(hashtag);
           }
 
           // search hashtag list with data
-          if (this.hashtagTrends[hashtag]) {      // 如果这个 Store 里已经有相关的数据
-   /*          const check_duplicate = this.hashtagTrends[hashtag].find(
-              (iter) => iter.id === tweet.id
-            );  // 是否已经存了同样的数据
-            if (!check_duplicate)
-               */
-            this.hashtagTrends[hashtag].unshift(tweet); //不存在就放进去
+          if (this.hashtagTrends[hashtag]) {
+
+            this.hashtagTrends[hashtag].unshift(tweet);
           } else {
-            this.hashtagTrends[hashtag] = [tweet];  //存在这个 store 里了， #tag: [{...}] 的形式
+            this.hashtagTrends[hashtag] = [tweet];
           }
           // console.log(
           //   "update hahstag res: ",
@@ -363,8 +316,6 @@ export const usePostStore = defineStore("post", {
     },
     // fetch all posts
     async fetchPosts(liked=[], disliked=[]) {
-      // console.log("liked 是", liked)
-      // console.log("disliked 是", disliked)
       if (this.fetchedPages.length>0 && this.fetchedPages.includes(this.page)){
         this.page++;
         return [];
@@ -379,10 +330,8 @@ export const usePostStore = defineStore("post", {
 
               myTweets_list = this.reactionsToPosts(liked, myTweets_list, 1)
               myTweets_list = this.reactionsToPosts(disliked, myTweets_list, 2)
-              // console.log("没有标记：", liked, myTweets_list)
               this.fetchedPages.push(this.page)
               this.allPosts = this.allPosts.concat(myTweets_list);  //??? or .push(...myTweets_list)
-              console.log("2. 【post.js】 的 [fetchPosts] 被调用了！抓取到所有推文登录版以及当前页数：", myTweets_list, this.page) //获得 proxy
               this.page++;
               return myTweets_list
             }
@@ -392,7 +341,6 @@ export const usePostStore = defineStore("post", {
     },
     async fetchChannelPost(channel_name, map=false) {
       try {
-        console.log("正在抓取频道 "+channel_name+" 的消息")
         const response = await API.channel_messages(channel_name);
         // console.log("fetchChannelPost: ", response)
         const tmp = response.data.results
@@ -407,13 +355,11 @@ export const usePostStore = defineStore("post", {
         throw error;
       }
     },
-    // 获取当前登录用户的所有发过的推文
     async fetchLoggedUserPosts() {
       const userHandle = useUserStore().getUserHandle;
       let resultsArr = []
       let page = 1
       let totalPages = 1
-      // console.log("fetchUserPost 的 userHandle 为：", userHandle)
       if (userHandle) {
         try {
           while(page<=totalPages){
@@ -421,8 +367,6 @@ export const usePostStore = defineStore("post", {
             resultsArr=  resultsArr.concat(response.data.results)
             totalPages = response.data.pages
             page++
-            // this.userPosts = res;
-            // console.log("fetchUserPost res: ", this.getUserPosts);
           }
           const res = this.messageHandler(resultsArr);
           this.setUserPost(res);
@@ -433,7 +377,6 @@ export const usePostStore = defineStore("post", {
         }
       }
     },
-    // 获取任意用户发过的推文
     async fetchUserPosts(userHandle) {
       // console.log("fetchUserPost 的 userHandle 为：", userHandle)
       if (userHandle) {
@@ -656,7 +599,6 @@ export const usePostStore = defineStore("post", {
 
       try {
         const response = await API.search_mentions(text);
-        console.log("【post.js】 的 searchMentions result is: ", response.data.results);
         showPositive("searchPosts with mention " + text + " success!");
         return this.messageHandler(response.data.results);
       } catch (error) {
@@ -669,12 +611,10 @@ export const usePostStore = defineStore("post", {
 /*    const es = {
         from: { user: "" },                                                // &author=xxx
         contains: { keywords: "www", mentions: "", text: "" },             // ?keywords=xxx, &mentions=xxx, &text=xxx
-        to: { user: "", channel: "" },                                     // &query=xxx，必须有 @ 符号以及 § 符号
-        timeFrame: { start: "2023-11-19 12:44", end: "2023-11-19 22:44" }, // &before=xxx&after=xxx（不等于这个默认值， ）
+        to: { user: "", channel: "" },                                     // &query=xxx， @, §
+        timeFrame: { start: "2023-11-19 12:44", end: "2023-11-19 22:44" }, // &before=xxx&after=xxx
 
         count: { min_likes: "232132", min_dislikes: "21212" },  //
-        media: true,  //搜索结果返回后再过滤
-        reply: false, //同上
       }; */
       let search_api = "?author="+searchFilters.from.user
       search_api+=searchFilters.contains.keywords.split(/\s*,\s*/).map(keyword => "&keywords=" + keyword).join("");
@@ -688,11 +628,11 @@ export const usePostStore = defineStore("post", {
       if (searchFilters.timeFrame.after!="2023-11-19 22:44"){
         search_api+="&after="+searchFilters.timeFrame.after
       }
-      console.log("【post.js】 的 searchPostsFiltered 最终请求 API 为：",search_api)
+      console.log("【post.js】 's searchPostsFiltered final search API：",search_api)
 
       try {
         const response = await API.search_message_base(search_api)
-        console.log("【post.js】 的 searchWithFilter result is: ", response.data.results);
+        console.log("【post.js】's searchWithFilter result is: ", response.data.results);
         showPositive("searchPostsFiltered success!");
         return this.messageHandler(response.data.results);
       } catch (error) {

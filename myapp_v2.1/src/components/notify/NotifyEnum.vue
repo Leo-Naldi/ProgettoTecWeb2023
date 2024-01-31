@@ -56,7 +56,6 @@ const props = defineProps({
 function callParentFunction() {
   props.clickHandler(props._id);
 }
-// let clickHandlerP = toRefs(props.clickHandler)
 </script>
 
 <style scoped lang="sass">

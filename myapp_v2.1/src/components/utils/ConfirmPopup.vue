@@ -4,8 +4,6 @@
     <q-card-section class="row items-center">
       <q-avatar icon="heart_broken" color="primary" text-color="white" />
       <span class="q-ml-sm"><slot></slot>
-        <!-- <ModifyPassword v-if="modifyPassword === true" /> -->
-        <!-- <ChoosePlan v-if="choosePlan == true" /> -->
         </span>
     </q-card-section>
 

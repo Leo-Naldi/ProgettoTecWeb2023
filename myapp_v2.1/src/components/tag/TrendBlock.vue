@@ -1,7 +1,6 @@
 <template>
   <q-item-section>
           <q-item-label caption v-if="country!=''"> {{ country }}</q-item-label>
-          <!-- TODO:点击前往 tag 页 -->
           <q-item-label class="text-weight-medium">
             <router-link :to="{ name: 'tagPage', params: { tagName: tag.substring(1) }}">{{ tag }}</router-link>
           </q-item-label>
@@ -34,7 +33,6 @@ const props = defineProps({
   }
 })
 
-//TODO:
 const isHide=(tag)=>{
   alert("you want to hide posts with this tag:  "+tag)
 }

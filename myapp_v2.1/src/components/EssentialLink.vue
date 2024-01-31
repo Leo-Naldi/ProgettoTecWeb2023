@@ -12,12 +12,18 @@
     <q-menu style="border-radius: 12px" v-if="icon == 'more_horiz'">
       <q-list>
         <q-item v-for="(item, i) in moreList" :key="i" v-close-popup clickable class="flex items-center">
-          <router-link :to="{ path: item.address }">
-          <q-icon :name="item.icon" class="q-mr-sm" />
-          <q-item-section>{{
-            item.lable
-          }}</q-item-section>
+          <router-link v-if="item.icon=== 'verified_user'" :to="{ path: item.address }">
+            <q-icon :name="item.icon" class="q-mr-sm" />
+            <q-item-section>{{
+              item.lable
+            }}</q-item-section>
           </router-link>
+          <div v-else>
+            <q-icon :name="item.icon" class="q-mr-sm" />
+            <q-item-section><a :href="item.address">{{
+              item.lable
+            }}</a></q-item-section>
+          </div>
         </q-item>
       </q-list>
     </q-menu>
@@ -26,7 +32,6 @@
 
 <script>
 import { defineComponent,reactive } from 'vue'
-import { baseURL } from 'src/common/myGlobals';
 
 export default defineComponent({
   name: 'EssentialLink',
@@ -60,12 +65,12 @@ export default defineComponent({
         {
           lable: "SMM Dashboard",
           icon: "rocket_launch",
-          address: baseURL+"/frontend/smmdashboard",
+          address: "http://site222346.tw.cs.unibo.it/frontend/smmdashboard/",
         },
         {
           lable: "Mod Dashboard",
           icon: "equalizer",
-          address: baseURL+"/frontend/moddashboard",
+          address: "http://site222346.tw.cs.unibo.it/frontend/moddashboard/",
         },
         {
           lable: "Settings",
@@ -85,8 +90,6 @@ export default defineComponent({
 .my-hover:hover
   color: #1da1f2
   background-color: #e8f5ff
-  // background-color: #1da1f2
-  // color: #e8f5ff
   box-sizing: border-box
 
 .between-icon

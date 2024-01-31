@@ -43,7 +43,7 @@ export default defineComponent({
         router.push({
           name: "KeywordsMap",
           params: {
-            keywords: searchText.value,         // Map 布局上方的搜索框只支持搜索关键词
+            keywords: searchText.value,         // searchbar in mapPage can only search keywords(hashtag)
           },
         });
       }

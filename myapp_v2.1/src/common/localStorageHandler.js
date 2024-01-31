@@ -25,10 +25,8 @@ export function setToken(token) {
 }
 
 export function savePublicPosts(posts) {
-  // 在网站中展示最新的推文数据
   const public_posts = JSON.parse(LocalStorage.getItem(PUBLIC_POST_KEY)) || [];
 
-  // 将新的推文数据保存到本地存储中
   localStorage.setItem(
     PUBLIC_POST_KEY,
     JSON.stringify([...public_posts, ...posts])
@@ -98,7 +96,6 @@ export function removePublicPost(id) {
 export function likePublicPost(id) {
   const public_posts = JSON.parse(LocalStorage.getItem(PUBLIC_POST_KEY)) || [];
   // if(public_posts!=[]){
-  //   // 如果已经不喜欢过，否则就是点赞过再存到 localStorage 里
   //   public_posts.forEach(obj => {
   //     if (obj.id === id) {
   //       obj.reactions.positive += 1;
@@ -117,7 +114,6 @@ export function likePublicPost(id) {
 export function undoLikePublicPost(id) {
   const public_posts =
     JSON.parse(LocalStorage.getItem(PUBLIC_POST_KEY)) || null;
-  // const updatedArr = public_posts.filter(obj => obj.id !== id || obj.disliked);
   if (public_posts != []) {
     const res = public_posts.find((iter) => iter.id === id);
     res.reactions.positive =
