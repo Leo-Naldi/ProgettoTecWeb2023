@@ -29,13 +29,9 @@ import CheckIcon from '@mui/icons-material/Check';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
-
-import "wicg-inert";
 import _ from 'underscore';
 import RepliesVarList from './RepliesVarList';
 
-// TODO add inert polyfill to squeal locations map
-// TODO use stats to get total messages
 
 
 function TableToolbar({ popularity, setPopularity, period, setPeriod, risk, setRisk }) {
@@ -320,6 +316,9 @@ function TableModals({
 }
 
 function Row({ 
+    open,
+    onOpen,
+    onClose,
     message, 
     setMediaUrl, 
     setOpenImageModal, 
@@ -338,37 +337,83 @@ function Row({
     const destUser = message.dest.filter(d => d.charAt(0) === '@');
 
 
-    const [open, setOpen] = useState(false);
     const [replies, setReplies] = useState(null);
     const [fetchingReplies, setFetchingReplies] = useState(false);
+    const [page, setPage] = useState(1);
+    const [maxPages, setMaxPages] = useState(null);
 
 
     const smm = useAccount();
+    const socket = useSocket();
 
-    //console.log(message.id)
-
-    const handleChangeOpen = (val) => {
-        setOpen(val);
-
-        if (val) {
-            setFetchingReplies(true);
-            authorizedRequest({
-                endpoint: `/messages/`,
-                token: smm.token,
-                query: {
-                    page: 0,
-                    answering: message.id,
-                    sort: 'positive',
-                }
-            }).then(res => res.json())
+    const fetchReplies = (p) => {
+        setFetchingReplies(true);
+        authorizedRequest({
+            endpoint: `/messages/`,
+            token: smm.token,
+            query: {
+                page: p,
+                answering: message.id,
+                sort: '-positive',
+                results_per_page: 100,
+            }
+        }).then(res => res.json())
             .then(answers => {
                 setReplies(answers.results);
+                setMaxPages(answers.pages)
                 setFetchingReplies(false);
             })
+    }
+
+    const handleChangeOpen = (val) => {
+
+        if (val) {
+            onOpen();
+            fetchReplies(1)
+            setPage(1);
         } else {
+            onClose();
             setReplies(null);
+            setPage(1);
         }
     }
+
+    useEffect(() => {
+
+        let reply_deleted_cb = (data) => {
+            if (replies) {
+                let ind = replies.findIndex(m => m.id === data.id);
+                if (ind >= 0) {
+                    let new_replies = [...replies];
+                    new_replies[ind].deleted = true;
+                    setReplies(new_replies);
+                }
+            }
+        }
+
+        let reply_changed_cb = (data) => {
+            if (replies) {
+                let ind = replies.findIndex(m => m.id === data.id);
+                if (ind >= 0) {
+                    let new_replies = [...replies];
+                    new_replies[ind] = {
+                        ...replies[ind],
+                        ...data,
+                    };
+                    setReplies(new_replies);
+                }
+            }
+        }
+
+        socket.on('message:deleted', reply_deleted_cb);
+        socket.on('message:changed', reply_changed_cb);
+
+        return () => {
+            socket.off('message:deleted', reply_deleted_cb);
+            socket.off('message:changed', reply_changed_cb);
+        }
+
+    }, []);
 
     if (message.deleted) {
         return (<Fragment>
@@ -471,12 +516,19 @@ function Row({
                             </Typography>
                         </Container>}
                         {((!fetchingReplies) && (replies?.length > 0)) && 
-                            <RepliesVarList replies={replies} />
+                            <RepliesVarList 
+                                replies={replies} 
+                                page={page} 
+                                maxPages={maxPages}
+                                onPageChange={(p) => {
+                                    setPage(p);
+                                    fetchReplies(p);
+                                }}/>
                         }
                         {((!fetchingReplies) && (replies?.length === 0)) && <Container>
                             <Typography
                             color="text.secondary">
-                                No Replies Found
+                                No Replies Found.
                             </Typography>
                         </Container>}
                     </Box>
@@ -569,7 +621,9 @@ export default function Squeals({ managed }) {
     const [orderBy, setOrderBy] = useState('created');
     const [period, setPeriod] = useState('all');  // all, today, week, month, year
     const [popularity, setPopularity] = useState('all');  // popular, unpopular, controversial
-    const [risk, setRisk] = useState(null)
+    const [risk, setRisk] = useState(null);
+
+    const [openRowIndex, setOpenRowIndex] = useState(-1);
 
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows =
@@ -753,9 +807,9 @@ export default function Squeals({ managed }) {
         socket.on('message:deleted', message_deleted_cb);
 
         return () => {
-            socket?.off('message:created', message_created_cb);
-            socket?.off('message:changed', message_changed_cb);
-            socket?.off('message:deleted', message_deleted_cb);
+            socket.off('message:created', message_created_cb);
+            socket.off('message:changed', message_changed_cb);
+            socket.off('message:deleted', message_deleted_cb);
         }
     }, [socket, messages, page, messagesPerPage, managed])
 
@@ -800,7 +854,7 @@ export default function Squeals({ managed }) {
     function getMessagesTable() {
 
         return (
-            <TableContainer component={'paper'} aria-live="polite">
+            <TableContainer aria-live="polite">
                 <Table aria-label='Squeals Table'>
                     <caption>Squeals by @{managed}.</caption>
                     <TableHead>
@@ -898,7 +952,10 @@ export default function Squeals({ managed }) {
 
                         {/* actual messages */}
                         {(!fetchingMessages) && messages.map(
-                            m => <Row
+                            (m, i) => <Row
+                                    open={(i === openRowIndex)}
+                                    onOpen={() => setOpenRowIndex(i)}
+                                    onClose={() => setOpenRowIndex(-1)}
                                     message={m}
                                     setMediaUrl={setMediaUrl}
                                     setOpenImageModal={setOpenImageModal}

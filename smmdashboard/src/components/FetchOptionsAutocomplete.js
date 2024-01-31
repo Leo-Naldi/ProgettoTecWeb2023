@@ -3,18 +3,42 @@ import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
 
+/**
+ * Used to avoid races when fetching the options.
+ */
+class Api {
+    promise;
+
+    constructor(api_call) {
+        this.api_call = api_call;
+    }
+
+    async request(text) {
+        this.promise = this.api_call(text);
+        const localPromise = this.promise;
+        const result = await this.promise;
+
+        if (this.promise === localPromise) {
+            return result;
+        }
+    }
+}
+
 
 export default function FetchOptionsAutocomplete({ optionsPromise, onChange, id, getOptionLabel, textLabel }) {
     const [open, setOpen] = useState(false);
     const [options, setOptions] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [apiClient, setApiClient] = useState(null);
 
     const handle_open = () => {
         setOpen(true);
         setLoading(true);
-        optionsPromise().then(res => {
-            setOptions(res);
-            setLoading(false);
+        apiClient?.request().then(res => {
+            if (res) {
+                setOptions(res);
+                setLoading(false);
+            }
         })
     }
 
@@ -25,11 +49,18 @@ export default function FetchOptionsAutocomplete({ optionsPromise, onChange, id,
 
     const handle_value_changed = (e, val) => {
         setLoading(true);
-        optionsPromise(val).then(res => {
-            setOptions(res);
-            setLoading(false);
+        apiClient?.request(val).then(res => {
+            if (res) {
+                setOptions(res);
+                setLoading(false);
+            }
         });
     }
+
+    useEffect(() => {
+        const client = new Api(optionsPromise);
+        setApiClient(client);
+    }, [])
 
     return (
         <Autocomplete

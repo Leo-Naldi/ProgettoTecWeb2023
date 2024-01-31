@@ -66,6 +66,20 @@ paths:
             type: boolean
             example: False 
             default: False 
+        - name: sort
+          in: query 
+          description: Sort accounts by creation date number of likes/dislikes recieved. 
+          schema:
+            type: string
+            example: popular 
+            default: -created
+            enum:
+              - popular 
+              - unpopular 
+              - created 
+              - -popular 
+              - -unpopular 
+              - -created
       security:
         - adminAuth: []
       responses:
@@ -1018,6 +1032,13 @@ paths:
           schema: 
             type: string
             example: userHandle123
+        - name: name
+          in: path
+          description: Will only return channels whose name contains the given string. Matching is case insensitive.
+          required: True
+          schema: 
+            type: string
+            example: test
       responses:
         '200':
           description: Operation successful.
@@ -1049,6 +1070,13 @@ paths:
           schema: 
             type: string
             example: userHandle123
+        - name: name
+          in: path
+          description: Will only return channels whose name contains the given string. Matching is case insensitive.
+          required: True
+          schema: 
+            type: string
+            example: test
       responses:
         '200':
           description: Operation successful.

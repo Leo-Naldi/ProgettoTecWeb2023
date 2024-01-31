@@ -75,81 +75,14 @@ class UserService {
         return userArr.map(UserService.makeUserObject)
     }
 
-    /*
-    static async getUsers({ handle, admin, accountType, handleOnly = false, page = 1,
-        results_per_page = config.results_per_page,
-    } = { page: 1, results_per_page: config.results_per_page }) {
-
-        let old_rpp = results_per_page;
-        results_per_page = parseInt(results_per_page);
-
-        if (_.isNaN(results_per_page)) return Service.rejectResponse({ message: `Invalid results_per_page value: ${old_rpp}` });
-
-        if (results_per_page <= 0) results_per_page = config.results_per_page;
-
-        let filter = new Object();
-
-        if (handle) filter.handle = { $regex: handle, $options: 'i' };
-        if (_.isBoolean(admin)) filter.admin = admin;
-        if (accountType) filter.accountType = accountType;
-
-        let users;
-        if ((_.isBoolean(handleOnly)) && handleOnly) {
-
-            let aggr = User.aggregate()
-                .match(filter)
-                .project({ password: 0 })
-                .sort('-meta.created');
-
-            let documents_pipeline = [];
-            if (page > 0) {
-                documents_pipeline.push({
-                    '$skip': (page - 1) * results_per_page,
-                });
-                documents_pipeline.push({
-                    '$limit': results_per_page,
-                })
-            }
-
-            aggr.facet({
-                "meta": [{
-                    '$count': "total_results",
-                }],
-                "documents": documents_pipeline,
-            })
-
-            res = await aggr;
-
-            let pages = (page <= 0) ? 1: Math.ceil(res[0].meta[0].total_results / results_per_page);
-
-            return Service.successResponse({
-                pages, 
-                results: res[0].documents.map(u => {
-                    u.id = u._id.toString();
-                })
-            });
-        } else {
-
-            let query = UserService.getSecureUserRecords(filter)
-                .sort('meta.created');
-
-            if (page > 0)
-                query.skip((page - 1) * results_per_page).limit(results_per_page);
-
-            users = await query
-
-            return Service.successResponse(makeGetResBody({
-                docs: users,
-                page: page,
-                results_per_page: results_per_page,
-                results_f: r => r.map(UserService.makeUserObject)
-            }));
-        }
-
-    }*/
-
-    static async getUsersByPopularity({ handle, admin, accountType, handleOnly = false, page = 1,
-        results_per_page = config.results_per_page, popularity=null,
+    static async getUsersByPopularity({ 
+        handle, 
+        admin, 
+        accountType, 
+        handleOnly = false, 
+        page = 1,
+        results_per_page = config.results_per_page, 
+        sort='-created',
     } = { page: 1, results_per_page: config.results_per_page }) {
 
         let old_rpp = results_per_page;
@@ -167,7 +100,7 @@ class UserService {
         })
 
         aggr.lookup()
-        aggr.sort(popularity);
+        aggr.sort(sort)
         aggr.countAndSlice(page, results_per_page)
 
         let res = UsersAggregate.parsePaginatedResults(await aggr.run(), page, results_per_page)
