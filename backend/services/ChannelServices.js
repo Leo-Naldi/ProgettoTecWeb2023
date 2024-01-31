@@ -91,14 +91,14 @@ class ChannelServices{
     }
 
     // Get all channels that users have joined
-    static async getEditorChannels({ reqUser, handle }) {
+    static async getEditorChannels({ reqUser, handle, name=null }) {
 
         if (!handle) Service.rejectResponse({ message: `Did not provide a handle` })
 
         let aggr = new ChannelsAggregate();
 
         aggr.lookup();
-        aggr.matchFields({ editor: handle });
+        aggr.matchFields({ editor: handle, name: name });
 
         let res = await aggr.run();
 
