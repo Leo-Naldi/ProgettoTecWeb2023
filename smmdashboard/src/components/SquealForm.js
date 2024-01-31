@@ -12,6 +12,7 @@ import Spinner from './Spinner';
 import authorizedRequest from '../utils/authorizedRequest';
 import isImage from '../utils/isImage';
 import UploadAndDisplayMedia from './ImageUpload';
+import _ from 'underscore';
 
 
 export default function SquealFormModal({ managed, open, setOpen }) {
@@ -199,21 +200,23 @@ export default function SquealFormModal({ managed, open, setOpen }) {
             query: query,
         }).then(res => res.json())
         .then(res => {
-            console.log(res.results);
             return res.results;
         })
     }
 
-    function getChannelNamesFetch() {
+    function getChannelNamesFetch(val='') {
+
+        let q = {
+            namesOnly: 'true',
+        }
+        if (val) q.name = val;
 
         return authorizedRequest({
             endpoint: `/users/${managedAccount.handle}/editor`,
             token: smm.token,
-            query: {
-                namesOnly: 'true'
-            }
+            query: q,
         }).then(res => res.json())
-            .then(channels => channels.map(c => c.name))
+            .then(channels => _.pluck(channels, 'name'))
     }
 
     function getModalContents() {

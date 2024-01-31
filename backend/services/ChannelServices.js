@@ -76,14 +76,14 @@ class ChannelServices{
     }
 
     // Get all channels that users have joined
-    static async getJoinedChannels({ reqUser, handle }){
+    static async getJoinedChannels({ reqUser, handle, name = null }){
 
         if (!handle) Service.rejectResponse({ message: `Did not provide a handle` })
         
         let aggr = new ChannelsAggregate();
 
         aggr.lookup();
-        aggr.matchFields({ member: handle });
+        aggr.matchFields({ member: handle, name: name });
 
         let res = await aggr.run();
 

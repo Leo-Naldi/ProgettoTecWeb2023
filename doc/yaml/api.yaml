@@ -1032,6 +1032,13 @@ paths:
           schema: 
             type: string
             example: userHandle123
+        - name: name
+          in: path
+          description: Will only return channels whose name contains the given string. Matching is case insensitive.
+          required: True
+          schema: 
+            type: string
+            example: test
       responses:
         '200':
           description: Operation successful.
@@ -1063,6 +1070,13 @@ paths:
           schema: 
             type: string
             example: userHandle123
+        - name: name
+          in: path
+          description: Will only return channels whose name contains the given string. Matching is case insensitive.
+          required: True
+          schema: 
+            type: string
+            example: test
       responses:
         '200':
           description: Operation successful.

@@ -29,13 +29,9 @@ import CheckIcon from '@mui/icons-material/Check';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
-
-import "wicg-inert";
 import _ from 'underscore';
 import RepliesVarList from './RepliesVarList';
 
-// TODO add inert polyfill to squeal locations map
-// TODO use stats to get total messages
 
 
 function TableToolbar({ popularity, setPopularity, period, setPeriod, risk, setRisk }) {
