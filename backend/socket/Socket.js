@@ -39,7 +39,7 @@ class SquealSocket {
             namespaces.add('/public-feed-io/');
         }
 
-        if (populatedMessage.answering) {
+        if (populatedMessage.answering?.handle) {
             namespaces.add(`/user-io/${populatedMessage.answering.author.handle}`);
             if (populatedMessage.answering.author.smm) {
                 namespaces.add(`/pro-io/${populatedMessage.answering.author.smm.handle}`);
@@ -65,7 +65,7 @@ class SquealSocket {
     }
 
     static userChanged({ populatedUser, ebody, old_smm_handle, socket }) {
-        let nms = new Set([`/user-io/${populatedUser.handle}`, '/admin-io/']);
+        let nms = new Set([`/user-io/${populatedUser.handle}`, '/admin-io/', '/public-feed-io/']);
 
         if (populatedUser.smm?.handle) nms.add(`/pro-io/${populatedUser.smm.handle}`);
 

@@ -369,7 +369,7 @@ class MessageService {
      *    - Messages addressed to them
      *    - Messages to a channel they joined
      * 
-     * @param {Object} param0 The request values
+     * @param {Object} param0 - The request values
      * @returns A message object array
      */
     static async getMessages({ 
@@ -753,7 +753,15 @@ class MessageService {
 
         let answering_record;
         if (answering) {
-            answering_record = await Message.findById(answering).populate('author', '_id handle');
+            answering_record = await Message.findById(answering)
+                .populate({
+                    path: 'author',
+                    select: '_id handle smm',
+                    populate: {
+                        path: 'smm',
+                        select: '_id handle',
+                    }
+                }); 
 
             if (!answering_record) 
                 return Service.rejectResponse({ message: `Message ${answering} given in the answering field not found` })
@@ -811,8 +819,6 @@ class MessageService {
 
         message.answering = answering_record;
 
-        resbody = MessageService.#makeMessageObject(message);
-
         SquealSocket.messageCreated({
             populatedMessage: message,
             populatedMessageObject: resbody,
@@ -828,6 +834,10 @@ class MessageService {
             })
         }
         
+        message.answering = answering;
+
+        resbody = MessageService.#makeMessageObject(message);
+
         return Service.successResponse({ message: resbody, charLeft: user.charLeft});
     }
 
