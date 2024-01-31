@@ -50,7 +50,7 @@ export default function RepliesVarList({ replies, page, maxPages, onPageChange }
                         
                     }}
                 </VariableSizeList>
-                {(page !== maxPages) && (<Box>
+                {(maxPages > 1) && (<Box>
                     <Button 
                         variant='text' 
                         disabled={page === 1}

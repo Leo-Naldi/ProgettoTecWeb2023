@@ -15,7 +15,6 @@ import { useManagedAccounts } from '../context/ManagedAccountsContext';
 import Spinner from './Spinner';
 import { Button } from '@mui/material';
 import SquealFormModal from './SquealForm';
-// TODO modal accessibility
 
 
 export default function Dashboard({ managed }) {
