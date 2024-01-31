@@ -207,7 +207,7 @@ export default defineComponent({
       (oldV, newV) => {
         if (oldV !== newV) {
           console.log("[MainLayout] you have a new reaction!", oldV, newV, audio.value);
-          var sound_to_play = "/src/assets/newReply.mp3";
+          var sound_to_play = "newReply.mp3";
           audio.value.show_notifications_reply(
             sound_to_play,
             useNotificationsStore().getPlayReac.id
@@ -222,7 +222,7 @@ export default defineComponent({
       (oldV, newV) => {
         if (oldV !== newV) {
           console.log("[MainLayout] you have a new reply!", oldV, newV, audio.value);
-          var sound_to_play = "/src/assets/newMessage.mp3";
+          var sound_to_play = "newMessage.mp3";
           audio.value.show_notifications_reply(
             sound_to_play,
             useNotificationsStore().getPlayRe.id
@@ -237,7 +237,7 @@ export default defineComponent({
       (oldV, newV) => {
         if (oldV !== newV) {
           console.log("[MainLayout] you have a new message!", oldV, newV, audio.value);
-          var sound_to_play = "/src/assets/newMessage.mp3";
+          var sound_to_play = "newMessage.mp3";
           audio.value.show_notifications_reply(
             sound_to_play,
             useNotificationsStore().getPlayNew.id
