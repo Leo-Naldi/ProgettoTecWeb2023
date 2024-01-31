@@ -9,6 +9,8 @@ class UserContent{
             'Member',
             'Editor',
             'Account Type',
+            'Likes',
+            'Dislikes',
             'Blocked',
         ]
 
@@ -19,6 +21,8 @@ class UserContent{
             res['account type'] = res.admin ? "Administrator": ((res.accountType === 'pro') ? 'Pro User': 'Free User');
             res.editor = (res.editorChannels?.length) ? res.editorChannels.join(', ') : '-';
             res.blocked = res.blocked ? 'Yes': 'No';
+            res.likes = res.total_likes;
+            res.dislikes = res.total_dislikes;
             
             return res;
         }; 
@@ -85,7 +89,7 @@ class UserContent{
         let form = $(`
             <form class="col-md-10" id="user-search-widgets" role="search">
                 <div class="row my-2">
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <input type="text" class="form-control" name="handle" placeholder="Search by Handle..." id="userSearchInput" />
                     </div>
                     <div class="col-md-2">
@@ -96,7 +100,21 @@ class UserContent{
                             <option value="admin">Administrators</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
+                        <div class="row">
+                            <div class="col-auto">
+                                <label for="select-user-sort" class="col-form-label">Sort By:</label>
+                            </div>
+                            <div class="col-auto">
+                                <select class="form-select" id="select-user-sort">
+                                    <option value="-created" selected>Creation Date</option>
+                                    <option value="popular">Popularity</option>
+                                    <option value="unpopular">Unpopularity</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
                         <input type="submit" class="btn btn-primary" value="Search" />
                     </div>
                 
@@ -133,6 +151,14 @@ class UserContent{
                 query.admin = false;
             } else if (user_type === 'admin') {
                 query.admin = true;
+            }
+
+            let sort = $('select#select-user-sort').val();
+
+            if (sort === '-created') {
+                query.sort = sort;
+            } else {
+                query.popularity = sort;
             }
 
             dt.filter = query;

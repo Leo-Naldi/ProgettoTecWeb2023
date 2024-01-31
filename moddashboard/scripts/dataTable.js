@@ -191,10 +191,10 @@ class DataTable {
             let transformed = this.#data_transform?.(d) ?? d;
             this.#headers.map(header => {
 
+                let content = this.#data_display(transformed, header);
                 let td = $('<td>', {
                     'class': `ellipsis-text`
                 });
-                let content = this.#data_display(transformed, header);
                 if (_.isArray(content)) {
                     td.append(...content);
                 } else {
@@ -384,5 +384,4 @@ class DataTable {
 
         return JSON.parse(mem).token;
     }
-
 }
