@@ -155,11 +155,7 @@ class UserContent{
 
             let sort = $('select#select-user-sort').val();
 
-            if (sort === '-created') {
-                query.sort = sort;
-            } else {
-                query.popularity = sort;
-            }
+            query.sort = sort;
 
             dt.filter = query;
         })

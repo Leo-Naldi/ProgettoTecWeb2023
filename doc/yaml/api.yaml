@@ -66,6 +66,20 @@ paths:
             type: boolean
             example: False 
             default: False 
+        - name: sort
+          in: query 
+          description: Sort accounts by creation date number of likes/dislikes recieved. 
+          schema:
+            type: string
+            example: popular 
+            default: -created
+            enum:
+              - popular 
+              - unpopular 
+              - created 
+              - -popular 
+              - -unpopular 
+              - -created
       security:
         - adminAuth: []
       responses:
