@@ -50,6 +50,7 @@ class ExpressServer {
         //Static Files
         app.use(express.static(config.smmdashboard_build_path));
         app.use('/moddashboard', express.static(config.moddashboard_build_path));
+        app.use(express.static(config.app_build_path));
 
 
         // Rutes

@@ -17,5 +17,9 @@ FrontendRouter.get('/moddashboard/*', (req, res) => {
     return res.sendFile(path.join(config.moddashboard_build_path, 'pages', 'dashboard.html'));
 })
 
+FrontendRouter.get('/app*/', (req, res) => {
+
+    return res.sendFile(path.join(config.app_build_path, 'index.html'));
+})
 
 module.exports = FrontendRouter;
