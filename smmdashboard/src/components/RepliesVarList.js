@@ -50,7 +50,7 @@ export default function RepliesVarList({ replies, page, maxPages, onPageChange }
                         
                     }}
                 </VariableSizeList>
-                <Box>
+                {(page !== maxPages) && (<Box>
                     <Button 
                         variant='text' 
                         disabled={page === 1}
@@ -63,7 +63,7 @@ export default function RepliesVarList({ replies, page, maxPages, onPageChange }
                         onClick={() => onPageChange(page + 1)}>
                         {"Next >"}
                     </Button>
-                </Box>
+                </Box>)}
                 </Fragment>
             )}
         </Fragment>
