@@ -1,7 +1,6 @@
 
 const routes = [
   {
-    // 账号相关
     path: '/login',
     redirect: { name: 'Login' },
     meta: { public: true },
@@ -24,7 +23,6 @@ const routes = [
       { path: '/displore/channels', name: 'DisploreChannelPublic',  component:()=>import('pages/channel/ChannelDisplore.vue')},
     ]
   },
-  // 需要登录
   {
     path: '/home',
     component: () => import('layouts/MainLayout.vue'),

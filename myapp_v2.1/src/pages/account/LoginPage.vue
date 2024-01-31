@@ -19,7 +19,9 @@
 
     <q-card-actions align="center" style="margin-top: 2rem">
       <MyButton type="submit"  @click="confirmPop=true" color="primary" class="focus-style" label="Login" ref="editButton" aria-label="LoginButton"  size="md" :loading="isLoading" />
-      <!-- <q-dialog v-model="confirmPop" persistent>
+      <!--
+        // if save public reaction to logged user
+      <q-dialog v-model="confirmPop" persistent>
       <q-card>
       <q-card-section class="row items-center">
         <span class="q-ml-sm">You have localStorage data non empty, do you want to use your localData overwrite db data?</span>
@@ -103,16 +105,16 @@ export default defineComponent({
       confirmRes
     };
   },
-  methods:{
+/*   methods:{
     noHandler(){
       this.confirmRes=false;
-      // console.log("你选择了否", this.confirmRes);
+      // console.log("you've choosen no", this.confirmRes);
     },
     yesHandler(){
       this.confirmRes=true;
-      // console.log("你选择了是", this.confirmRes);
+      // console.log("you0ve choose yes", this.confirmRes);
     }
-  },
+  }, */
 });
 </script>
 

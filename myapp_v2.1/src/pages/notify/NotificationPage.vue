@@ -25,19 +25,19 @@
       <q-list separator v-if="unread_messages.length>0">
         <NotifyEnum :clickHandler="closeMsg.bind(post.id)" :icon="'star'" v-for="post in unread_messages" :key="post._id" v-bind="post" clickable @click="gotoMsgDetails(post.id)"/>
       </q-list>
-      <p v-else>"No new message!"</p>
+      <p v-else class="text-center">"No new message!"</p>
     </div>
     <div v-if="isActive === 'replies'">
       <q-list separator  v-if="unread_replies.length>0">
         <NotifyEnum :clickHandler="closeRe.bind(post.id)" :icon="'comment'" v-for="post in unread_replies" :key="post._id" v-bind="post" clickable @click="gotoReDetails(post.id)"/>
       </q-list>
-      <p v-else>"No new reply!"</p>
+      <p v-else class="text-center">"No new reply!"</p>
     </div>
     <div v-if="isActive === 'reactions'">
       <q-list separator  v-if="unread_reactions.length>0">
         <NotifyEnum :clickHandler="closeReactions.bind(post.id)" :icon="'thumb_up'" v-for="post in unread_reactions" :key="post._id" v-bind="post" clickable @click="gotoReactionDetails(post.id)"/>
       </q-list>
-      <p v-else>"No new reaction!"</p>
+      <p v-else class="text-center">"No new reaction!"</p>
     </div>
   </q-page>
 </template>

@@ -17,7 +17,6 @@
     .map(([tag, tweet]) => ({ tag, tweet: tweet.length }))
     .sort((a, b) => b.tweet - a.tweet).slice(0,4)" :key="i" class="cursor-pointer">
           <TrendBlock  :tag="trend.tag" :tweet="trend.tweet" v-bind="trend" />
-          <!-- <p>{{ trend }}</p> -->
         </q-item>
       </q-list>
       <div  ><p class="text-weight-bold text-center q-pa-sm cursor-pointer text-primary" @click="$router.push({ name: 'DisploreHashtag' })">Show more</p></div>
@@ -52,11 +51,6 @@ export default {
     trendList(){
       return usePostStore().getHashtagTrends
     }
-  },
-  mounted(){
-    // const toRaw_hashTrend = toRaw(this.trendList)
-    // console.log("trend right side bar get value toRaw is: ", toRaw_hashTrend)
-    // console.log("trend right side bar get value computed: ", this.trendList)
   }
 }
 

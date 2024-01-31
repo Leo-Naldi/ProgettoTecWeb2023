@@ -127,7 +127,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* background-image: linear-gradient(-225deg, #e3fdf5 0%, #ffe6fa 100%); */
 }
 
 /* set login form style*/

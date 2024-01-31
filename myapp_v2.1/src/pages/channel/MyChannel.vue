@@ -1,18 +1,4 @@
 <template>
-  <!--   <div class="row items-center">
-    <div class="col-12 col-md-7">
-      <p class="q-mt-none text-weight-bold text-h6 q-pl-lg q-pt-lg"> see your channels! </p>
-    </div>
-    <div class="col-12 col-md-4">
-      <q-btn flat icon="search" @click="gotoPage" />
-      <div>Do you want to create one?</div>
-    </div>
-    <div class="col-12 col-md-1">
-      <q-btn flat icon="add" @click="gotoPage" />
-    </div>
-  </div> -->
-  <!-- <q-btn flat icon="add" @click="createChannel()" /> -->
-
   <div style="display: flex;
   justify-content: right;
   align-items: flex-end;">
@@ -44,24 +30,6 @@
     </div>
   </div>
 
-  <!-- <div style="display: flex;
-  justify-content: space-between;
-  align-items: flex-end;">
-    <div style="order:1">
-      <p class="q-mt-none text-weight-bold text-h6 q-pl-lg q-pt-lg"> see your channels! </p>
-    </div>
-    <div style="align-self: center; order:2">
-      <p>Do you want to create one?</p>
-    </div>
-    <div style="align-self: center; order:2">
-      <q-btn flat icon="add" @click="createChannel()" />
-
-    </div>
-  </div> -->
-
-
-  <!-- <q-separator color="grey-2" size="4px" /> -->
-
   <p class="q-mt-none text-weight-bold text-h5 q-pl-lg q-pt-lg">
     Your Created Channels
   </p>
@@ -92,16 +60,12 @@ import { useUserStore } from "src/stores/user";
 import { useChannelStore } from "src/stores/channel";
 
 
-// const userStore = useUserStore()
 const channelStore = useChannelStore()
 const user_json = useUserStore().getUserJson
 const userChannels = reactive({
   userCreated: user_json.createdChannels,
   userJoined: user_json.joinedChannels
 })
-
-// console.log("获取用户 store 的数据：", tmp)
-// console.log("获取用户 store: ", userChannels.userJoined)
 
 
 
@@ -137,7 +101,6 @@ const createChannel = async ()=>{
   const submit_channelData = filteredData(channelData_json)
   // console.log("ready to create channel: ", submit_channelData)
   const res = await channelStore.createChannel(channelData.name, submit_channelData)
-  // console.log("创建频道的返回值：",res)
   if(res.length>1){
     userChannels.userCreated.unshift(res[1])
   }

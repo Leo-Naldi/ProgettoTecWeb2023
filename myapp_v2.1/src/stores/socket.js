@@ -27,7 +27,6 @@ export const useSocketStore = defineStore("socket", {
     setSocket() {
       const handle = useUserStore().getUserHandle
       const token = useUserStore().getUserToken
-      // console.log("socket Store 的 setSocket 需要的handle 和 token 为：", handle, token, LocalStorage.getItem(TOKEN_KEY)!=null)
       if (handle && token) {
         this.socket = io(baseURL+"/user-io/" + handle, {
           extraHeaders: {
@@ -62,7 +61,6 @@ export const useSocketStore = defineStore("socket", {
         if (getHasClickedShowMore === true) {
           resetHasClickedShowMore();
         }
-        // console.log("【sockect.js】的 public socket 有新消息创建了：", message);
         updatePublicPosts(message)
         reset_public_unread();
         const res = messageHandler([message])

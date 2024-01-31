@@ -10,6 +10,7 @@ modifyUser } from "src/common/localStorageHandler";
 import { fetchUserCreatedChannels, fetchUserJoinedChannels, fetchUserEditedChannels,
 channelNameToJson, userReactionsToJson } from "src/common/requestsHandler";
 import { useNotificationsStore } from "./notification";
+import { showNegative } from "src/common/utils";
 
 export const useUserStore = defineStore("User", {
   state: () => ({
@@ -55,7 +56,6 @@ export const useUserStore = defineStore("User", {
         .catch((err) => console.log("fetch all User name error!!!", err));
     },
     userLocalToStore(){
-      // console.log("【user.js】 把本地数据同步到 user 的 store 里：", this.getUserJson, this.getUserToken)
       this.user.user = this.getUserJson
       this.user.token = this.getUserToken
     },
@@ -88,7 +88,6 @@ export const useUserStore = defineStore("User", {
       const user_handle = this.getUserHandle
       const response = await API.user(user_handle);
       let userJson = response.data
-      // console.log("在填充用户之前传递的用户 json 为 getUserJson：", response.data)
       try {
         userJson["joinedChannels"] = await fetchUserJoinedChannels()
         userJson["editorChannels"] = await fetchUserEditedChannels()
@@ -101,11 +100,10 @@ export const useUserStore = defineStore("User", {
             new Date(userJson["meta"].created),
             "MMMM yyyy"
           );
-        // console.log("现在获得的 是：", userJson)
         this.setUserJson(userJson)
       }
       catch(error) {
-        console.log("映射 用户  json 失败！", error)
+        showNegative("fetch current user data failed!")
       }
     },
     async requestMember(channel) {
@@ -117,7 +115,6 @@ export const useUserStore = defineStore("User", {
           .then((response) => {
             if (response.status === 200) {
               const userData = this.getUserJson;
-              // console.log("【user.js】请求加入频道没有获得有效的 userJson：为什么？", userData, userData.joinChannelRequests)
               userData.joinChannelRequests.push(channel);
               const newRequestMember = userData.joinChannelRequests;
               this.setUserField("joinChannelRequests", newRequestMember);
@@ -150,15 +147,9 @@ export const useUserStore = defineStore("User", {
           let index = userData.joinedChannels.findIndex(
             (channel) => channel === channel_name
           );
-          console.log("【user.js】leaverChannel 是否要做修改，从用户的 joinedChannel 里查找，获得索引为：",index)
           oldJoinedChannels.splice(index, 1);
           this.setUserField("joinedChannels", oldJoinedChannels);
-          // console.log("修改 localStorage 完毕 user json: ", userData.joinedChannels)
-          // const data = this.getUserJson;
           this.user.user.joinedChannels = userData.joinedChannels
-          // console.log("也修改了 store 里的值 userJson: ", this.user.user.joinedChannels)
-          // // data.joinedChannels = oldJoinedChannels;
-          // console.log("unfollow! ", this.getUser.joinedChannels);
           useNotificationsStore().showPositive(
             "You've left the channel: " + channel_name + " !"
           );
@@ -173,7 +164,6 @@ export const useUserStore = defineStore("User", {
     },
     async cancelRequestChannelMember({channel_name, handle=""}) {
       const user_handle = handle || this.getUserHandle;
-      // console.log("cancelRequestChannelMember 要删除的 handle 为：",handle)
       const userData = this.getUserJson;
       const submitData = { handles: [user_handle],removeRequests:[channel_name] };
       try {
@@ -186,16 +176,10 @@ export const useUserStore = defineStore("User", {
           let index = userData.memberRequests.findIndex(
             (channel) => channel === channel_name
           );
-          console.log("【user.js】cancelRequestChannel 是否要做修改，从用户的 member requests 里查找，获得索引为：",index)
 
           oldmemberRequests.splice(index, 1);
           this.setUserField("memberRequests", oldmemberRequests);
-          // console.log("修改 localStorage 完毕 user json: ", userData.memberRequests)
-          // const data = this.getUserJson;
           this.user.user.memberRequests = userData.memberRequests
-          // console.log("也修改了 store 里的值 userJson: ", this.user.user.memberRequests)
-          // // data.memberRequests = oldmemberRequests;
-          // console.log("unfollow! ", this.getUser.memberRequests);
 
         }
         return response.status;
@@ -220,15 +204,9 @@ export const useUserStore = defineStore("User", {
           let index = userData.editorRequests.findIndex(
             (channel) => channel === channel_name
           );
-          console.log("【user.js】cancelRequestEditor 是否要做修改，从用户的 editor requests 里查找，获得索引为：",index)
           oldeditorRequests.splice(index, 1);
           this.setUserField("editorRequests", oldeditorRequests);
-          // console.log("修改 localStorage 完毕 user json: ", userData.editorRequests)
-          // const data = this.getUserJson;
           this.user.user.editorRequests = userData.editorRequests
-          // console.log("也修改了 store 里的值 userJson: ", this.user.user.editorRequests)
-          // // data.editorRequests = oldeditorRequests;
-          // console.log("unfollow! ", this.getUser.editorRequests);
 
         }
         return response.status;

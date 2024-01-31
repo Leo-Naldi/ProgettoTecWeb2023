@@ -206,7 +206,7 @@ export default defineComponent({
       () => useNotificationsStore().getPlayReac.cnt,
       (oldV, newV) => {
         if (oldV !== newV) {
-          console.log("[MainLayout] 有人给你的消息反应！", oldV, newV, audio.value);
+          console.log("[MainLayout] you have a new reaction!", oldV, newV, audio.value);
           var sound_to_play = "/src/assets/newReply.mp3";
           audio.value.show_notifications_reply(
             sound_to_play,
@@ -221,7 +221,7 @@ export default defineComponent({
       () => useNotificationsStore().getPlayRe.cnt,
       (oldV, newV) => {
         if (oldV !== newV) {
-          console.log("[MainLayout] 有人给你的消息回复！", oldV, newV, audio.value);
+          console.log("[MainLayout] you have a new reply!", oldV, newV, audio.value);
           var sound_to_play = "/src/assets/newMessage.mp3";
           audio.value.show_notifications_reply(
             sound_to_play,
@@ -236,7 +236,7 @@ export default defineComponent({
       () => useNotificationsStore().getPlayNew.cnt,
       (oldV, newV) => {
         if (oldV !== newV) {
-          console.log("[MainLayout] 有人发给你一条消息！", oldV, newV, audio.value);
+          console.log("[MainLayout] you have a new message!", oldV, newV, audio.value);
           var sound_to_play = "/src/assets/newMessage.mp3";
           audio.value.show_notifications_reply(
             sound_to_play,
@@ -286,13 +286,7 @@ export default defineComponent({
     }
   },
   async mounted(){
-    // console.log("mainlayout 获得用户 handle 和 username 为：", this.userHandle, this.userName)
-    // console.log("mainlayout store 获得用户 handle 和 username 为：", useUserStore().user.user!="")
-    // console.log("mainlayout local 获得用户 handle 和 username 为：",LocalStorage.getItem('user')!=null)
-    // console.log("mainlayout local 获得用户 handle 和 username 为：", JSON.parse(LocalStorage.getItem('user')).handle, JSON.parse(LocalStorage.getItem('user')).username)
     await useChannelStore().fetchChannels()
-
-
   }
 });
 </script>

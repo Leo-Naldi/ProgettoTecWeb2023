@@ -1,6 +1,7 @@
 <template>
   <q-page>
     <div class="top-img">
+      <!-- if channel avatar -->
       <!-- <q-avatar rounded size="11rem" color="blue-6" text-color="white"  @click.stop.prevent="clickMe(author)"> -->
       <!-- <img src="https://images.unsplash.com/photo-1682685797795-5640f369a70a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxlZGl0b3JpYWwtZmVlZHwxfHx8ZW58MHx8fHx8&auto=format&fit=crop&w=900&q=60" /> -->
       <!-- {{ paramId[0] }} -->
@@ -49,7 +50,6 @@
         <q-btn flat round icon="settings"  class="cursor-pointer" >
           <q-popup-proxy>
           <CloseDialog>
-              <!-- <MemberDetails :users="channelDetails.members"/> -->
               <ChannelSettings />
           </CloseDialog>
         </q-popup-proxy>
@@ -80,7 +80,6 @@
     </q-list>
     <p v-if="!channelDetails.isMember && channelDetails.messages.length <= 0">You're not a member, you cannot see the messages!</p>
     <p v-if="channelDetails.isMember && channelDetails.messages.length <= 0">No channel message, create a new message</p>
-    <!-- </q-scroll-area> -->
   </q-page>
 </template>
 
@@ -138,8 +137,6 @@ const member_readOnly = "true"
 provide('channelDetails', channelDetails)
 
 const myhandle=useUserStore().getUserHandle
-// console.log("channelDetails get handle is: ", myhandle)
-// const isEditor = channelDetails.editors.includes(myhandle)
 
 const fetchChannelData = async (channelId) => {
   channelDetails.name=channelId
@@ -196,8 +193,6 @@ watch(
 watch(
   ()=> usePostStore().getSocketPost,
   (v)=>{
-    console.log("【ChannelDetails】 监听 socket_posts 的变化！", v, v.dest, v.dest.includes("§"+routerParam.channelName), routerParam.channelName)
-    // 查看 dest 里是否有当前的名字
 
     if (routerParam && v.dest.includes("§"+routerParam.channelName)){
       channelDetails.messages.unshift(v)

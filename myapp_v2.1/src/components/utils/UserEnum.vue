@@ -1,8 +1,6 @@
 <template>
     <div style="align-items:center;  ">
 
-<!--     <p style="display:flex;align-items: center; justify-content:center"
-          v-if="users.length <= 0">No members found!</p> -->
     <q-item v-for="user in users" :key="user.id" style="disply:flex" class="q-mb-sm" @click="gotoUserDetail(user.handle)" clickable v-ripple>
       <q-item-section avatar>
         <q-avatar>
@@ -26,9 +24,6 @@
         <q-btn @click.stop.prevent="consentHandler(user.handle)"  size="12px" flat dense round icon="done"  />
       </div>
       <div style="margin-left:auto" v-if="member_handler && showAdminButton">
-        <!--
-          // TODO: mute a user
-          <q-btn @click.stop  size="12px" flat dense round icon="person_off"  /> -->
         <q-btn @click.stop.prevent="removeHandler(user.handle)"  size="12px" flat dense round icon="person_remove"  />
       </div>
 
@@ -68,42 +63,42 @@ export default{
     }
   },
   props:{
-    // 是请求而且是成员的请求
+    // is member request
     request_member:{
       type: Boolean,
       default: false
     },
-    // 是请求而且是编辑频道（发消息）的请求
+    // is editor request
     request_editor:{
       type: Boolean,
       default: false
     },
-    // 管理频道成员，移除成员
+    // if creator: remove member
     admin_member:{
       type: Boolean,
       default: false
     },
-    // 管理频道成员，移除编辑者
+    // if creator: remove editor
     admin_editor:{
       type: Boolean,
       default: false
     },
-    // 是频道的创建者
+    // if is creator then can show channel settings button
     showAdminButton: {
       type: Boolean,
       default: false
     },
-    // 频道设置页里，是创建者，决定是否移除某个成员或编辑者
+    // if creator, if remove member/editor
     member_handler:{
       type: Boolean,
       default: false
     },
-    // 频道设置页里，是创建者，决定是否同意成员后编辑者的加入
+    // if creator, if consent the request of member/editor
     request_handler:{
       type: Boolean,
       default: false
     },
-    // 用来展示的成员
+    // if not for channel use only for disply persons (search result)
     members:{
       type: Array,
       default: ()=>[]
@@ -136,7 +131,6 @@ export default{
       if (this.$props.request_member){
         await this.channelStore.acceptChannelMember(this.channelDetails.name,user_handle)
         this.findAndDelete(user_handle)
-        // this.users.unshift()
       }
       else if (this.$props.request_editor){
         await this.channelStore.acceptChannelEditor(this.channelDetails.name,user_handle)
@@ -154,9 +148,6 @@ export default{
       }
     }
   },
-  mounted(){
-     console.log("[为什么没有显示按钮] ", this.users)
-  }
 
 }
 </script>

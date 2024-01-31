@@ -1,18 +1,7 @@
 <template>
   <q-page padding>
-    <!-- <q-separator size="0.25rem" color="grey-2" class="divider" /> -->
     <q-input class="q-pb-md" @keyup.enter="submit" v-model="searchText"
       placeholder="Please input the text that you want them show in results" outlined rounded dense>
-      <!-- <div v-if="searchList.length > 0" class="history">
-        <ul class="list">
-          <li @click="$router.push({ path: '/searchbar', query: { item } })" v-for="(item, index) in searchList" :key="index"
-            class="list-item">
-            {{ item }}
-            <i @click.stop="_deleteOne(index)" class="iconfont icon-chucuo"></i>
-          </li>
-        </ul>
-        <div   class="clear">clear all history</div>
-      </div> -->
       <q-menu fit v-if="searchList.length > 0">
         <q-list style="min-width: 100px">
           <q-item clickable v-for="(item, index) in searchList" :key="index" @click="fetchSearchResults(item)">
@@ -67,18 +56,10 @@
       </template>
     </q-input>
 
-    <p>
-      TODO: It seems that your search results contain many geolocations, do you
-      want to view them on a map?
-      <router-link :to="{
-        path: '/map',
-      }">Y
-      </router-link>
-    </p>
     <div>
       It seems that you've choosen some filters to search! click this button to
       confirm
-      <q-btn size="sm" @click="useFilter = true" />
+      <q-btn size="sm" @click="useFilter = true">Confirm</q-btn>
       <!-- <p>{{ searchFilter }}</p> -->
     </div>
 
@@ -217,31 +198,9 @@ const useFilter = ref(false);
 const searchFilter = computed(() => useSearchStore().getSearchFilter);
 
 const fetchSearchResults = async (searchText) => {
-  // console.log("【MySearch】的 fetchSearchResults 正在查找的词是：",searchText)
-  // 是否传递 searchFilter， 如果是就调用searchPostsFiltered 否则就调用 searchPosts
-  var filters = JSON.parse(JSON.stringify(toRef(searchFilter).value));  //把这个传递给定义的 API
-  const es = {
-    contains: { keywords: "www", mentions: "", text: "" },             // ?keywords=xxx, &mentions=xxx, &text=xxx
-    from: { user: "" },                                                // &author=xxx
-    to: { user: "", channel: "" },                                     // &query=xxx，必须有 @ 符号以及 § 符号
-    timeFrame: { start: "2023-11-19 12:44", end: "2023-11-19 22:44" }, // &before=xxx&after=xxx（不等于这个默认值， ）
-
-    count: { min_likes: "232132", min_dislikes: "21212" },  //
-    media: true,  //搜索结果返回后再过滤
-    reply: false, //同上
-  };
+  var filters = JSON.parse(JSON.stringify(toRef(searchFilter).value));
   if(useFilter.value){
-    // console.log("【MySearch.vue】接收到了新的搜索过滤：", filters,
-    // "author: "+filters.from.user,
-    // ", keyword: "+filters.contains.keywords.split(/\s*,\s*/),
-    // ", mention: "+filters.contains.mentions.split(/\s*,\s*/),
-    // ", text: "+filters.contains.text.split(/\s*,\s*/),
-    // ", dest user: "+filters.to.user.split(/\s*,\s*/),
-    // ", dest channel: "+filters.to.channel.split(/\s*,\s*/),
-    // Object.keys(filters).length === 0, searchText);  // 判断是否返回了 {}
     filters.contains.text = searchText;
-    // console.log("【fetchSearchResults】最终的请求 API 是：", filters)
-    // console.log("【MySearch.vue】接收到了新的搜索过滤：", filters, searchText, filters.contains.keywords.split(/\s*,\s*/));  // 查找关键词可以有多个，用逗号分隔开
     searchResults.posts =  await usePostStore().searchPostsFiltered(filters)
   }
   else{
@@ -264,8 +223,6 @@ const submit = () => {
         searchText: searchText.value,
       },
     });
-    // alert("submit!"+searchText.value)
-    // fetchSearchResults(searchText.value)
   }
 };
 
@@ -273,10 +230,6 @@ const getList = () => {
   if (LocalStorage.has("search")) {
     searchList.value = getSearchList();
   }
-/*   console.log(
-    "【MySearch】查看是否正确获得了本地的搜索历史（为什么没有弹出搜索历史框？）",
-    searchList.value
-  ); */
 };
 
 const _deleteOne = (index) => {
@@ -293,10 +246,6 @@ watch(
   async (v) => {
     if (v.searchText) {
       fetchSearchResults(v.searchText);
-      console.log(
-      "【MySearch】为什么搜了三次呢？是 watch 这里重复搜了两次！那么 watch 这里值的变化都是什么呢？",
-      v.searchText
-    )
     }
   },
   {

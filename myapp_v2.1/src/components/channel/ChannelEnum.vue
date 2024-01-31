@@ -13,7 +13,6 @@
         <q-item-label>{{ channel.name }}</q-item-label>
         <q-item-label caption lines="1">{{ channel.description }}</q-item-label>
       </q-item-section>
-      <!-- {{ getUserMy }} -->
       <ChannelButton :channel_name="channel.name" :channel="channel" v-if="getUserMy"/>
     </q-item>
   </div>

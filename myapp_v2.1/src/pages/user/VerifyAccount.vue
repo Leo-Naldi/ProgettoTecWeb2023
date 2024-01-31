@@ -1,6 +1,5 @@
 <template>
   <q-page padding>
-    <!-- content -->
     <div><p>email in param: {{ email }}</p></div>
     <div><p>handle in param: {{ handle }}</p></div>
     <div><p>token in param: {{ token }}</p></div>
@@ -35,9 +34,6 @@ export default {
 
     const router_name = router.currentRoute.value.fullPath;
     console.log("router name: ", router_name)
-
-    const userStore = useUserStore()
-
 
     onBeforeMount(async () => {
       await verifyAccountFeedBack(props.handle, props.email, baseURLAPP+router_name)

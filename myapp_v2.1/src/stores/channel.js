@@ -59,7 +59,6 @@ export const useChannelStore = defineStore("channel", {
         .catch((err) => console.log("fetch autocompleted channels error!!!", err));
     },
     async fetchChannels() {
-      // console.log("3. 【channel.js】 的 [fetchChannels] 被调用了！抓取到所有频道：", this.channels_list) //获得 proxy
       return API.all_channels()
         .then((response) => {
           if (response.status === 200) {
@@ -91,7 +90,6 @@ export const useChannelStore = defineStore("channel", {
     },
     async refuseChannelEditorRequest(channel_name, handle) {
       let refuseEditorJson = { handles: [handle] };
-      // console.log("我正在移除这个人的频道编辑请求：", channel_name, [handle]);
 
       return await API.modify_channel_editor(channel_name, refuseEditorJson)
         .then((response) => {
@@ -146,7 +144,6 @@ export const useChannelStore = defineStore("channel", {
         })
         .catch((err) => console.log("remove channel editor error!!!", err));
     },
-    // TODO: 新的添加到 all_channels，并且添加名字到channel 的列表里
     async createChannel(channel_name, channel_data){
       return await API.create_channel(channel_name, channel_data)
       .then((response) => {

@@ -2,14 +2,6 @@
 
 <template>
   <div class="my-new-post">
-    <!-- <q-avatar color="orange-7" text-color="blue-grey-1" size="xl" class="my-avatar">
-      {{
-        storeUsers && storeUsers.user && storeUsers.user.username
-        ? storeUsers.user.username[0] + storeUsers.user.username[1]
-        : "?"
-      }}
-    </q-avatar> -->
-    <!-- {{ autoCompleteUser }} -->
     <q-avatar avatar class="my-avatar">
       <img src="https://cdn.quasar.dev/img/avatar2.jpg">
     </q-avatar>
@@ -33,7 +25,6 @@
         </div>
 
         <div v-if="clickedInput" class="sendTips cursor-pointer" @click="whoCanSee()">
-          <!-- <q-btn  flat round color="primary" icon="public" @click="newPost.everyOneCanSee = false"/> -->
 
 
           <q-icon style="margin: 0.22rem 0.2rem 0 0" name="public" />
@@ -43,11 +34,6 @@
 
         <div class="my-icons">
           <span class="my-icon-left text-grey-7 ">
-            <!--
-              // TODO: schedule message send
-              <q-btn flat round icon="fa-regular fa-calendar-plus" size="sm" @click="scheduleMsg(post)">
-            </q-btn> -->
-            <!-- <q-btn flat round icon="fa-solid fa-clock" size="sm" @click="repeteSend(post)"> -->
             <q-btn v-if="canRepeat" flat round icon="fa-solid fa-clock" size="sm">
               <q-tooltip class="bg-primary">click to start auto-message</q-tooltip>
               <q-popup-proxy>
@@ -63,8 +49,6 @@
                         <q-option-group :options="repeatOptions" type="radio" v-model="setRepeatContent" />
                       </q-step>
 
-                      <!-- <q-step :name="2" title="Create an ad group" caption="Optional" icon="create_new_folder"
-                        :done="step > 2"> -->
                       <q-step :name="2" title="Create an ad group" caption="Optional" icon="create_new_folder"
                         :done="step > 2 || setRepeatContent === 'geolocation' || setContentOptions != null">
 
@@ -79,7 +63,6 @@
                             <q-tooltip class="bg-primary" :offset="[0, 0]">Template is: Ciao a tutti, questo è il mio
                               messaggio n.{NUM} delle ore {TIME} del giorno {DATE}.</q-tooltip>
                           </template>
-                          <!-- TODO:not the second?  -->
                           <template v-slot:label-2="opt">
                             <span>{{ opt.label }}</span>
                             <q-tooltip class="bg-primary" :offset="[0, 0]">Template is: Ciao a tutti, questo è il mio
@@ -196,9 +179,6 @@
                 <q-tooltip class="bg-primary">Upload images from your device!</q-tooltip>
               -->
               <q-popup-proxy cover :breakpoint="800">
-                <!--                 <q-video
-                  src="https://www.youtube.com/embed/k3_tw44QsZQ?rel=0"
-                /> -->
                 <q-uploader @uploaded="handleUploaded" :url="baseURL + '/media/upload/image/' + user_handle"
                   label="upload one or more imgs(choose one in a time)" style="width: 300px" accept=".jpg, .png, image/*" max-files="1" />
               </q-popup-proxy>
@@ -212,7 +192,6 @@
             <q-btn flat round color="grey" icon="fas fa-map-marker-alt" size="sm" @click="getGeo()">
               <q-tooltip class="bg-primary">click to send current geolocation!</q-tooltip>
             </q-btn>
-            <!-- " size="sm" @click="toggleLiked(post)"> -->
           </span>
           <div class="my-icon-right">
             <q-btn @click="sendNewPost()" color="primary" label="Send" rounded unelevated no-caps id="sendButton" />
@@ -461,24 +440,8 @@ const dateHandler = reactive({
 })
 
 
-//TODO: 不能在回复页用，只能在主页或频道页用
+// messaggi temporizzatti, can be used only in leftsidebar currently
 const repeteSend = () => {
-  /*
-  TOT second
-  第几个
-  TIME
-  DATE
-  content
-  getGeo and send geo
-  dest
-  setpublic
-  设置放到 popup里
-  max value for setInterval: 2,147,483,647 ms≈24.8天
-
-  content.text
-  meta.geo
-  */
-  // console.log("repeat time: ", repeatTime.value)
 
   const repeat_json = {}
 
@@ -500,11 +463,6 @@ const repeteSend = () => {
     }
   }
 
-  // console.log("重复发送的最终 json 为：", repeat_json)
-  // timer.value = setInterval(() => {
-  //   // alert(repeat_json.content.text)
-  //   console.log(repeat_json.content.text)
-  // }, repeatTime.value);
 
   if (setContentOptions.value == 'template') {
     const tmpTimer = setInterval(async () => {
@@ -542,7 +500,6 @@ const repeteSend = () => {
         }
         console.log("post  error!", error)
       })
-      // console.log("【writePost】开始了重复讯息 并且重复的内容为：", repeat_json)
       // console.log("repeat couter: ", dateHandler)
     }, repeatTime.value); /* 1000 = 1s */
     useGlobalStore().setAutoTimerId(tmpTimer);
@@ -558,7 +515,7 @@ const repeteSend = () => {
         }
         console.log("post  error!", error)
       })
-      console.log("【writePost】开始了重复讯息 并且重复的内容为: ", repeat_json)
+      console.log("【writePost】start a repeat messaggi and the messagi is: ", repeat_json)
       // console.log("repeat couter: ", dateHandler)
     }, repeatTime.value); /* 1000 = 1s */
     useGlobalStore().setAutoTimerId(tmpTimer);
@@ -626,9 +583,8 @@ const sendNewPost = async () => {
     toSend.content.geo=  { type: "Point", coordinates: toRaw(newPost.coordinates) } ;
 
 
-  // 什么时候可以发送？有图片/视频/地理位置/有文字时就可以
+  // the last check then finally i can send post
   if (newPost.imageURL != "" || newPost.videoURL != "" || newPost.coordinates.length != 0 || newPost.content != "") {
-    // TODO: 可能需要更新 store 的值？？？ 回复页，全部页，用户消息页
     if(newPost.imageURL!="" && newPost.videoURL!=""){
       alert("you can only send one of them in the same time!")
     }
@@ -652,23 +608,17 @@ const deleteImage = () => {
   newPost.videoURL = ""
 }
 
-// 获得调用上传图片 API 之后的返回值
 const handleUploaded = (response) => {
   const img_name = response.files[0].xhr.response
   const handle = user_handle
-  // newPost.imageURL = baseURL + handle + "/" + img_name
-  // console.log("获取不到上传以后得文件名啦！",JSON.parse(img_name).id);
   newPost.imageURL = baseURL  + "/media/image/" + handle+ "/"+JSON.parse(img_name).id
-  // console.log("获取不到上传以后得文件名啦！ddd",newPost.imageURL);
 
 }
 
 const handleUploadedVideo = (response) =>{
   const video_name = response.files[0].xhr.response
   const handle = user_handle
-  // console.log("获取不到上传以后得视频啦！",JSON.parse(video_name).id);
   newPost.videoURL = baseURL  + "/media/video/" + handle+ "/"+JSON.parse(video_name).id
-  // console.log("获取不到上传以后得视频名啦！ddd",newPost.videoURL);
 }
 
 onMounted(() => {
@@ -697,14 +647,10 @@ onMounted(() => {
           newPost.videoURL = await uploadVideo(blob);
         }
       }
-      // TODO: 剪切板视频
     }
   });
 });
 
-/* onUnmounted(() => {
-  stopAutoMessage()
-}); */
 </script>
 
 

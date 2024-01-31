@@ -1,7 +1,6 @@
 <template>
   <div>
     <audio ref="audio" id="audio">
-      <!-- <source :src="sound" type="audio/mpeg" /> -->
       <source type="audio/mpeg" />
     </audio>
   </div>
@@ -80,7 +79,6 @@ export default {
             },
           ],
         });
-        console.log("执行了！新消息！")
       },
       show_notifications_ReMsg(sound,yourPostId,  postId) {
         var audio = document.getElementById("audio");

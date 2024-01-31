@@ -1,9 +1,6 @@
 <template>
-    <!-- <div class="q-px-md"> -->
     <q-card flat square>
-      <!-- <q-card-section class="q-pa-none q-py-md row"> -->
       <q-card-section class="q-pa-none row">
-        <!-- <div class="col-sm-6 col-xs-12 q-pb-sm"> -->
         <div v-if="$q.screen.gt.xs">
           <q-tabs v-model="settingsTab" align="left" active-color="primary" active-bg-color="blue-1" class="text-grey-10"
             vertical>
@@ -18,10 +15,7 @@
 
           </q-tabs>
         </div>
-        <!-- <q-separator :vertical="$q.screen.gt.xs" v-show="$q.screen.gt.xs" /> -->
-        <!-- <div class="col  q-pt-none"> -->
         <div :class="$q.screen.gt.xs ? 'col  q-pt-none' : 'q-ma-md'" style="min-width: 350px">
-          <!-- <div class="col-sm col-xs-12 q-px-md q-pt-none"> -->
           <q-tab-panels :swipeable="$q.screen.gt.xs ? false : true" :infinite="$q.screen.gt.xs ? false : true"
             v-model="settingsTab" animated transition-prev="fade" transition-next="fade">
             <q-tab-panel name="see-members" class=" q-pt-none">
@@ -109,7 +103,7 @@ const channelData = reactive({
 
 const settingsTab = ref('see-members')
 
-// 修改频道数据用，如果字段没有修改那么就不做修改频道的提交
+// before submit json, determine if there're 'useless' field
 function filteredData(formData) {
   return Object.entries(formData)
     .reduce((acc, [key, value]) => {
