@@ -338,7 +338,7 @@ const newPost = reactive({
   coordinates: [],
   destUsers: null,
   destChannels: null,
-  answering: props.id != "" ? props.id :
+  answering: props.id  ? props.id :
     router.currentRoute.value.params ? router.currentRoute.value.params.postId : "",
   // answering comes from: or postDetails page in router param, or from reply button in props
 });
@@ -542,8 +542,9 @@ const sendNewPost = async () => {
   const toSend = {}
   if (newPost.everyOneCanSee == false)
     toSend.publicMessage = false
-  if (newPost.answering)                                                             // answering
+  if (newPost.answering){                                                             // answering
     toSend.answering = newPost.answering
+  }
   if (newPost.destUsers != null && newPost.destUsers != []) {                               // destUsers
     const destUsers = newPost.destUsers.map(function (element) {
       return "@" + element;
@@ -579,10 +580,10 @@ const sendNewPost = async () => {
     }
     toSend.content.video = newPost.videoURL
   }
-  if (newPost.coordinates.length > 0)                                                      // coordinate
+  if (newPost.coordinates.length > 0){                                                      // coordinate
     toSend.content={}
     toSend.content.geo=  { type: "Point", coordinates: toRaw(newPost.coordinates) } ;
-
+  }
 
   // the last check then finally i can send post
   if (newPost.imageURL != "" || newPost.videoURL != "" || newPost.coordinates.length != 0 || newPost.content != "") {
