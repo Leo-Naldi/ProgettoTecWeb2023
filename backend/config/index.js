@@ -131,7 +131,7 @@ const config = {
   logs_dir: path.join(rootPath, 'logs'),
   smmdashboard_build_path: path.resolve(rootPath, '..', 'smmdashboard', 'build'),
   moddashboard_build_path: path.resolve(rootPath, '..', 'moddashboard'),
-  app_url: process.env.APP_ADDR_PREFIX, // app base url
+  app_build_path: path.resolve(rootPath, '..', 'myapp_v2.1', 'dist', 'spa'),
 
 };
 
