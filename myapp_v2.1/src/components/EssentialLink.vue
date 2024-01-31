@@ -26,6 +26,7 @@
 
 <script>
 import { defineComponent,reactive } from 'vue'
+import { baseURL } from 'src/common/myGlobals';
 
 export default defineComponent({
   name: 'EssentialLink',
@@ -59,12 +60,12 @@ export default defineComponent({
         {
           lable: "SMM Dashboard",
           icon: "rocket_launch",
-          address: "http://site222346.tw.cs.unibo.it/frontend/smmdashboard",
+          address: baseURL+"/frontend/smmdashboard",
         },
         {
           lable: "Mod Dashboard",
           icon: "equalizer",
-          address: "http://site222346.tw.cs.unibo.it/frontend/moddashboard",
+          address: baseURL+"/frontend/moddashboard",
         },
         {
           lable: "Settings",
