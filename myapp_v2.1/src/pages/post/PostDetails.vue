@@ -22,14 +22,11 @@ import { reactive, ref, computed, onMounted, watch, onUnmounted } from "vue";
 import ShowPost from "src/components/posts/ShowPost.vue";
 import WritePost from "src/components/posts/WritePost.vue";
 
-
 import { usePostStore } from "src/stores/post";
-
 
 import { useRouter } from "vue-router";
 
 const router = useRouter()
-const routerParam = router.currentRoute.value.params
 
 const postInfo = reactive({
   post: null,
@@ -52,7 +49,7 @@ const fetchPostReplies = async (id) => {
 
 
 watch(
-  () => routerParam,
+  () => router.currentRoute.value.params,
   async (v) => {
     if (v.postId) {
       fetchPost(v.postId)
@@ -68,7 +65,9 @@ watch(
 watch(
   ()=> usePostStore().getSocketPost,
   (v)=>{
-    if (routerParam && v.answering === routerParam.postId){
+    var routerParam = router.currentRoute.value.params
+    console.log("怎么没有回复，", routerParam, JSON.parse(JSON.stringify(v)).answering,  JSON.parse(JSON.stringify(v)).answering===routerParam.postId)
+    if (routerParam && JSON.parse(JSON.stringify(v)).answering === routerParam.postId){
       postInfo.replies.unshift(v)
     }
   },
@@ -78,7 +77,7 @@ watch(
 )
 
 onMounted(() => {
-  const paramId = routerParam.postId;
+  const paramId = router.currentRoute.value.params.postId;
   if (typeof paramId !== 'undefined') {
     fetchPost(paramId);
     fetchPostReplies(paramId)

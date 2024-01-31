@@ -77,7 +77,17 @@ module.exports = configure(function (ctx) {
       chainWebpack (chain) {
         chain.plugin('eslint-webpack-plugin')
           .use(ESLintPlugin, [{ extensions: [ 'js', 'vue' ] }])
-      }
+      },
+      extendWebpack(cfg) {
+        cfg.module.rules.push({
+          enforce: 'pre',
+          test: /\.(ogg|mp3|wav|mpe?g)$/i,
+          loader: 'file-loader',
+          options: {
+            name: '[path][name].[ext]',
+          },
+        });
+      },
 
     },
 

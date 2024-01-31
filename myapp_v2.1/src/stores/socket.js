@@ -70,6 +70,7 @@ export const useSocketStore = defineStore("socket", {
       });
     },
     startLoggedInSocket() {
+      console.log("start Logged socket!")
       this.resetSocket();
       const globalStore = useGlobalStore();
       const postStore = usePostStore();
