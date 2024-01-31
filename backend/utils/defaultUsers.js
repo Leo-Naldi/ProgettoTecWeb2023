@@ -58,25 +58,28 @@ function addRandomReplies(test_env, userIndex, filter=[]){
 
     for (let i = 0; i < messages.length; i++) {
         
-        let replies = _.random(1, 50);
-        replies_counter += replies;
+        if (Math.random() > 0.5){
 
-        let answeringIndex = test_env.midti(messages[i]._id);
-
-        for (let j = 0; j < replies; j++) {
-
-            let author_index = authors[_.random(authors.length - 1)];
-
-            test_env.addMessage({
-                authorIndex: author_index,
-                text: TestEnv.lorem.generateSentences(_.random(1, 6)),
-                answeringIndex: answeringIndex,
-                reactions: {
-                    positive: _.random(0, 1000),
-                    negative: _.random(0, 1000),
-                }
-            });
-
+            let replies = _.random(1, 150);
+            replies_counter += replies;
+    
+            let answeringIndex = test_env.midti(messages[i]._id);
+    
+            for (let j = 0; j < replies; j++) {
+    
+                let author_index = authors[_.random(authors.length - 1)];
+    
+                test_env.addMessage({
+                    authorIndex: author_index,
+                    text: TestEnv.lorem.generateSentences(_.random(1, 6)),
+                    answeringIndex: answeringIndex,
+                    reactions: {
+                        positive: _.random(0, 1000),
+                        negative: _.random(0, 1000),
+                    }
+                });
+    
+            }
         }
         
     }

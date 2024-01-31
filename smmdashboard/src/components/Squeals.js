@@ -532,7 +532,7 @@ function Row({
                         {((!fetchingReplies) && (replies?.length === 0)) && <Container>
                             <Typography
                             color="text.secondary">
-                                No Replies Found
+                                No Replies Found.
                             </Typography>
                         </Container>}
                     </Box>
@@ -858,7 +858,7 @@ export default function Squeals({ managed }) {
     function getMessagesTable() {
 
         return (
-            <TableContainer component={'paper'} aria-live="polite">
+            <TableContainer aria-live="polite">
                 <Table aria-label='Squeals Table'>
                     <caption>Squeals by @{managed}.</caption>
                     <TableHead>
