@@ -64,8 +64,16 @@ class SocketServer {
             next();
         })
 
-        this.publicFeedNms = this.io.of(SocketServer.public_feed_namespace);
-        this.publicFeedNms.use(SocketServer.#middleWareWrapper(SocketServer.#getAuthStrat('userAuth')));
+        this.publicFeedNms = this.io.of('/public-feed-io/');
+        this.publicFeedNms.use(SocketServer.#middleWareWrapper(SocketServer.#getAuthStrat('basicAuth')));
+        this.publicFeedNms.on('connection', (socket) => {
+            socket.emit("Hello There (public feed)", { message: "General Kenobi (But public feed)" })
+        })
+
+        this.publicFeedNms.use((socket, next) => {
+            logger.debug(`Attempted socket connection to public namespace`);
+            next();
+        })
     }
 
     // socket io middleware is in the form (socket, next)

@@ -1004,7 +1004,6 @@ class MessageService {
                 message.reactions.negative = reactions.negative;
                 ebody.reactions.negative = reactions.negative;
             }
-
             
         }
 
@@ -1029,9 +1028,20 @@ class MessageService {
             message.destChannel = _.pluck(channels, '_id');
 
             ebody.dest = [
-                ..._.pluck(users, 'handle').map(h => `@${h}`),
-                ..._.pluck(channels, 'name').map(n => `§${n}`)
+                ..._.pluck(channels, 'name').map(n => `§${n}`),
+                ..._.pluck(users, 'handle').map(n => `@${n}`),
             ];
+        }
+
+        let added_controversial = true;
+        if ((message.reactions.positive >= config.fame_threshold) &&
+            (message.reactions.negative >= config.fame_threshold)) {
+
+            let controversial_channel = await Channel.findOne({ name: 'CONTROVERSIAL' });
+            if (!message.destChannel.some(cid => controversial_channel._id.equals(cid))) {
+                message.destChannel.addToSet(controversial_channel._id);
+                added_controversial = true;
+            }
         }
 
         ebody.id = id;
@@ -1052,6 +1062,14 @@ class MessageService {
 
         let message_record = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
+        if (added_controversial && _.isArray(ebody.dest)) {
+            ebody.dest.push('§CONTROVERSIAL')
+        } else if (added_controversial) {
+            ebody.dest = [
+                ..._.pluck(message_record.destChannel, 'name').map(n => `§${n}`),
+                ..._.pluck(message_record.destUser, 'handle').map(n => `@${n}`),
+            ];
+        }
         SquealSocket.messageChanged({
             populatedMessage: message_record,
             ebody: ebody,
@@ -1115,6 +1133,15 @@ class MessageService {
             user.charLeft.month = Math.max(user.charLeft.month, 0);
         }
 
+        let added_controversial = false;
+        if ((message.reactions.positive >= config.fame_threshold) &&
+            (message.reactions.negative >= config.fame_threshold)) {
+
+            let controversial_channel = await Channel.findOne({ name: 'CONTROVERSIAL' });
+            message.destChannel.addToSet(controversial_channel._id);
+            added_controversial = true;
+        }
+
         let err = null;
 
         let smm_handle = user?.smm?.handle;
@@ -1137,11 +1164,15 @@ class MessageService {
 
         message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
-
+        let ebody = { id: message.id, reactions: message.reactions }
+        if (added_controversial) ebody.dest = [
+            ..._.pluck(message.destChannel, 'name').map(n => `§${n}`),
+            ..._.pluck(message.destUser, 'handle').map(n => `@${n}`),
+        ];
         SquealSocket.messageChanged({
             populatedMessage: message,
             populatedMessageObject: MessageService.#makeMessageObject(message),
-            ebody: { id: message.id, reactions: message.reactions },
+            ebody: ebody,
             socket: socket,
         });
 
@@ -1212,6 +1243,15 @@ class MessageService {
             user.charLeft.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
         }
 
+        let added_controversial = false;
+        if ((message.reactions.positive >= config.fame_threshold) &&
+            (message.reactions.negative >= config.fame_threshold)) {
+
+            let controversial_channel = await Channel.findOne({ name: 'CONTROVERSIAL' });
+            message.destChannel.addToSet(controversial_channel._id);
+            added_controversial = true;
+        }
+
         let err = null;
         let smm_handle = user?.smm?.handle;
         try {
@@ -1232,11 +1272,15 @@ class MessageService {
 
         message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
-    
+        let ebody = { id: message.id, reactions: message.reactions }
+        if (added_controversial) ebody.dest = [
+            ..._.pluck(message.destChannel, 'name').map(n => `§${n}`),
+            ..._.pluck(message.destUser, 'handle').map(n => `@${n}`),
+        ];
         SquealSocket.messageChanged({
             populatedMessage: message,
             populatedMessageObject: MessageService.#makeMessageObject(message),
-            ebody: { id: message.id, reactions: message.reactions },
+            ebody: ebody,
             socket: socket,
         });
 
@@ -1265,7 +1309,9 @@ class MessageService {
         if (!mongoose.isObjectIdOrHexString(id))
             return Service.rejectResponse({ message: "Invalid message id" })
 
-        let message = await Message.findById(id);
+        let message = await Message.findById(id)
+            .populate('destChannel', '_id name')
+            .populate('destUser', '_id handle');
         let reaction = await Reaction.findOne({
             user: reqUser._id,
             message: id,
@@ -1283,6 +1329,22 @@ class MessageService {
         // in case an admin already deleted reactions
         message.reactions.negative = Math.max(0, message.reactions.negative - 1);
 
+        let controversial_channel = await Channel.findOne({ name: 'CONTROVERSIAL' });
+        let changed_dest = null;
+        if ((message.destChannel.some(cid => controversial_channel._id.equals(c._id)))&&
+            (message.reactions.negative < config.fame_threshold)) {
+            // message is no longer controversial
+            message.destChannel = message.destChannel.filter(c => 
+                !controversial_channel._id.equals(c._id))
+            changed_dest = [
+                ..._.pluck(message.destChannel, 'name').map(n => `§${n}`),
+                ..._.pluck(message.destUser, 'handle').map(n => `@${n}`),
+            ]
+        }
+
+        message.destUser = _.pluck(message.destUser, '_id');
+        message.destChannel = _.pluck(message.destChannel, '_id');
+
         let err = null;
 
         try {
@@ -1299,10 +1361,14 @@ class MessageService {
 
         message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
+        let ebody = { id: message.id, reactions: message.reactions };
+        if (_.isArray(changed_dest)) {
+            ebody.dest = changed_dest
+        }
         SquealSocket.messageChanged({
             populatedMessage: message,
             populatedMessageObject: MessageService.#makeMessageObject(message),
-            ebody: { id: message.id, reactions: message.reactions },
+            ebody: ebody,
             socket: socket,
         });
 
@@ -1317,7 +1383,9 @@ class MessageService {
         if (!mongoose.isObjectIdOrHexString(id))
             return Service.rejectResponse({ message: "Invalid message id" })
 
-        let message = await Message.findById(id);
+        let message = await Message.findById(id)
+            .populate('destChannel', '_id name')
+            .populate('destUser', '_id handle');
         let reaction = await Reaction.findOne({
             user: reqUser._id,
             message: id,
@@ -1334,6 +1402,22 @@ class MessageService {
 
         message.reactions.positive = Math.max(0, message.reactions.positive - 1);;
 
+        let controversial_channel = await Channel.findOne({ name: 'CONTROVERSIAL' });
+        let changed_dest = null;
+        if ((message.destChannel.some(cid => controversial_channel._id.equals(c._id))) &&
+            (message.reactions.positive < config.fame_threshold)) {
+            // message is no longer controversial
+            message.destChannel = message.destChannel.filter(c =>
+                !controversial_channel._id.equals(c._id))
+            changed_dest = [
+                ..._.pluck(message.destChannel, 'name').map(n => `§${n}`),
+                ..._.pluck(message.destUser, 'handle').map(n => `@${n}`),
+            ]
+        }
+
+        message.destUser = _.pluck(message.destUser, '_id');
+        message.destChannel = _.pluck(message.destChannel, '_id');
+
         let err = null;
 
         try {
@@ -1350,10 +1434,14 @@ class MessageService {
 
         message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
+        let ebody = { id: message.id, reactions: message.reactions };
+        if (_.isArray(changed_dest)) {
+            ebody.dest = changed_dest
+        }
         SquealSocket.messageChanged({
             populatedMessage: message,
             populatedMessageObject: MessageService.#makeMessageObject(message),
-            ebody: { id: message.id, reactions: message.reactions },
+            ebody: ebody,
             socket: socket,
         });
 
@@ -1396,6 +1484,15 @@ class MessageService {
             user.charLeft.month = Math.max(user.charLeft.month, 0);
         }
 
+        let added_controversial = false;
+        if ((message.reactions.positive >= config.fame_threshold) &&
+            (message.reactions.negative >= config.fame_threshold)) {
+
+            let controversial_channel = await Channel.findOne({ name: 'CONTROVERSIAL' });
+            message.destChannel.addToSet(controversial_channel._id);
+            added_controversial = true;
+        }
+
         let err = null;
 
         let smm_handle = user?.smm?.handle;
@@ -1416,11 +1513,15 @@ class MessageService {
 
         message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
-
+        let ebody = { id: message.id, reactions: message.reactions }
+        if (added_controversial) ebody.dest = [
+            ..._.pluck(message.destChannel, 'name').map(n => `§${n}`),
+            ..._.pluck(message.destUser, 'handle').map(n => `@${n}`),
+        ];
         SquealSocket.messageChanged({
             populatedMessage: message,
             populatedMessageObject: MessageService.#makeMessageObject(message),
-            ebody: { id: message.id, reactions: message.reactions },
+            ebody: ebody,
             socket: socket,
         });
 
@@ -1476,6 +1577,15 @@ class MessageService {
             user.charLeft.month += Math.max(1, Math.ceil(config.monthly_quote / 100));
         }
 
+        let added_controversial = false;
+        if ((message.reactions.positive >= config.fame_threshold) &&
+            (message.reactions.negative >= config.fame_threshold)) {
+
+            let controversial_channel = await Channel.findOne({ name: 'CONTROVERSIAL' });
+            message.destChannel.addToSet(controversial_channel._id);
+            added_controversial = true;
+        }
+
         let err = null;
         let smm_handle = user?.smm?.handle;
         try {
@@ -1494,6 +1604,11 @@ class MessageService {
 
         message = await MessageService.#populateMessageQuery(Message.findById(id), true);
 
+        let ebody = { id: message.id, reactions: message.reactions }
+        if (added_controversial) ebody.dest = [
+            ..._.pluck(message.destChannel, 'name').map(n => `§${n}`),
+            ..._.pluck(message.destUser, 'handle').map(n => `@${n}`),
+        ];
 
         SquealSocket.messageChanged({
             populatedMessage: message,

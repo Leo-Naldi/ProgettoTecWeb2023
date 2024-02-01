@@ -153,6 +153,26 @@ async function checkNameMember(req, res, next) {
     next();
 }
 
+/**
+ * Checks weather requesting user is a /:name channel member.
+ * 
+ * @param {Express.Request} req The request object
+ * @param {Express.Response} res The response object
+ * @param {Express.NextFunction} next The next middleware
+ */
+async function checkNameMemberOrOfficialChannel(req, res, next) {
+    let channel = await Channel.findOne({ name: req.params.name });
+
+    if (!channel)
+        return res.status(409).json({ message: `No channel named §${req.params.name}` });
+
+    if (!((req.user.joinedChannels.find(cid => channel._id.equals(cid))) || (channel.official)))
+        return res.status(401).json({ message: `Not a member of §${req.params.name}, which is not an official channel` });
+
+    req.channel = channel;
+    next();
+}
+
 module.exports = {
     getAuthMiddleware, 
     checkOwnUser,
@@ -160,5 +180,6 @@ module.exports = {
     checkNameCreator,
     checkNameCreatorOrAdmin,
     checkOwnUserOrAdmin,
-    checkNameMember
+    checkNameMember,
+    checkNameMemberOrOfficialChannel
 };

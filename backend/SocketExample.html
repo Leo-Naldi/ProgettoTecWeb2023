@@ -25,13 +25,24 @@
             td2.appendTo(trow);
             trow.appendTo($('#events-body'))
         }
+
+        const add_pub_li_node = (eventName, ...args) => {
+                const trow = $('<tr>')
+                const td1 = $('<td>').text(eventName);
+                const td2 = $('<td>').text('public-feed: ' + JSON.stringify(args));
+
+                td1.appendTo(trow);
+                td2.appendTo(trow);
+                trow.appendTo($('#events-body'))
+            }
         
         let soc = null;
         let id = null;
+        let pub_soc = null;
 
         $(function() {
 
-            soc = io(`http://site222346.tw.cs.unibo.it/public-io/`, { forceNew: true });
+            soc = io(`http://localhost:8000/public-io/`, { forceNew: true });
             soc.onAny(add_li_node);
 
             $('#data').on('submit', (event) => {
@@ -39,7 +50,7 @@
 
                 switch ($('#acc-type').val()) {
                     case 'user':
-                        fetch(`http://site222346.tw.cs.unibo.it/auth/login/`, {
+                        fetch(`http://localhost:8000/auth/login/`, {
                             method: "post",
                             headers: {
                                 'Content-Type': 'application/json'
@@ -59,7 +70,7 @@
                                     soc = null;
                                 }
                                 // 64ac2760e9fbb645a50c3623
-                                var socket = io(`http://site222346.tw.cs.unibo.it/user-io/${res.user.handle}`, {
+                                var socket = io(`http://localhost:8000/user-io/${res.user.handle}`, {
                                     extraHeaders: {
                                         Authorization: `Bearer ${res.token}`
                                     },
@@ -70,6 +81,14 @@
 
 
                                 soc = socket;
+                                pub_soc = io(`http://localhost:8000/public-feed-io/`, {
+                                    extraHeaders: {
+                                        Authorization: `Bearer ${res.token}`
+                                    },
+                                    forceNew: true,
+                                });
+
+                                pub_soc.onAny(add_pub_li_node);
 
                                 if (id) {
                                     clearInterval(id);

@@ -1016,8 +1016,6 @@ async function makeDefaultUsers() {
 
     test_env.messages.at(-1).meta.created = new Date()
     
-    await test_env.saveAll();
-
     // Canali automatici
 
     // Account Per creare i canali automatici
@@ -1050,12 +1048,31 @@ async function makeDefaultUsers() {
         official: true,
     });
 
-    cronUser.joinedChannels = [catFacts._id, dogPics._id];
-    cronUser.editorChannels = [catFacts._id, dogPics._id];
+    const controversial_channel = new Channel({
+        name: 'CONTROVERSIAL',
+        creator: cronUser._id,
+        description: 'A channel containing controversial messages',
+        publicChannel: true,
+        official: true,
+    });
 
+    cronUser.joinedChannels = [catFacts._id, dogPics._id, controversial_channel];
+    cronUser.editorChannels = [catFacts._id, dogPics._id, controversial_channel];
+
+    
+
+
+    test_env.messages.map(m => {
+        if ((m.reactions.positive >= config.fame_threshold) && 
+            (m.reactions.negative >= config.fame_threshold))
+        m.destChannel.push(controversial_channel._id);
+    })
+
+    await cronUser.save()
     await catFacts.save()
     await dogPics.save()
-    await cronUser.save()
+    await controversial_channel.save()
+    await test_env.saveAll();
 }
 
 
