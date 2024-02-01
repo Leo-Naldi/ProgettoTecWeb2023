@@ -819,6 +819,10 @@ class MessageService {
 
         message.answering = answering_record;
 
+        resbody = MessageService.#makeMessageObject(message);
+
+        resbody.answering = answering;
+
         SquealSocket.messageCreated({
             populatedMessage: message,
             populatedMessageObject: resbody,
@@ -834,10 +838,6 @@ class MessageService {
             })
         }
         
-        message.answering = answering;
-
-        resbody = MessageService.#makeMessageObject(message);
-
         return Service.successResponse({ message: resbody, charLeft: user.charLeft});
     }
 
@@ -993,7 +993,7 @@ class MessageService {
 
         if ((reactions) && (('positive' in reactions) || ('negative' in reactions))) {
 
-            ebody.reactions = _.clone(message.reactions);
+            ebody.reactions = _.pick(message.reactions, 'positive', 'negative');
 
             if ('positive' in reactions) {
                 message.reactions.positive = reactions.positive;
@@ -1010,7 +1010,7 @@ class MessageService {
 
         if (text) {
             message.content.text = text;
-            ebody.content = message.content;
+            ebody.content = _.pick(message.content, 'text', 'geo', 'image', 'video');
         }
 
         if (_.isArray(dest)) {
@@ -1036,10 +1036,11 @@ class MessageService {
 
         ebody.id = id;
 
-        message.meta = new Date();
+        message.meta.lastModified = new Date();
         ebody.meta = { 
-            ...message.meta,
-            lastModified: message.meta.lastModified,
+            created: (new dayjs(message.meta.created)).toISOString(),
+            lastModified: (new dayjs(message.meta.lastModified)).toISOString(),
+            impressions: message.meta.impressions,
         }
 
         let err = null;

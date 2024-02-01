@@ -1,3 +1,13 @@
+/**
+ * User Services Module, contains all the available user-related operations.
+ */
+
+/**
+ * @typedef {Object} GetResult
+ * @property {number} pages - The total number of available pages with the given filters.
+ * @property {Object[]} results - The results of the query.
+ */
+
 const config = require('../config/index')
 const User = require("../models/User");
 const makeToken = require("../utils/makeToken");
@@ -9,8 +19,8 @@ const { logger } = require("../config/logging");
 const dayjs = require("dayjs");
 
 const _ = require('underscore');
-const { makeGetResBody } = require('../utils/serviceUtils');
 const UsersAggregate = require('../utils/UsersAggregate');
+const { Socket } = require('socket.io');
 
 class UserService {
 
@@ -24,6 +34,12 @@ class UserService {
             .select('-__v');
     }
 
+    /**
+     * Takes a user query (User.find, .findOne, .findById) and populates all
+     * the possible fields.
+     * @param {Object} query - The query to populate.
+     * @returns The populated query.
+     */
     static populateQuery(query) {
         return query
             .populate('smm', 'handle _id')
@@ -35,6 +51,11 @@ class UserService {
             .populate('subscription.proPlan', '-__v');
     }
 
+    /**
+     * Converts mongoose user documents to POJOs.
+     * @param {User} user - The user instance.
+     * @returns A POJO of the user.
+     */
     static makeUserObject(user) {
 
         let res = user.toObject();
@@ -71,14 +92,32 @@ class UserService {
         return res;
     }
 
+    /**
+     * Maps makeUserObject to the given array.
+     * @param {User[]} userArr - Array of User documents.
+     * @returns An array of POJOs created from the array of documents.
+     */
     static makeUserObjectArr(userArr) {
         return userArr.map(UserService.makeUserObject)
     }
 
-    static async getUsersByPopularity({ 
-        handle, 
-        admin, 
-        accountType, 
+    /**
+     * Read operations for the users resource.
+     * @param {Object} param0 - Object created from the request.
+     * @param {string} [param0.handle=null] - String to be used as a handle filter.
+     * @param {boolean} [param0.admin=null] - Only return admins/non-admins.
+     * @param {('pro'|'user'|null)} [param0.accountType=null] - Only return non-pro users/pro users.
+     * @param {boolean} param0.handleOnly=false - Return only the user's handles instead of the user documents.
+     * @param {number} param0.page=1 - Page number. All users in the database will be returned if the value is <= 0.
+     * @param {number} param0.results_per_page=config.results_per_page - String to be used as a handle filter.
+     * @param {('created'|'-created'|'popular'|'-popular'|'unpopular'|'-unpopular')} param0.sort=-created - Sort parameter and order (- is desc.).
+     * @returns {GetResult} An object containing the query results and the number of available pages.
+     * @static
+     */
+    static async getUsers({ 
+        handle=null, 
+        admin=null, 
+        accountType=null, 
         handleOnly = false, 
         page = 1,
         results_per_page = config.results_per_page, 
@@ -112,6 +151,13 @@ class UserService {
         return Service.successResponse(res)
     }
 
+    /**
+     * Single user read.
+     * @param {Object} param0 - Object created from the request.
+     * @param {string} param0.handle - The user's handle.
+     * @param {boolean} param0.includeReactions=true - Wether or not to include the user's liked and disliked messages's ids.
+     * @returns {GetResult} An object containing the query results and the number of available pages.
+     */
     static async getUser({ handle, includeReactions=true }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -130,17 +176,43 @@ class UserService {
         return Service.successResponse(UserService.makeUserObject(user));        
     }
 
-    static async createUser({ handle, email, description, password,
-            username, name, lastName, phone, gender, urlAvatar,
-            blocked=false, accountType='user',
-            meta }) {
+    /**
+     * Creates a new user.
+     * @param {Object} param0 - Object created from the request.
+     * @param {string} param0.handle - The new user's handle.
+     * @param {string} param0.email - The new user's email.
+     * @param {string} param0.description - The new user's description.
+     * @param {string} param0.password - The new user's password.
+     * @param {string} param0.username - The new user's username.
+     * @param {string} param0.name - The new user's name.
+     * @param {string} param0.lastName - The new user's last name.
+     * @param {string} param0.phone - The new user's phone number.
+     * @param {string} param0.urlAvata - The new user's url's avatar.
+     * @param {('pro'|'user')} param0.accountType - The new user's account type.
+     * @param {boolean} param0.blocked=false - Wether the new user is blocked or not.
+     * @returns {Object} The new user object.
+     */
+    static async createUser({ 
+        handle, 
+        email, 
+        description, 
+        password,
+        username, 
+        name, 
+        lastName, 
+        phone, 
+        gender, 
+        urlAvatar,
+        blocked=false, 
+        accountType='user',
+    }) {
         
         let creation_error = null;
         
         // Filter out undefined params that don't have a default
         // not sure if needed but oh well
         let extra = Object.entries({
-            username, name, lastName, phone, description, gender, urlAvatar, meta,
+            username, name, lastName, phone, description, gender, urlAvatar,
         }).reduce((a, [k, v]) => {
             if (v !== undefined) {
                 a[k] = v;
@@ -181,6 +253,13 @@ class UserService {
     
     }
 
+    /**
+     * Deletes one user.
+     * @param {Object} param0 - Object created from the request.
+     * @param {string} param0.handle - The user's handle.
+     * @param {Socket} param0.socket - The server socket.
+     * @returns {Object} A success status object.
+     */
     static async deleteUser({ handle, socket }) {
 
         // smm and co fields are kept coherent with the pre('deleteOne') setting, see models/User
@@ -205,10 +284,47 @@ class UserService {
         return Service.successResponse();
     }
 
-    static async writeUser({ handle, username,
-        email, password, name, lastName, 
-        phone, gender, description,  blocked, charLeft, addMemberRequest, 
-        addEditorRequest, removeMember, removeEditor, admin, socket
+    /**
+     * Modifies a user.
+     * @param {Object} param0 - Object created from the request.
+     * @param {string} param0.handle - The new user's handle.
+     * @param {string} param0.email - The new user's email.
+     * @param {string} param0.description - The new user's description.
+     * @param {string} param0.password - The new user's password.
+     * @param {string} param0.username - The new user's username.
+     * @param {string} param0.name - The new user's name.
+     * @param {string} param0.lastName - The new user's last name.
+     * @param {string} param0.phone - The new user's phone number.
+     * @param {string} param0.urlAvata - The new user's url's avatar.
+     * @param {('pro'|'user')} param0.accountType - The new user's account type.
+     * @param {boolean} param0.blocked=false - Wether the user is blocked or not.
+     * @param {object} param0.charLeft - The new user's characters (must be an object containing day, week and month numerical values).
+     * @param {boolean} param0.admin - Wether the user is an admin or not.
+     * @param {string[]} param0.addMemberRequest - Names of the channels the user is requesting membership to.
+     * @param {string[]} param0.addEditorRequest - Names of the channels the user is requesting to become an editor for.
+     * @param {string[]} param0.removeMember - Names of the channels the user is requesting to leave (this will also remove the user from the editor list).
+     * @param {string[]} param0.removeEditor - Names of the channels the user is requesting to no longer be an editor for (the user will remain a member).
+     * @param {Socket} param0.socket - The server socket.
+     * @returns {Object} The new user object.
+     */
+    static async writeUser({ 
+        handle, 
+        username,
+        email, 
+        password, 
+        name, 
+        lastName, 
+        phone, 
+        gender, 
+        description,  
+        blocked, 
+        charLeft, 
+        addMemberRequest, 
+        addEditorRequest, 
+        removeMember, 
+        removeEditor, 
+        admin, 
+        socket
     }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -230,16 +346,14 @@ class UserService {
 
         if ((blocked === true) || (blocked === false)) user.blocked = blocked;
 
-        // Maybe protects charLeft from getting extra fields but not sure
-
         if (charLeft) {
-            if ((charLeft.day === 0) || (charLeft.day)) {
+            if (_.isNumber(charLeft.day) && (charLeft.day >= 0)) {
                 user.charLeft.day = charLeft.day;
             }
-            if ((charLeft.week === 0) || (charLeft.week)) {
+            if (_.isNumber(charLeft.week) && (charLeft.week >= 0)) {
                 user.charLeft.week = charLeft.week;
             }
-            if ((charLeft.month === 0) || (charLeft.month)) {
+            if (_.isNumber(charLeft.month) && (charLeft.month >= 0)) {
                 user.charLeft.month = charLeft.month;
             }
         }
@@ -310,6 +424,13 @@ class UserService {
         return Service.successResponse(UserService.makeUserObject(user));
     }
 
+    /**
+     * Cancels a user's subscription.
+     * @param {Object} param0 - Object created from the request.
+     * @param {string} param0.handle - The user's handle.
+     * @param {Socket} param0.socket - The server socket.
+     * @returns {Object} The new user object
+     */
     static async deleteSubscription({ handle, socket }) {
         let user = await User.findOne({ handle: handle })
             .populate('smm', 'handle _id');
@@ -351,6 +472,15 @@ class UserService {
         return Service.successResponse(UserService.makeUserObject(user));
     }
 
+    /**
+     * Changes a user's subscription.
+     * @param {Object} param0 - Object created from the request.
+     * @param {string} param0.handle - The user's handle.
+     * @param {string} param0.proPlanName - The name of the user's new pro plan.
+     * @param {boolean} param0.autoRenew=true - Wether or not to automatically renew the subscription.
+     * @param {Socket} param0.socket - The server socket.
+     * @returns {Object} The new user object
+     */
     static async changeSubscription({ handle, proPlanName, autoRenew=true, socket }) {
         let user = await User.findOne({ handle: handle })
             .populate('smm', 'handle _id');
@@ -429,6 +559,11 @@ class UserService {
 
     }
 
+    /**
+     * Checks wether the given email and/or handle are available.
+     * @param {Object} param0 - Object created from the request.
+     * @returns {Object} An object containing a boolean handle and email property.
+     */
     static async checkAvailability({ handle=null, email=null }) {
         
         if (!(email || handle)) return Service.rejectResponse({ message: "Must provide either handle or email" })
@@ -448,6 +583,11 @@ class UserService {
         return Service.successResponse(results);
     }
     
+    /**
+     * Checks wether the given email is available.
+     * @param {Object} param0 - Object created from the request.
+     * @returns {Object} An object containing a boolean handle and email property.
+     */
     static async checkMailValidation({ email=null }) {
         
         if (!email) return Service.rejectResponse({ message: "Must provide email" })
@@ -458,12 +598,20 @@ class UserService {
         if (email) {
             checkEmail = await User.findOne({ email: email });
             results.email = checkEmail ? true: false;
-            results.user=checkEmail
         }
         
         return Service.successResponse(results);
     }
 
+    /**
+     * Change or remove the user's smm.
+     * @param {Object} param0 - Object created from the request.
+     * @param {string} param0.handle - The user's handle.
+     * @param {('remove'|'change')} param0.operation - Wether to remove or change the smm.
+     * @param {string} param0.smm - The new smm's handle. Only used with operation 'change'.
+     * @param {Socket} param0.socket - The server socket.
+     * @returns {Object} An object containing the operation's result status.
+     */
     static async changeSmm({ handle, operation, smm, socket }){
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -540,6 +688,14 @@ class UserService {
         return Service.successResponse()
     }
 
+    /**
+    * Change or remove a user's managed users list.
+    * @param {Object} param0 - Object created from the request.
+    * @param {string} param0.handle - The user's handle.
+    * @param {string[]} param0.users - The array of user's hanles to be removed from the user's managed list.
+    * @param {Socket} param0.socket - The server socket.
+    * @returns {Object} An object containing the operation's result status.
+    */
     static async removeManaged({ handle, users, socket }) {
 
         if (!handle) return Service.rejectResponse({ message: "Did not provide a handle" })
@@ -585,6 +741,14 @@ class UserService {
         return Service.successResponse()
     }
 
+    /**
+    * Get the user's manage users list. 
+    * @param {Object} param0 - Object created from the request.
+    * @param {string} param0.handle - The user's handle.
+    * @param {string[]} param0.reqUser - The requesting user object.
+    * @returns {Object[]} An object the user's managed users.
+    * @deprecated
+     */
     static async getManaged({ handle, reqUser }) {
 
         if (!((handle) && (reqUser))) 

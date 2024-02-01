@@ -12,7 +12,7 @@ const { logger } = require('../config/logging');
 const UserRouter = express.Router();
 
 UserRouter.get('/', getAuthMiddleware('basicAuth'), async (req, res) => {
-    await Controller.handleRequest(req, res, UserService.getUsersByPopularity);
+    await Controller.handleRequest(req, res, UserService.getUsers);
 })
 
 UserRouter.get('/:handle', getAuthMiddleware('basicAuth'),
