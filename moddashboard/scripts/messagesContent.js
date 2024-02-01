@@ -321,8 +321,10 @@ class MessageContent{
                 dests.push($(this).children('div').text());
             })
 
-            if (_.intersection(dests, message.dest).length !== message.dest.length) {
-                body.dest = dests;
+            body.dest = dests;
+            console.log(dests);
+
+            if (dests.length !== message.dest.length) {
                 console.log(body.dest);
             }
 
