@@ -117,31 +117,14 @@ DebugRouter.post('/reaction/:type/from/:handle', async (req, res) => {
 
     const user = await User.findOne({ handle: req.params.handle });
 
-    if (!user) {
-        return res.status(409).json({ message: `No user named @${handle}` });
-    }
+    let message = new Message({
+        content: {
+            text: 'AAAAAAAAAAAAAa'
+        },
+        author: user._id,
+    })
 
-    let messages = await Message.find({
-        publicMessage: true,
-    });
-
-    if (!messages.length) {
-        return res.status(500).json({ message: `No public messages left` });
-    }
-
-    let message = messages[0];
-
-    let reaction = await Reaction.findOne({
-        user: user._id,
-        message: message._id,
-        type: req.params.type,
-    });
-
-    if (reaction) {
-        return res.status(409).json({ message: `Already disliked message ${id}` });
-    }
-
-    reaction = new Reaction({
+    let reaction = new Reaction({
         user: user._id,
         message: message._id,
         type: req.params.type,
