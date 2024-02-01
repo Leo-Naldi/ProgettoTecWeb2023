@@ -4,6 +4,9 @@
       <q-toolbar class="my-headerbar justify-between">
         <MyButton flat dense round icon="menu" aria-label="leftSideBar" @click="toggleLeftDrawer" />
 
+        <q-toolbar-title>char available day: {{ user.charLeft.day }},  week: {{ user.charLeft.week }}, month: {{ user.charLeft.month }}
+        </q-toolbar-title>
+
         <MyButton dense flat round icon="menu" aria-label="rightSideBar" @click="toggleRightDrawer" />
 
 
