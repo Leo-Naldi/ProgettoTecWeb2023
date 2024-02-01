@@ -1,7 +1,7 @@
 <template>
   <q-layout view="lHr LpR fFf" role="main" aria-label="Main Layout">
     <q-header elevated role="banner">
-      <q-toolbar class="my-headerbar">
+      <q-toolbar class="my-headerbar justify-between">
         <MyButton flat dense round icon="menu" aria-label="leftSideBar" @click="toggleLeftDrawer" />
 
         <MyButton dense flat round icon="menu" aria-label="rightSideBar" @click="toggleRightDrawer" />
@@ -247,6 +247,26 @@ export default defineComponent({
         }
       },
     )
+
+    onMounted(()=>{
+      const tmpTimer = setInterval(() => {
+        let sum = useNotificationsStore().getUnread;
+
+        if (sum != 0) {
+          useNotificationsStore().set_playAll();
+          var notify_sound = "Notify.mp3";
+          audio.value.show_notifications(notify_sound);
+        }
+      }, 5000); /* 1000 = 1s */
+      useGlobalStore().setTimerId(tmpTimer);
+    })
+
+      onUnmounted(() => {
+        if(useGlobalStore().getTimerId!=null){
+          clearInterval(useGlobalStore().timerId)
+          useGlobalStore().resetTimerId()
+        }
+      });
 
     return {
       essentialLinks: linksList,

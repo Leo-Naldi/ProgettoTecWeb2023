@@ -33,26 +33,26 @@
             <q-card class="my-card">
               <q-card-section>
                 <div class="q-pt-md">
-                  Don't show posts:<q-toggle v-model="tabFilter.showPosts" checked-icon="check" color="primary"
+                  Show posts:<q-toggle v-model="tabFilter.showPosts" checked-icon="check" color="primary"
                     unchecked-icon="clear" role="switch" aria-checked="true" />
                 </div>
                 <div class="q-pt-md">
-                  Don't show channels:<q-toggle v-model="tabFilter.showChannels" checked-icon="check" color="primary"
+                  Show channels:<q-toggle v-model="tabFilter.showChannels" checked-icon="check" color="primary"
                     unchecked-icon="clear" role="switch"
                     aria-checked="false" />
                 </div>
                 <div class="q-pt-md">
-                  Don't show users:<q-toggle v-model="tabFilter.showUsers" checked-icon="check" color="primary"
+                  Show users:<q-toggle v-model="tabFilter.showUsers" checked-icon="check" color="primary"
                     unchecked-icon="clear" role="switch"
                     aria-checked="false" />
                 </div>
                 <div class="q-pt-md">
-                  Don't show mentions:<q-toggle v-model="tabFilter.showMentions" checked-icon="check" color="primary"
+                  Show mentions:<q-toggle v-model="tabFilter.showMentions" checked-icon="check" color="primary"
                     unchecked-icon="clear" role="switch"
                     aria-checked="false" />
                 </div>
                 <div class="q-pt-md">
-                  Don't show tags:<q-toggle v-model="tabFilter.showTags" checked-icon="check" color="primary"
+                  Show tags:<q-toggle v-model="tabFilter.showTags" checked-icon="check" color="primary"
                     unchecked-icon="clear" role="switch"
                     aria-checked="false" />
                 </div>

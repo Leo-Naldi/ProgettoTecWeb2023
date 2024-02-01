@@ -2,9 +2,12 @@
   <div>
     <q-item v-for="channel in channels" :key="channel.id" class="q-mb-sm" clickable v-ripple @click="goToDetails(channel.name)" role="button" aria-label="Go to Channel Details">
       <q-item-section avatar aria-label="avatar">
+        <q-avatar color="primary" text-color="white">
+          {{ channel.name[0]+channel.name[1] }}
+          </q-avatar>
         <!-- <img :src="`https://cdn.quasar.dev/img/${contact.avatar}`"> -->
-        <img src="https://cdn.quasar.dev/img/avatar2.jpg" alt="channel avatar" />
-          <!-- {{ user.handle[0] }} -->
+        <!-- <img src="https://cdn.quasar.dev/img/avatar2.jpg" alt="channel avatar" /> -->
+
       </q-item-section>
 
       <q-item-section>

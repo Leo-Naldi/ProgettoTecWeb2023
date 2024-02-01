@@ -96,7 +96,7 @@ export default {
 
   computed: {
     count() {
-      return usePostStore().getSocketPost
+      return usePostStore().getSocketPostPublic
       // Or return basket.getters.fruitsCount
       // (depends on your design decisions).
     }
@@ -141,7 +141,6 @@ export default {
 
   },
   async mounted() {
-    useSocketStore().startNoLoginSocket()
     // const paramId = this.router.currentRoute.value.params.keywords;
     const routeParams = this.$route.params;
 
@@ -158,9 +157,6 @@ export default {
       }
     } else {
     }
-  },
-  unmounted() {
-    useSocketStore().startLoggedInSocket()
   },
 
 }

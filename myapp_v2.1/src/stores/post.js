@@ -25,8 +25,10 @@ export const usePostStore = defineStore("post", {
     bookmarks: [],  // logged user can collection post in bookmarks
     userPosts: [],  // if has reply to current user
 
-    socket_posts: [], // socket posts
-    socket_post: {},  // current socket post
+    socket_posts: [], // socket posts (user)
+    socket_post: {},  // current socket post (user socket)
+    socket_posts_public :[],
+    socket_post_public: {},
 
 
     fetchedPages: [], //fetchedPages num
@@ -46,6 +48,9 @@ export const usePostStore = defineStore("post", {
     getSocketPosts: (state)=>state.socket_posts,
     getSocketPost: (state)=>state.socket_post,
 
+    getSocketPostsPublic: (state)=>state.socket_posts_public,
+    getSocketPostPublic: (state)=>state.socket_post_public,
+
     getHideList: (state) => state.hideList,
     getBookmarks: (state) => state.bookmarks,
 
@@ -60,6 +65,12 @@ export const usePostStore = defineStore("post", {
     },
     resetSocketList(){
       this.socket_posts = []
+    },
+    setSocketPostPublic(obj){
+      this.socket_post_public = obj
+    },
+    resetSocketListPublic(){
+      this.socket_posts_public = []
     },
     resetStoreLogged(){
       this.allPosts=[],
@@ -215,6 +226,7 @@ export const usePostStore = defineStore("post", {
     updatePosts(data){
       let res = this.messageHandler(data);
       this.socket_posts.unshift(res);
+      this.userPosts.unshift(res);
       return res
     },
     setUserPost(arr) {

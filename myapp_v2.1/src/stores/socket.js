@@ -5,34 +5,46 @@ import { useGlobalStore } from "./global";
 import { usePostStore } from "./post";
 import { useNotificationsStore } from "./notification";
 import { useUserStore } from "./user";
-import {useAccountStore} from "./account"
 import { format } from "date-fns";
-
-
-
-import { LocalStorage } from "quasar";
-import { USER_KEY, TOKEN_KEY, setUser } from "src/common/localStorageHandler";
 import { showNegative } from "src/common/utils";
+import { computed } from "vue";
 
 
 export const useSocketStore = defineStore("socket", {
   state: () => ({
-    socket: null,
+    socket: null, // public and public-feed
+    socketUser: null,
   }),
 
   getters: {
     getSocket: (state) => state.socket,
+    getSocketUser: (state) => state.socketUser,
   },
 
   actions: {
+    setPublicFeedSocket(){
+      const token = useUserStore().getUserToken
+      if (token){
+        this.socket = io(baseURL+"/public-feed-io/", {
+          extraHeaders: {
+            Authorization: "Bearer " + token,
+          },
+          forceNew: true,
+        });
+      }
+      else{
+        showNegative("start socket failed because of invalid user token!")
+      }
+    },
     setSocket() {
       const handle = useUserStore().getUserHandle
       const token = useUserStore().getUserToken
       if (handle && token) {
-        this.socket = io(baseURL+"/user-io/" + handle, {
+        this.socketUser = io(baseURL+"/user-io/" + handle, {
           extraHeaders: {
             Authorization: "Bearer " + token,
           },
+          forceNew: true,
         });
       }
     },
@@ -45,6 +57,10 @@ export const useSocketStore = defineStore("socket", {
       if (this.socket != null) {
         this.socket.disconnect();
         this.socket = null;
+      }
+      if (this.socketUser != null) {
+        this.socketUser.disconnect();
+        this.socketUser = null;
       }
     },
     startNoLoginSocket() {
@@ -69,6 +85,18 @@ export const useSocketStore = defineStore("socket", {
         setSocketPost(res)
         // console.log(message)
       });
+      mysocket.on("message:deleted", (message) => {
+        console.log("【public socket】 a message is deleted!", message)
+      });
+      mysocket.on("message:changed", (message) => {
+        console.log("【public socket】 a message is changed!", message)
+      });
+      mysocket.on("channel:deleted", (channel) => {
+        console.log("【public socket】 a channel is deleted!", channel)
+      });
+      mysocket.on("channel:changed", (channel) => {
+        console.log("【public socket】 a channel is changed!", channel)
+      });
     },
     startLoggedInSocket() {
       console.log("start Logged socket!")
@@ -76,13 +104,11 @@ export const useSocketStore = defineStore("socket", {
       const globalStore = useGlobalStore();
       const postStore = usePostStore();
       const notificationStore = useNotificationsStore();
-      const userStore = useUserStore()
-
-      const userPost = postStore.getUserPosts;
+      const userPost = computed(()=>usePostStore().getUserPosts);  // debug:
       // console.log("userPost: ", userPost)
 
       this.setSocket();
-      const mysocket = this.getSocket;
+      const mysocket = this.getSocketUser;
       const myhandle = useUserStore().getUserHandle;
       // console.log("start login socket!", mysocket);
 
@@ -95,8 +121,8 @@ export const useSocketStore = defineStore("socket", {
       */
       mysocket.on("message:created", (message) => {
         console.log("[socket, message:created] you have a new message! ", message)
-        const res = postStore.updatePosts(message)
-        postStore.setSocketPost(res)
+        const res = usePostStore().updatePosts(message)
+        usePostStore().setSocketPost(res)
         // console.log("message changed: ", message)
 /*         if (message.length > 0) {
           console.log(
@@ -120,7 +146,7 @@ export const useSocketStore = defineStore("socket", {
         else  */
 
         // if received replies to my posts
-        if ( message.answering && userPost.find((obj) => obj._id === message.answering) ) {
+        if ( message.answering && userPost.value.find((obj) => obj._id === message.answering) ) {
           notificationStore.set_c_unread(message);
           notificationStore.set_playRe(message);
           globalStore.incrementUnread();
@@ -135,9 +161,8 @@ export const useSocketStore = defineStore("socket", {
 
       // if received reactions
       mysocket.on("message:changed", (message) => {
-        const foundObj = userPost.find((obj) => obj.id === message.id);
+        const foundObj = userPost.value.find((obj) => obj.id === message.id);
         if (foundObj) {
-          // console.log("[socket] 出错！", userPost, message )
           // you get an unread reaction message
           notificationStore.set_r_unread(foundObj);
           notificationStore.set_playReac(message.id);
@@ -145,12 +170,15 @@ export const useSocketStore = defineStore("socket", {
         }
       });
 
+      mysocket.on("message:deleted", (message) => {
+        console.log("【logged socket】 a message is deleted!", message)
+      });
+
       mysocket.on("user:changed", (user)=>{
         console.log("[socket] 's user changed: ", user)
 /*
         userStore.modifyUser(message)
         setUser(message) */
-        // 保留几个自定义的字段，剩下的都更改为 Socket 返回的 json
         const currentUserJson = useUserStore().getUserJson
         var newUser = user
         newUser["joinedChannels"] = currentUserJson.joinedChannels
@@ -168,12 +196,55 @@ export const useSocketStore = defineStore("socket", {
         console.log("[socket] new user json is: ", newUser)
       })
 
+      mysocket.on("channel:changed", (channel) => {
+        console.log("【logged socket】 a channel has been changed!", channel)
+      });
+
+      mysocket.on("channel:deleted", (channel) => {
+        console.log("【logged socket】 a message is deleted!", channel)
+      });
+
       mysocket.on('disconnect', () => {
         showNegative("【current user socket disconnected! 】")
       })
       mysocket.on('error', (error) => {
         showNegative('Socket error! Please open console to see details');
         console.log("【namespace socket error】: ", error)
+      });
+
+      this.setPublicFeedSocket()
+      const publicFeedSocket = this.getSocket;
+      publicFeedSocket.on("message:created", (message)=>{
+        usePostStore().setSocketPostPublic(message)
+        console.log("【public feed socket】a new messages shows up!", message)
+      })
+      publicFeedSocket.on("message:deleted", (message) => {
+        console.log("【public feed socket】 a message is deleted!", message)
+      });
+      publicFeedSocket.on("message:changed", (message) => {
+        console.log("【public feed socket】 a message is changed!", message)
+      });
+
+      publicFeedSocket.on("channel:deleted", (channel) => {
+        console.log("【public feed socket】 a channel is deleted!", channel)
+      });
+      publicFeedSocket.on("channel:changed", (channel) => {
+        console.log("【public feed socket】 a channel is changed!", channel)
+      });
+
+      publicFeedSocket.on("user:deleted", (user) => {
+        console.log("【public feed socket】 a user is deleted!", user)
+      });
+      publicFeedSocket.on("user:changed", (user) => {
+        console.log("【public feed socket】 a user is changed!", user)
+      });
+
+      publicFeedSocket.on('disconnect', () => {
+        showNegative("【public feed socket disconnected! 】")
+      })
+      publicFeedSocket.on('error', (error) => {
+        showNegative('Public feed error! Please open console to see details');
+        console.log("【public feed socket error】: ", error)
       });
     },
   },

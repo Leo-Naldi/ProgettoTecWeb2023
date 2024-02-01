@@ -9,12 +9,14 @@
 <script>
 import { useNotificationsStore } from "src/stores/notification";
 import { useQuasar } from "quasar";
+import { useGlobalStore } from "src/stores/global";
 
 export default {
   name: "NotifyType",
   setup() {
     const $q = useQuasar();
     const notifyStore = useNotificationsStore();
+    const globalStore = useGlobalStore()
 
     return {
       show_notifications(sound) {
@@ -74,6 +76,7 @@ export default {
               color: "white",
               handler: () => {
                 notifyStore.remove_m_unread(postId);
+                globalStore.decreaseUnread()
                 console.log("after reseted", notifyStore.getUnreadMessage);
               },
             },
@@ -119,6 +122,7 @@ export default {
               color: "white",
               handler: () => {
                 notifyStore.remove_c_unread(postId);
+                notifyStore.decreaseUnread()
                 console.log("after reseted", notifyStore.getUnreadMessage);
               },
             },
@@ -153,6 +157,7 @@ export default {
               color: "white",
               handler: () => {
                 notifyStore.remove_r_unread(postId);
+                globalStore.decreaseUnread()
                 console.log("after reseted", notifyStore.getUnreadReaction);
               },
             },
@@ -186,6 +191,7 @@ export default {
               color: "white",
               handler: () => {
                 notifyStore.remove_r_unread(postId);
+                globalStore.decreaseUnread()
                 console.log("after reseted", notifyStore.getUnreadReply);
               },
             },

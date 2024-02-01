@@ -67,11 +67,11 @@
 
     <q-separator class="divider" color="grey-2" size="10px" />
 
-    <q-list separator v-if="channelDetails.isMember" role="list" aria-label="Channel Messages">
+    <q-list separator v-if="channelDetails.isMember || channelDetails.isOfficial" role="list" aria-label="Channel Messages">
       <ShowPost v-for="post in channelDetails.messages" :key="post.id" v-bind="post" clickable />
 
     </q-list>
-    <p v-if="!channelDetails.isMember && channelDetails.messages.length <= 0" role="status" aria-live="assertive">You're not a member, you cannot see the messages!</p>
+    <p v-if="!channelDetails.isMember && !channelDetails.isOfficial && channelDetails.messages.length <= 0" role="status" aria-live="assertive">You're not a member, you cannot see the messages!</p>
     <p v-if="channelDetails.isMember && channelDetails.messages.length <= 0" role="status" aria-live="assertive">No channel message, create a new message</p>
   </q-page>
 </template>
@@ -124,7 +124,8 @@ const channelDetails = reactive({
   isEditor: false,
   isCreator: false,
   isMember: false,
-  isPublic: false
+  isPublic: false,
+  isOfficial: false,
 })
 const member_readOnly = "true"
 provide('channelDetails', channelDetails)
@@ -135,7 +136,7 @@ const fetchChannelData = async (channelId) => {
   channelDetails.name=channelId
   const data = await searchChannel(channelId)
   // console.log("fetchChannelData res: ",data[0])
-  if (data.length > 0) {
+  if (data) {
     channelDetails.description = data[0].description
     channelDetails.creator = data[0].creator
     channelDetails.members_name = data[0].members
@@ -146,6 +147,7 @@ const fetchChannelData = async (channelId) => {
     channelDetails.member_requests = data[0].memberRequests
     channelDetails.editor_requests = data[0].editorRequests
     channelDetails.isPublic=data[0].publicChannel
+    channelDetails.isOfficial = data[0].official
     // const data2= await fetchMembers(data[0].members)
     const data2 = await userhandleToJson(data[0].members)
     const editor_json = await userhandleToJson(data[0].editors)
@@ -161,7 +163,7 @@ const fetchChannelData = async (channelId) => {
     // console.log("member requests: ", JSON.parse(JSON.stringify(channelDetails.member_requests_json)))
     // console.log("editor requests: ", JSON.parse(JSON.stringify(channelDetails.editor_requests_json)))
     channelDetails.isMember = data[0].members.includes(myhandle)
-    if(channelDetails.isMember){
+    if(channelDetails.isMember || channelDetails.isOfficial){
       const channel_post = await postStore.fetchChannelPost(channelId)
       // console.log("get channel post: ",channel_post)
       channelDetails.messages = channel_post
