@@ -1,0 +1,38 @@
+a {
+  cursor: pointer;
+  text-decoration: none;
+  color: #1976d2;
+}
+
+.verified {
+  position: absolute;
+  bottom: 0rem;
+  right: 0rem;
+  color: #03a9f4;
+}
+
+.focus-style {
+  backgound-color: #1976D2;
+}
+
+.focus-style:focus, .focus-style:focus-visible {
+  background-color: #ffcc00;
+  outline: 2px solid crimson;
+  border-radius: 3px;
+}
+
+.focus-style:hover {
+  color: #1da1f2;
+  background-color: #e8f5ff;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}/*# sourceMappingURL=app.css.map */

@@ -1,8 +1,9 @@
-
 <template>
-  <q-btn class="leave-button" @mouseover="mouseOver" @mouseleave="mouseLeave" @click.stop.prevent="requestChannel()">{{
-   buttonText }}</q-btn>
+  <q-btn class="leave-button" @mouseover="mouseOver" @mouseleave="mouseLeave" @click.stop.prevent="requestChannel()" role="button" aria-label="Leave Channel">
+    {{ buttonText }}
+  </q-btn>
 </template>
+
 
 <script>
 import { useUserStore } from "src/stores/user";

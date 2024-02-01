@@ -1,5 +1,8 @@
  <template>
-  <div :id=mapId class="golden-ratio" ></div>
+  <div :id=mapId class="golden-ratio" role="application"
+    aria-label="Map showing post location"
+    tabindex="0"
+     ></div>
 </template>
 
 <script>
@@ -66,4 +69,8 @@ export default {
   width: 100%
   aspect-ratio: 1.618/1
   max-width: calc(90vw - 10px)
+
+#mapId:focus
+  outline: 2px solid #1da1f2
+  outline-offset: 4px
 </style>

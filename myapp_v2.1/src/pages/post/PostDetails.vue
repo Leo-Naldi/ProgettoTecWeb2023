@@ -1,18 +1,17 @@
 <template>
   <q-page padding>
-    <ShowPost v-for="post2 in postInfo.post" :key="post2.id" :replies=postInfo.replies :showReply="true" v-bind="post2" />
-    <q-separator class="divider" color="grey-2" size="10px" />
-    <router-view :key="router.fullPath"></router-view>
-
-    <WritePost :author="postInfo.author" :id="postInfo.id"/>
-
-    <q-separator class="divider" color="grey-2" size="10px" />
-
-    <q-list separator>
+    <ShowPost v-for="post2 in postInfo.post" :key="post2.id" :replies="postInfo.replies" :showReply="true"
+      v-bind="post2" roly="list" />
+    <q-separator class="divider" color="grey-2" size="10px" role="separator" aria-hidden="true" />
+    <router-view :key="router.fullPath" />
+    <WritePost :author="postInfo.author" :id="postInfo.id" />
+    <q-separator class="divider" color="grey-2" size="10px" role="separator" aria-hidden="true" />
+    <q-list separator role="region" aria-label="Replies">
       <ShowPost v-for="post in postInfo.replies" :key="post.id" v-bind="post" clickable />
-
     </q-list>
-    <p v-if="postInfo.replies.length <= 0" class="flex flex-center">No replies!</p>
+    <p v-if="postInfo.replies.length <= 0" class="flex flex-center" role="status" aria-live="polite">
+      No replies!
+    </p>
   </q-page>
 </template>
 
@@ -38,7 +37,7 @@ const postInfo = reactive({
 const fetchPost = async (id) => {
   const data = await usePostStore().fetchPost(id)
   postInfo.post = data
-  postInfo.author=data[0].author
+  postInfo.author = data[0].author
   postInfo.id = data[0].id
 }
 
@@ -63,10 +62,10 @@ watch(
 );
 
 watch(
-  ()=> usePostStore().getSocketPost,
-  (v)=>{
+  () => usePostStore().getSocketPost,
+  (v) => {
     var routerParam = router.currentRoute.value.params
-    if (routerParam && JSON.parse(JSON.stringify(v)).answering === routerParam.postId){
+    if (routerParam && JSON.parse(JSON.stringify(v)).answering === routerParam.postId) {
       postInfo.replies.unshift(v)
     }
   },

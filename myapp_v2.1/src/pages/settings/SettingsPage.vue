@@ -4,23 +4,23 @@
       <q-card-section class="q-pa-none q-py-md row">
         <div>
           <q-tabs v-model="settingsTab" align="left" active-color="primary" active-bg-color="blue-1" class="text-grey-10"
-            vertical>
-            <q-tab name="basicSettings" label="Account settings" style="justify-content: left" content-class="q-pl-md" />
-            <q-tab name="planSettings" label="premium" style="justify-content: left" content-class="q-pl-md" />
+            vertical role="tabpanel">
+            <q-tab role="tab" aria-selected="true" name="basicSettings" label="Account settings" class="justify-start" content-class="q-pl-md" />
+            <q-tab name="planSettings" label="premium" class="justify-start" content-class="q-pl-md" />
 
-            <q-tab name="safeSettings" label="safe settings" style="justify-content: left" content-class="q-pl-md" />
-            <q-tab name="privacySettings" label="privacy settings" style="justify-content: left"
+            <q-tab role="tab" aria-selected="false" name="safeSettings" label="safe settings" class="justify-start" content-class="q-pl-md" />
+            <q-tab role="tab" aria-selected="false" name="privacySettings" label="privacy settings" class="justify-start"
               content-class="q-pl-md" />
 
-            <q-tab name="authSettings" label="Account safety" style="justify-content: left" content-class="q-pl-md" />
+            <q-tab role="tab" aria-selected="false" name="authSettings" label="Account safety" class="justify-start" content-class="q-pl-md" />
 
-            <q-tab name="deleteAccount" label="Delete Account" style="justify-content: left" content-class="q-pl-md" />
+            <q-tab role="tab" aria-selected="false" name="deleteAccount" label="Delete Account" class="justify-start" content-class="q-pl-md" />
           </q-tabs>
         </div>
-        <q-separator :vertical="$q.screen.gt.xs" v-show="$q.screen.gt.xs" />
+        <q-separator :vertical="$q.screen.gt.xs" role="tabpanel" v-show="$q.screen.gt.xs" />
         <div class="col-sm col-xs-12 q-px-md q-pt-none">
-          <q-tab-panels v-model="settingsTab" animated transition-prev="fade" transition-next="fade">
-            <q-tab-panel name="basicSettings" class="row q-pt-sm">
+          <q-tab-panels role="tabpanel" v-model="settingsTab" animated transition-prev="fade" transition-next="fade">
+            <q-tab-panel role="tab" aria-selected="true" name="basicSettings" class="row q-pt-sm">
               <div class="text-h5 col-12 q-mb-md" style="cursor: help">Account Settings<q-tooltip
                   class="bg-grey text-body2" :offset="[10, 10]">
                   If you do not want to change one of them, please leave them empty
@@ -59,7 +59,7 @@
                 </span>
               </div> -->
             </q-tab-panel>
-            <q-tab-panel name="planSettings" class="q-pt-sm">
+            <q-tab-panel role="tab" aria-selected="false" name="planSettings" class="q-pt-sm">
               <div class="text-h5 col-12 q-mb-md">Plan Settings</div>
               <q-list class="text-body2">
                 <q-item>
@@ -101,7 +101,7 @@
                 <q-separator v-if="storedUser.subscription" inset="" spaced="10px" />
               </q-list>
             </q-tab-panel>
-            <q-tab-panel name="safeSettings" class="q-pt-sm">
+            <q-tab-panel role="tab" aria-selected="false" name="safeSettings" class="q-pt-sm">
               <div class="text-h5 col-12 q-mb-md">Security Settings</div>
               <q-list class="text-body2">
                 <q-item>
@@ -159,7 +159,7 @@
                   </q-item-section>
                 </q-item>
                 <q-separator inset="" spaced="10px" />
-                <!--                 <q-item>
+                                <!-- <q-item>
                   <q-item-section>
                     TODO: add telephone (to send OTPW when login)
                     <q-item-label>telephone</q-item-label>
@@ -202,7 +202,7 @@
                 <q-separator inset="" spaced="10px" />
               </q-list>
             </q-tab-panel>
-            <q-tab-panel name="privacySettings" class="q-pt-sm">
+            <q-tab-panel role="tab" aria-selected="false" name="privacySettings" class="q-pt-sm">
               <div class="text-h5 col-12 q-mb-md">Login Logs</div>
               <q-list class="text-body2">
                 <q-item>
@@ -223,7 +223,7 @@
                 </q-item>
               </q-list>
             </q-tab-panel>
-            <q-tab-panel name="authSettings" class="q-pt-sm">
+            <q-tab-panel role="tab" aria-selected="false" name="authSettings" class="q-pt-sm">
               <div class="text-h5 col-12 q-mb-md">Login Logs</div>
               <q-list class="text-body2">
                 <q-item>
@@ -233,26 +233,9 @@
                     </q-item-label>
                   </q-item-section>
                 </q-item>
-                <!--                 <q-separator inset="" spaced="10px" />
-                <q-item>
-                  <q-item-section>
-                    TODO: get logged in device
-                    <q-item-label>Last login device</q-item-label>
-                    <q-item-label class="text-grey-6">current password strengh: strong
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-btn flat unelevated color="primary" label="Modify" @click="resetPassword = true">
-                      <q-dialog v-model="resetPassword" persistent>
-                        <ConfirmPopup :confirm-data="1">{{ resetPopup }}</ConfirmPopup>
-                      </q-dialog>
-                    </q-btn>
-                  </q-item-section>
-                </q-item>
-                <q-separator inset="" spaced="10px" /> -->
               </q-list>
             </q-tab-panel>
-            <q-tab-panel name="deleteAccount" class="q-pt-sm">
+            <q-tab-panel role="tab" aria-selected="false" name="deleteAccount" class="q-pt-sm">
               <div class="text-h5 col-12 q-mb-md">Delete your account</div>
               <div style="margin-top: 2rem; margin-left:2rem">
                 <q-btn label="Delete" color="primary" size="md" @click="confirmDelete = true">
@@ -276,7 +259,6 @@ import InsertPopup from '../../components/utils/InsertPopup.vue';
 import ShowPost from '../../components/posts/ShowPost.vue';
 
 import { reactive, ref, computed } from 'vue';
-
 
 import { useUserStore } from 'src/stores/user';
 import { usePostStore } from 'src/stores/post';
@@ -357,39 +339,6 @@ export default {
   }
 }
 </script>
-
-
-
-
-<!--
-TODO: plan and payments
-{
-  "_id": "653fd35bd927a60b9404b633",
-  "name": "Monthly subscription plan",
-  "price": 4.99,
-  "period": "month",
-  "extraCharacters": {
-      "day": 300,
-      "week": 2240,
-      "month": 10230
-  },
-  "pro": true,
-  "id": "653fd35bd927a60b9404b633"
-},
-{
-  "_id": "653fd35bd927a60b9404b634",
-  "name": "Yearly subscription plan",
-  "price": 49.99,
-  "period": "year",
-  "extraCharacters": {
-      "day": 300,
-      "week": 2240,
-      "month": 10230
-  },
-  "pro": true,
-  "id": "653fd35bd927a60b9404b634"
-}
--->
 
 <style scoped>
 /* set background color */

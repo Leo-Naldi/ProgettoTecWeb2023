@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <audio ref="audio" id="audio">
+  <div role="region" aria-label="Audio Player">
+    <audio ref="audio" id="audio" aria-label="Audio Player">
       <source type="audio/mpeg" />
     </audio>
   </div>

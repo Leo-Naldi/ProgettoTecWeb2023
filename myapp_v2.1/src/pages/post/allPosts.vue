@@ -1,24 +1,23 @@
 <template>
-  <q-page class="relative-position">
-      <div class="tooltip" @click="resetSocketList()" v-if="socket_post_list.length > 0">
-        <p class="center">You have unread posts!</p>
-      </div>
-      <q-list v-if="showSocket!=false">
-        <ShowPost class="show-post" v-show="!post.hide" v-for="post in socket_list" :key="post.id" v-bind="post"
-          clickable />
-      </q-list>
-    <q-infinite-scroll @load="onLoad" :offset="250" :disable="isDisabled">
+  <q-page class="relative-position" role="region" aria-label="All Posts Area">
+    <div class="tooltip" @click="resetSocketList()" v-if="socket_post_list.length > 0" role="button" tabindex="0"
+      aria-label="Click to reset socket list" aria-live="polite" aria-atomic="true">
+      <p class="text-center">You have unread posts!</p>
+    </div>
+    <q-list v-if="showSocket !== false">
+      <ShowPost class="show-post" v-show="!post.hide" v-for="post in socket_list" :key="post.id" v-bind="post"
+        clickable role="list" tabindex="0"/>
+    </q-list>
+    <q-infinite-scroll @load="onLoad" :offset="250" :disable="isDisabled" role="region" aria-live="polite" :aria-busy="isDisabled.toString()">
       <template v-slot:loading>
         <div class="row justify-center q-my-md">
           <q-spinner color="primary" name="dots" size="40px" />
         </div>
       </template>
       <ShowPost style="border-radius:12px; margin: 0.4rem 0.2rem 0.3rem 0.2rem" v-show="!post.hide"
-        v-for="post in post_list" :key="post.id" v-bind="post" clickable />
+        v-for="post in post_list" :key="post.id" v-bind="post" clickable role="list" tabindex="0" />
     </q-infinite-scroll>
-    <p v-if="isDisabled">You've loaded all data!</p>
-
-
+    <p v-if="isDisabled" role="status" aria-live="polite" class="text-center">You've loaded all data!</p>
   </q-page>
 </template>
 

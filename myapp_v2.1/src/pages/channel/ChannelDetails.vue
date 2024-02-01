@@ -1,40 +1,33 @@
 <template>
-  <q-page>
+  <q-page role="main" aria-labelledby="channelTitle">
     <div class="top-img">
-      <!-- if channel avatar -->
-      <!-- <q-avatar rounded size="11rem" color="blue-6" text-color="white"  @click.stop.prevent="clickMe(author)"> -->
-      <!-- <img src="https://images.unsplash.com/photo-1682685797795-5640f369a70a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxlZGl0b3JpYWwtZmVlZHwxfHx8ZW58MHx8fHx8&auto=format&fit=crop&w=900&q=60" /> -->
-      <!-- {{ paramId[0] }} -->
-      <!-- </q-avatar> -->
-      <!-- </q-avatar> -->
-
     </div>
-    <p class="text-weight-bold text-h4">
+    <p class="text-weight-bold text-h4" id="channelTitle">
       {{ $route.params.channelName }}
     </p>
-    <div class="display: flex; align-items: center; justify-content: center">
+    <div class="text-center" roly="region" aria-label="Channel Details Information">
 
-      <p class="">Description: {{ channelDetails.description }}</p>
-      <p class="">creator: @{{ channelDetails.creator }} </p>
-      <div class="text-center text-secondary q-pb-md">Now you can see all channel posts <router-link :to="{ name: 'ChannelMap', params: { channels: $route.params.channelName }}">here</router-link>
+      <p>Description: {{ channelDetails.description }}</p>
+      <p>creator: <router-link :to="'/user/details/'+channelDetails.creator">@{{ channelDetails.creator }}</router-link> </p>
+      <div class="text-secondary q-pb-md">Now you can see all channel posts <router-link :to="{ name: 'ChannelMap', params: { channels: $route.params.channelName }}">here</router-link>
  on the map!</div>
 
 
     </div>
-    <div class="center-container">
-      <ChannelButton :channel=channelDetails :channel_name=$route.params.channelName style="box-sizing: content-box; font-size:15px" />
+    <div class="center-container" role="region" aria-label="Channel Member actions">
+      <ChannelButton role="button" tabindex="0" :channel=channelDetails :channel_name=$route.params.channelName style="box-sizing: content-box; font-size:15px" />
     </div>
-    <p>member_requests: {{ channelDetails.member_requests }}</p>
-    <p>editors_requests: {{ channelDetails.editor_requests }}</p>
+    <!-- <p>member_requests: {{ channelDetails.member_requests }}</p> -->
+    <!-- <p>editors_requests: {{ channelDetails.editor_requests }}</p> -->
 
-    <div clickable class="cursor-pointer" style="display:flex; align-items:center; justify-content:space-between; ">
-      <div class="q-pa-md q-gutter-sm" style="height: 80px">
+    <div clickable class="cursor-pointer flex items-center justify-between" >
+      <div class="q-pa-md q-gutter-sm" style="height: 80px;">
         <q-avatar v-for="n in channelDetails.members_name.length" :key="n" size="40px" class="overlapping"
           :style="`left: ${n * 25}px`">
-          <img :src="`https://cdn.quasar.dev/img/avatar${(n + 1)%5+1}.jpg`">
+          <img :alt="`the ${n}th channel member avatar`" :src="`https://cdn.quasar.dev/img/avatar${(n + 1)%5+1}.jpg`">
         </q-avatar>
 
-        <div style="margin-left: 12rem; margin-top: 1rem;">
+        <div :style="`position:absolute; left: ${(channelDetails.members_name.length+2)*25}px; margin-top: 1rem;`">
           <a>{{ channelDetails.members_name.length }}</a>&nbsp; members
         </div>
 
@@ -74,12 +67,12 @@
 
     <q-separator class="divider" color="grey-2" size="10px" />
 
-    <q-list separator v-if="channelDetails.isMember">
+    <q-list separator v-if="channelDetails.isMember" role="list" aria-label="Channel Messages">
       <ShowPost v-for="post in channelDetails.messages" :key="post.id" v-bind="post" clickable />
 
     </q-list>
-    <p v-if="!channelDetails.isMember && channelDetails.messages.length <= 0">You're not a member, you cannot see the messages!</p>
-    <p v-if="channelDetails.isMember && channelDetails.messages.length <= 0">No channel message, create a new message</p>
+    <p v-if="!channelDetails.isMember && channelDetails.messages.length <= 0" role="status" aria-live="assertive">You're not a member, you cannot see the messages!</p>
+    <p v-if="channelDetails.isMember && channelDetails.messages.length <= 0" role="status" aria-live="assertive">No channel message, create a new message</p>
   </q-page>
 </template>
 

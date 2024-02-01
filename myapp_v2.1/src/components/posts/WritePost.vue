@@ -1,35 +1,35 @@
 <!-- imgURL: http://localhost:8000/files/fv/0ef4c415ca16d832e45fb1c00_picName2023-10-08 22.png -->
 
 <template>
-  <div class="my-new-post">
+  <div class="my-new-post" role="form" aria-labelledby="newPostTitle" aria-describedby="newPostDescription">
     <q-avatar avatar class="my-avatar">
-      <img src="https://cdn.quasar.dev/img/avatar2.jpg">
+      <img src="https://cdn.quasar.dev/img/avatar2.jpg" alt="User Avatar">
     </q-avatar>
     <div class="my-input">
       <p v-if="clickedInput && props.author != ''" class="text-weight-bold text-blue-6"
-        style="position: absolute;  margin-left:0">Replying to: {{ props.id }}</p>
+        style="position: absolute;  margin-left:0" id="newPostTitle">Replying to: {{ props.id }}</p>
       <Mentionable :keys="['@', '#', '§']" :items="MentionableItems" offset="6" insert-space @open="onOpen"
         @apply="onApply">
         <q-input id="inputElement" @click="clickedInput = true" v-model="newPost.content" class="my-input-textarea"
           placeholder="What's happening?" :maxlength=userChar.day bottom-slots counter autogrow borderless ref="userInput"
-          :input-style="{ color: 'grey', lineHeight: 1 }">
+          :input-style="{ color: 'grey', lineHeight: 1 }" aria-labelledby="newPostTitle" aria-describedby="newPostDescription">
 
         </q-input>
 
         <div class="image-container">
-          <q-img v-if="newPost.imageURL" :src="newPost.imageURL"  spinner-color="white" class="my-img" />
-          <q-video  v-if="newPost.videoURL" :src="newPost.videoURL" spinner-color="blue" :ratio="16/9" class="my-img" />
+          <q-img v-if="newPost.imageURL" :src="newPost.imageURL"  spinner-color="white" class="my-img" alt="Uploaded Image" />
+          <q-video  v-if="newPost.videoURL" :src="newPost.videoURL" spinner-color="blue" :ratio="16/9" class="my-img" alt="Uploaded Video" />
           <ShowMap v-if="newPost.coordinates.length != 0" :mapId="newPost.mapName" :my-position="newPost.coordinates" />
           <q-btn @click="deleteImage" v-if="newPost.imageURL != '' || newPost.coordinates.length != 0 || newPost.videoURL!=''"  flat round
-            class="closeIcon" color="red" icon="fa-regular fa-circle-xmark" />
+            class="closeIcon" color="red" icon="fa-regular fa-circle-xmark" aria-label="Delete Image or Video" />
         </div>
 
-        <div v-if="clickedInput" class="sendTips cursor-pointer" @click="whoCanSee()">
+        <div v-if="clickedInput" class="sendTips cursor-pointer" @click="whoCanSee()" aria-label="Privacy Options">
 
 
           <q-icon style="margin: 0.22rem 0.2rem 0 0" name="public" />
-          <p v-if="newPost.everyOneCanSee == false" class="text-weight-bold text-blue-6">Only Selected can see</p>
-          <p v-else class="text-weight-bold text-blue-6">Everyone can see</p>
+          <p v-if="newPost.everyOneCanSee == false" class="text-weight-bold text-blue-6" aria-label="Selected Users Only">Only Selected can see</p>
+          <p v-else class="text-weight-bold text-blue-6" aria-label="Everyone Can See">Everyone can see</p>
         </div>
 
         <div class="my-icons">
@@ -174,10 +174,6 @@
               </q-popup-proxy>
             </q-btn>
             <q-btn flat round icon="fa-regular fa-image" size="sm">
-              <!--
-                // TODO: choose files from android/iod
-                <q-tooltip class="bg-primary">Upload images from your device!</q-tooltip>
-              -->
               <q-popup-proxy cover :breakpoint="800">
                 <q-uploader @uploaded="handleUploaded" :url="baseURL + '/media/upload/image/' + user_handle"
                   label="upload one or more imgs(choose one in a time)" style="width: 300px" accept=".jpg, .png, image/*" max-files="1" />
@@ -238,7 +234,6 @@
         <template #[`item-#`]="{ item }">
           <div class="issue">
             <span class="issue">
-              <!-- {{ item.value }} -->
               #<a class="tags" @click.stop.prevent="gotoP">{{ item.value }}</a>
             </span>
             <span class="dim"> #{{ item.label }} </span>
@@ -248,7 +243,6 @@
     </div>
   </div>
 
-  <!-- </div> -->
 </template>
 
 <script setup>

@@ -1,12 +1,19 @@
 <template>
-  <q-page padding>
-    <div class="text-h3 text-center q-pt-xl">#{{ tagDetails.tagName }}</div>
-    <div class="text-h6 text-center text-primary q-pt-xl">There're {{ tagDetails.tagRes.length }} related results for "{{ routerParam.tagName }}".</div>
-    <div class="text-h6 text-center text-secondary q-pa-xl">Click <router-link :to="{ name: 'KeywordsMap', params: { keywords: routerParam.tagName }}">here</router-link>
- to see them on the map.</div>
-    <q-separator class="divider" color="grey-2" size="1px" />
-    <q-list>
-      <ShowPost v-for="post in  tagDetails.tagRes" :key="post._id" v-bind="post" clickable />
+  <q-page padding role="main">
+    <div class="text-h3 text-center q-pt-xl" aria-level="1">{{ `#${tagDetails.tagName}` }}</div>
+    <div class="text-h6 text-center text-primary q-pt-xl">
+      {{ `There're ${tagDetails.tagRes.length} related results for "${routerParam.tagName}".` }}
+    </div>
+    <div class="text-h6 text-center text-secondary q-pa-xl">
+      {{ `Click ` }}
+      <router-link :to="{ name: 'KeywordsMap', params: { keywords: routerParam.tagName }}" role="link">
+        here
+      </router-link>
+      {{ ` to see them on the map.` }}
+    </div>
+    <q-separator class="divider" color="grey-2" size="1px" role="separator" />
+    <q-list role="list">
+      <ShowPost v-for="post in tagDetails.tagRes" :key="post._id" v-bind="post" clickable />
     </q-list>
   </q-page>
 </template>

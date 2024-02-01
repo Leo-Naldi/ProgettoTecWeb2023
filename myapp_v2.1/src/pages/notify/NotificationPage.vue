@@ -1,41 +1,47 @@
 <template>
-  <q-page>
+  <q-page role="tabpanel">
     <q-item-label class="text-subtitle1 flex justify-around">
-      <strong @click="onActive('messages')" :style="[
+      <strong role="tab" aria-selected="true" @click="onActive('messages')" :style="[
         isActive === 'messages'
           ? { borderBottom: '3px solid #1da1f2' }
           : { borderBottom: '2px solid transparent' },
-      ]" class="q-pb-sm q-pt-xl cursor-pointer"><q-btn flat round color="grey" icon="question_answer"
-          size="sm" />Messages</strong>
-      <strong @click="onActive('replies')" :style="[
+      ]" class="q-pb-sm q-pt-xl cursor-pointer">
+        <q-btn flat round color="grey" icon="question_answer" size="sm" aria-hidden="true" />Messages
+      </strong>
+      <strong role="tab" aria-selected="false" @click="onActive('replies')" :style="[
         isActive === 'replies'
           ? { borderBottom: '3px solid #1da1f2' }
           : { borderBottom: '2px solid transparent' },
-      ]" class="q-pb-sm q-pt-xl cursor-pointer"><q-btn flat round color="grey" icon="reviews"
-          size="sm" />Replies</strong>
-      <strong @click="onActive('reactions')" :style="[
+      ]" class="q-pb-sm q-pt-xl cursor-pointer">
+        <q-btn flat round color="grey" icon="reviews" size="sm" aria-hidden="true" />Replies
+      </strong>
+      <strong role="tab" aria-selected="false" @click="onActive('reactions')" :style="[
         isActive === 'reactions'
           ? { borderBottom: '3px solid #1da1f2' }
           : { borderBottom: '2px solid transparent' },
-      ]" class="q-pb-sm q-pt-xl cursor-pointer"><q-btn flat round color="grey" icon="thumb_up"
-          size="sm" />Reactions</strong>
+      ]" class="q-pb-sm q-pt-xl cursor-pointer">
+        <q-btn flat round color="grey" icon="thumb_up" size="sm" aria-hidden="true" />Reactions
+      </strong>
     </q-item-label>
     <q-separator />
-    <div v-if="isActive === 'messages'">
-      <q-list separator v-if="unread_messages.length>0">
-        <NotifyEnum :clickHandler="closeMsg.bind(post.id)" :icon="'star'" v-for="post in unread_messages" :key="post._id" v-bind="post" clickable @click="gotoMsgDetails(post.id)"/>
+    <div v-if="isActive === 'messages'" role="tabpanel" aria-labelledby="messages-tab">
+      <q-list separator v-if="unread_messages.length > 0">
+        <NotifyEnum :clickHandler="closeMsg.bind(post.id)" :icon="'star'" v-for="post in unread_messages" :key="post._id"
+          :id="'message-' + post._id" v-bind="post" clickable @click="gotoMsgDetails(post.id)" role="list" />
       </q-list>
       <p v-else class="text-center">"No new message!"</p>
     </div>
-    <div v-if="isActive === 'replies'">
-      <q-list separator  v-if="unread_replies.length>0">
-        <NotifyEnum :clickHandler="closeRe.bind(post.id)" :icon="'comment'" v-for="post in unread_replies" :key="post._id" v-bind="post" clickable @click="gotoReDetails(post.id)"/>
+    <div v-if="isActive === 'replies'" role="tabpanel" aria-labelledby="replies-tab">
+      <q-list separator v-if="unread_replies.length > 0">
+        <NotifyEnum :clickHandler="closeRe.bind(post.id)" :icon="'comment'" v-for="post in unread_replies" :key="post._id"
+          :id="'reply-' + post._id" v-bind="post" clickable @click="gotoReDetails(post.id)" role="list" />
       </q-list>
       <p v-else class="text-center">"No new reply!"</p>
     </div>
-    <div v-if="isActive === 'reactions'">
-      <q-list separator  v-if="unread_reactions.length>0">
-        <NotifyEnum :clickHandler="closeReactions.bind(post.id)" :icon="'thumb_up'" v-for="post in unread_reactions" :key="post._id" v-bind="post" clickable @click="gotoReactionDetails(post.id)"/>
+    <div v-if="isActive === 'reactions'" role="tabpanel" aria-labelledby="reactions-tab">
+      <q-list separator v-if="unread_reactions.length > 0">
+        <NotifyEnum :clickHandler="closeReactions.bind(post.id)" :icon="'thumb_up'" v-for="post in unread_reactions"
+          :key="post._id" :id="'reaction-' + post._id" v-bind="post" clickable @click="gotoReactionDetails(post.id)" role="list" />
       </q-list>
       <p v-else class="text-center">"No new reaction!"</p>
     </div>
@@ -45,7 +51,7 @@
 <script setup>
 import { useNotificationsStore } from 'src/stores/notification';
 import { useGlobalStore } from 'src/stores/global';
-import { computed,ref  } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from "vue-router";
 import NotifyEnum from 'src/components/notify/NotifyEnum.vue';
 
@@ -56,9 +62,9 @@ const notificationStore = useNotificationsStore()
 const globalStore = useGlobalStore()
 const router = useRouter();
 
-const unread_messages = computed(()=>notificationStore.getUnreadMessage)
-const unread_replies = computed(()=>notificationStore.getUnreadReply)
-const unread_reactions = computed(()=>notificationStore.getUnreadReaction)
+const unread_messages = computed(() => notificationStore.getUnreadMessage)
+const unread_replies = computed(() => notificationStore.getUnreadReply)
+const unread_reactions = computed(() => notificationStore.getUnreadReaction)
 
 /**********************************
  *              CSS
@@ -71,7 +77,7 @@ const onActive = (nameLink) => {
 /**********************************
  *              function
  * ********************************/
- const gotoDetails =(postID)=>{
+const gotoDetails = (postID) => {
   router.push({
     name: "PostDetail",
     params: {

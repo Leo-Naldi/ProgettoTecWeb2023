@@ -1,10 +1,10 @@
 <template>
-  <q-dialog v-model="showModal" persistent>
+  <q-dialog v-model="showModal" persistent aria-modal="true" role="dialog">
     <div>
       <q-card>
         <q-card-section class="row items-center q-pb-none">
           <q-space />
-          <q-btn icon="close" flat round dense v-close-popup>
+          <q-btn icon="close" flat round dense v-close-popup aria-label="Close Dialog">
             <q-tooltip v-if="globalStore.getAutoTimerId != null">if you close this, auto-message well
               stop!</q-tooltip>
             <q-tooltip v-else class="bg-primary">click to exit</q-tooltip>

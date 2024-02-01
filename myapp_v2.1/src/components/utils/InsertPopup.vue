@@ -1,23 +1,22 @@
 <template>
-  <q-card style="min-width: 350px">
+  <q-card style="min-width: 350px" role="dialog" aria-labelledby="dialogTitle" aria-describedby="dialogContent" >
     <q-card-section>
-      <div class="text-h6">
+      <div class="text-h6" id="insertPopupTitle">
         <slot></slot>
       </div>
     </q-card-section>
 
     <q-card-section class="q-pt-none">
-      <q-input dense v-model="toModify" autofocus @keyup.enter="prompt = false" />
+      <q-input dense v-model="toModify" autofocus @keyup.enter="prompt = false" aria-label="Input Field for Modification" />
     </q-card-section>
 
     <q-card-actions align="right" class="text-primary">
-      <q-btn flat label="Cancel" v-close-popup />
+      <q-btn flat label="Cancel" v-close-popup aria-label="Cancel Button" />
       <q-form @submit="handleInsert()" >
 
-        <!-- <q-btn flat v-if="insertData === 2" label="Modify telephone" type="submit" v-close-popup /> -->
-        <q-btn flat v-if="insertData === 1" label="Modify email" type="submit" v-close-popup />
+        <q-btn flat v-if="insertData === 1" label="Modify email" type="submit" v-close-popup aria-label="Submit Modification" />
         <q-btn flat v-if="insertData === 2" label="Verify Account" :type="toModify == localMail ? 'submit' : ''"
-          :v-close-popup="toModify == localMail ? 'true' : 'false'" @click="confirmChangeMail = true">
+          :v-close-popup="toModify == localMail ? 'true' : 'false'" @click="confirmChangeMail = true" aria-label="Verify Account Button">
           <q-dialog v-model="confirmChangeMail" persistent v-if="insertData === 3 && toModify != localMail">
             <q-card>
               <q-card-section class="row items-center">
@@ -27,9 +26,8 @@
               </q-card-section>
 
               <q-card-actions align="right">
-                <q-btn flat label="Cancel" color="primary" v-close-popup />
-                <!-- <q-btn flat label="Confirm" color="primary" @click="consentChangeMail = true" v-close-popup /> -->
-                <q-btn flat label="Confirm" color="primary" @click="modifyMail()" v-close-popup />
+                <q-btn flat label="Cancel" color="primary" v-close-popup aria-label="Cancel Verification"  />
+                <q-btn flat label="Confirm" color="primary" @click="modifyMail()" v-close-popup aria-label="Confirm Verification" />
 
               </q-card-actions>
             </q-card>
@@ -39,7 +37,6 @@
     </q-card-actions>
   </q-card>
 
-  <!-- </q-dialog> -->
 </template>
 
 <script>

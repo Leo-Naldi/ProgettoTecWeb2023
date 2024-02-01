@@ -1,24 +1,23 @@
-
-
-
 <template>
-  <MyForm ref="form" @submit="onSubmit">
-    <MyInput v-model="formData.verification_code" label="verification code"
-      :rules="[val => val.length == 6 || 'Please use 6 characters']" class="q-pt-md" />
+  <MyForm ref="form" @submit="onSubmit" role="form" aria-labelledby="verification-form-label">
+    <div id="verification-form-label" class="visually-hidden">Verification Form</div>
+    <MyInput v-model="formData.verification_code" label="Verification Code"
+      :rules="[val => val.length === 6 || 'Please use 6 characters']" class="q-pt-md" aria-label="Verification Code Input" aria-required="true" />
     <div class="q-pt-lg row justify-between">
       <div class="col-6">
         <div class="row">
-          <router-link :to="{ name: 'Login' }" class="col-12">
+          <router-link :to="{ name: 'Login' }" class="col-12" role="link" tabindex="0">
             <span>Have credentials?</span>
           </router-link>
         </div>
       </div>
       <div class="col-6 text-right">
-        <MyButton label="Verify" aria-label="Verify" type="submit" :loading="isLoading" />
+        <q-btn class="focus-style" label="Verify" aria-label="Verify Button" type="submit" :loading="isLoading" role="button" tabindex="0"/>
       </div>
     </div>
   </MyForm>
 </template>
+
 
 <script>
 import { defineComponent, reactive, ref, computed } from 'vue';
@@ -71,3 +70,4 @@ export default defineComponent({
   },
 });
 </script>
+

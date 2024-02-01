@@ -1,9 +1,9 @@
 <template>
-    <q-card flat square>
+    <q-card flat square role="region" aria-labelledby="settings-heading">
       <q-card-section class="q-pa-none row">
         <div v-if="$q.screen.gt.xs">
           <q-tabs v-model="settingsTab" align="left" active-color="primary" active-bg-color="blue-1" class="text-grey-10"
-            vertical>
+            vertical aria-label="Settings Tabs">
             <q-tab name="see-members" label="members" style="justify-content: left" content-class="q-pl-md" />
             <q-tab name="see-requests" label="requests" style="justify-content: left" content-class="q-pl-md" />
 
@@ -19,13 +19,11 @@
           <q-tab-panels :swipeable="$q.screen.gt.xs ? false : true" :infinite="$q.screen.gt.xs ? false : true"
             v-model="settingsTab" animated transition-prev="fade" transition-next="fade">
             <q-tab-panel name="see-members" class=" q-pt-none">
-              <div v-if="!$q.screen.gt.xs" class="text-h6 q-pb-md text-blue"
-                style="display:flex;  justify-content: center;">Members</div>
+              <div v-if="!$q.screen.gt.xs" class="text-h6 q-pb-md text-blue justify-center">Members</div>
               <ChannelUserDetails :showAdminButton="true"/>
             </q-tab-panel>
             <q-tab-panel name="see-requests" class="q-pt-sm">
-              <div v-if="!$q.screen.gt.xs" class="text-h6 q-pb-md text-blue"
-                style="display:flex;  justify-content: center;">Requests</div>
+              <div v-if="!$q.screen.gt.xs" class="text-h6 q-pb-md text-blue justify-center">Requests</div>
               <ChannelUserDetails :forRequests="true" :showAdminButton="true" />
             </q-tab-panel>
             <q-tab-panel name="channelSettings" class="q-pt-sm">
