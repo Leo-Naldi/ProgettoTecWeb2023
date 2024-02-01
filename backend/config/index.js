@@ -132,7 +132,6 @@ const config = {
   smmdashboard_build_path: path.resolve(rootPath, '..', 'smmdashboard', 'build'),
   moddashboard_build_path: path.resolve(rootPath, '..', 'moddashboard'),
   app_build_path: path.resolve(rootPath, '..', 'myapp_v2.1', 'dist', 'spa'),
-  app_static_path: path.resolve(rootPath, '..', 'myapp_v2.1', 'src', 'assets'),
 
 };
 
