@@ -1,40 +1,38 @@
 <template>
-  <q-layout view="lHr LpR fFf">
+  <q-layout view="lHr LpR fFf" role="banner" aria-label="Main Layout">
     <q-header elevated>
       <q-toolbar class="my-headerbar">
-        <MyButton flat dense round icon="menu" aria-label="leftSideBar" @click="toggleLeftDrawer" />
 
-        <q-toolbar-title>{{ $q.screen.width }} x {{ $q.screen.height }}, {{ miniStateR  }},{{ leftDrawerOpen }} {{ $q.screen.gt.xs && $q.screen.lt.md }}
-        </q-toolbar-title>
+        <MyButton role="button" class="sidebarbutton" flat dense round icon="menu" aria-label="leftSideBar" tabindex="0" @click="toggleLeftDrawer" />
 
-        <div>Quasar v{{ $q.version }}</div>
-
-        <MyButton dense flat round icon="menu" aria-label="rightSideBar" @click="toggleRightDrawer" />
+        <MyButton role="button" class="sidebarbutton" dense flat round icon="menu" aria-label="rightSideBar" tabindex="0" @click="toggleRightDrawer" />
 
 
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above :mini="miniState.value" @mouseover="miniState.value = false"
-      @mouseout="miniState.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="320" :breakpoint="600"
-      bordered>
-      <div class="flex flex-center cursor-pointer" @click="goHome()">
-        <img alt="Quasar logo" src="~assets/images/logo_48.png" class="my-logo">
+    <q-drawer aria-label="Left Drawer" v-model="leftDrawerOpen" show-if-above :mini="miniState.value" @mouseover="miniState.value = false"
+  @mouseout="miniState.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="320" :breakpoint="600" bordered
+  aria-labelledby="leftDrawerLabel">
+  <div id="leftsDrawerLabel" style="display: none;">Right Drawer</div>
+      <div class="flex flex-center cursor-pointer" @click="goHome()" tabindex="0">
+        <img alt="Quasar logo, a squealer" src="~assets/images/logo_48.png" class="my-logo">
       </div>
       <div class="my-nav">
-        <q-list>
-          <EssentialLink class="nav-padding" v-for="link in essentialLinks" :key="link.title" v-bind="link" />
+        <q-list ole="navigation">
+          <EssentialLink role="menuitem" class="nav-padding" v-for="link in essentialLinks" :key="link.title" v-bind="link" />
         </q-list>
       </div>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container role="main" aria-label="Page Content">
       <router-view />
     </q-page-container>
 
-    <q-drawer :breakpoint="600"  :mini="miniStateR.value" @mouseover="miniStateR.value = false"
-      @mouseout="miniStateR.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="320" show-if-above
-      v-model="rightDrawerOpen" side="right" bordered>
+    <q-drawer aria-label="Right Drawer" :breakpoint="600" :mini="miniStateR.value" @mouseover="miniStateR.value = false"
+  @mouseout="miniStateR.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="320" show-if-above
+  v-model="rightDrawerOpen" side="right" bordered aria-labelledby="rightDrawerLabel">
+    <div id="rightDrawerLabel" style="display: none;">Right Drawer</div>
       <!-- <TrendsSideBar @mouseover="miniStateR.value = false"  v-show="rightDrawerOpen === true  && miniStateR.value == false && router.currentRoute.value.name != 'DisploreHashtagPublic'" class="q-ma-md"  /> -->
       <ChannelSideBar @mouseover="miniStateR.value = false"  v-show="rightDrawerOpen === true  && miniStateR.value == false && router.currentRoute.value.name != 'DisploreChannelPublic'"  class="q-ma-md" />
       <q-icon name="fa-solid fa-arrow-trend-up" class="bg-grey-2 q-my-md round  q-px-md q-mini-drawer-only flex" size="xs"/>
@@ -117,6 +115,10 @@ export default defineComponent({
 </script>
 
 <style lang="sass" scoped>
+.sidebarbutton:focus,.sidebarbutton:focus-visible
+  background-color: #ffcc00
+  outline: 2px solid crimson
+  border-radius: 3px
 .my-headerbar
   background-color: #ffffff
   color:#000000

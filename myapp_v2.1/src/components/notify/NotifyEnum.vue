@@ -1,21 +1,21 @@
 <template>
   <div>
-    <q-item>
+    <q-item role="listitem" aria-labelledby="authorLabel" aria-describedby="contentLabel">
       <q-item-section top avatar>
         <q-avatar>
-          <img src="https://cdn.quasar.dev/img/boy-avatar.png" />
+          <img src="https://cdn.quasar.dev/img/boy-avatar.png" alt="User Avatar" />
         </q-avatar>
       </q-item-section>
 
       <q-item-section>
-        <q-item-label>{{ author }}</q-item-label>
-        <q-item-label caption class="displaydot">{{ content.text }}</q-item-label>
+        <q-item-label id="authorLabel">{{ author }}</q-item-label>
+        <q-item-label caption class="displaydot" id="contentLabel">{{ content.text }}</q-item-label>
       </q-item-section>
 
       <q-item-section side top>
         <q-item-label caption>5 min ago </q-item-label>
         <q-icon :name="icon" color="yellow" />
-        <q-btn class="gt-xs" size="12px" flat dense round icon="done" @click.stop.prevent="callParentFunction" />
+        <q-btn class="gt-xs" size="12px" flat dense round icon="done" @click.stop.prevent="callParentFunction" aria-label="Mark as Done" />
       </q-item-section>
     </q-item>
   </div>

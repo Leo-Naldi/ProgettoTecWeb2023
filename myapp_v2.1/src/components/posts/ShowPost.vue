@@ -1,10 +1,10 @@
 <template>
-  <q-item class="my-posts q-py-md" @click="goToDetails(id)">
+  <q-item role="article" tabindex="0" class="my-posts q-py-md" @click="goToDetails(id)" aria-labelledby="postTitle" aria-describedby="postDescription">
     <q-item-section avatar top>
-      <q-avatar color="lime-6" text-color="white" size="xl" @click.stop.prevent="gotoAuthor(author)">
+      <q-avatar role="img" aria-label="Author Avatar" color="lime-6" text-color="white" size="xl" @click.stop.prevent="gotoAuthor(author)">
         {{ author ? author[0] + author[1] : "Null" }}
-        <div v-if="userDetails.verified==true">
-          <q-icon name="fa-solid fa-circle-check" class="verified" size="1rem" />
+        <div v-if="userDetails.verified == true">
+          <q-icon name="fa-solid fa-circle-check" class="verified" size="1rem" aria-hidden="true" />
         </div>
       </q-avatar>
     </q-item-section>
@@ -23,18 +23,18 @@
           </span>
           <span class="text-grey-7 q-ml-sm">&bull; {{ relativeDate(meta.created) }} ago</span>
         </div>
-        <q-btn flat round color="grey-5" icon="more_horiz" @click.stop>
+        <q-btn role="button" aria-label="More Options" flat round color="grey-5" icon="more_horiz" @click.stop>
           <q-menu>
             <q-list style="min-width: 100px">
               <!-- can modify solo nel userPage -->
-              <q-item v-if="canModify" clickable v-close-popup @click="deletePost(id)">
+              <q-item v-if="canModify" clickable v-close-popup @click="deletePost(id)" role="menuitem">
                 <q-item-section color="red">delete</q-item-section>
               </q-item>
-              <q-item v-if="canModify" clickable v-close-popup @click="modifyPost(id)">
+              <q-item v-if="canModify" clickable v-close-popup @click="modifyPost(id)" role="menuitem">
                 <q-item-section>Modify</q-item-section>
               </q-item>
               <!-- can hide only posts not write by myself -->
-              <q-item v-if="!canModify" clickable v-close-popup>
+              <q-item v-if="!canModify" clickable v-close-popup role="menuitem">
                 <q-item-section @click="hidePost(id)" v-if="!hide">Hide</q-item-section>
                 <q-item-section @click="cancelHidePost(id)" v-else>Cancel Hide</q-item-section>
               </q-item>
@@ -44,23 +44,22 @@
       </q-item-label>
       <div class="post-content" v-html="content.text"></div>
 
-      <q-img v-if="content && content.image" :src="content.image"  spinner-color="white" class="my-img" />
-      <q-video v-if="content &&  content.video" autoplay="false" :src="content.video"  :ratio="16 / 9" class="my-img" />
+      <q-img role="img" aria-label="Post Image" v-if="content && content.image" :src="content.image" spinner-color="white" class="my-img" />
+      <q-video role="video" aria-label="Post Video" v-if="content && content.video" autoplay="false" :src="content.video" :ratio="16 / 9" class="my-img" />
 
-      <!--       <ShowMap v-if="content.geo && content.geo.coordinates.length != 0"  :myPosition="content.geo.coordinates"
-          :style="$q.screen.gt.sm ? 'height: 280px; max-width:  100%' :  'height: 200px; max-width: 100%'" /> -->
-      <ShowMap v-if="content.geo && content.geo.coordinates.length != 0" :mapId="_id" :my-position="content.geo.coordinates" />
+      <ShowMap role="application" aria-label="Post Location Map"  v-if="content.geo && content.geo.coordinates.length != 0" :mapId="_id"
+        :my-position="content.geo.coordinates" />
 
       <div class="my-buttons q-mt-sm q-ml-sm text-grey-7">
         <div class="my-button" id="dislike">
-          <q-btn flat round :color="hasLiked.disliked ? 'black' : 'grey'" :icon="hasLiked.disliked
+          <q-btn role="button" aria-label="Dislike-Post" flat round :color="hasLiked.disliked ? 'black' : 'grey'" :icon="hasLiked.disliked
             ? 'fa-sharp fa-solid fa-thumbs-down'
             : 'fa-sharp fa-regular fa-thumbs-down'
             " size="sm" id="dislikeBtn" @click.stop.prevent="NegReactionHandler(id)"></q-btn>
           <span> {{ reactiveCnt.negative }}</span>
         </div>
         <div class="my-button" id="like">
-          <q-btn id="likeBtn" flat round :color="hasLiked.liked ? 'red' : 'grey'" :icon="hasLiked.liked
+          <q-btn role="button" aria-label="Like-Post" id="likeBtn" flat round :color="hasLiked.liked ? 'red' : 'grey'" :icon="hasLiked.liked
             ? 'fa-sharp fa-solid fa-thumbs-up'
             : 'fa-sharp fa-regular fa-thumbs-up'
             " size="sm" @click.stop.prevent="PosReactionHandler(id)">
@@ -70,25 +69,23 @@
         </div>
 
         <div class="my-button" id="reply" @click.stop>
-          <q-btn id="replyBtn" flat round icon="fa-regular fa-comment" size="sm">
-            <!-- @click.stop.prevent="showReplies(id)" -->
-            <q-popup-proxy
-              v-if="!showReply && ifLoggedRouter">
-               <WritePost :id="id" :author="author" />
+          <q-btn role="button" aria-label="Reply" id="replyBtn" flat round icon="fa-regular fa-comment" size="sm">
+            <q-popup-proxy v-if="!showReply && ifLoggedRouter">
+              <WritePost :id="id" :author="author" />
             </q-popup-proxy>
           </q-btn>
-          <span v-if="showReply">{{ replies.length}}</span>
+          <span v-if="showReply">{{ replies.length }}</span>
         </div>
 
         <div class="my-button" id="chart">
-          <q-btn id="chartBtn" flat round icon="fa-solid fa-chart-simple" size="sm" @click.stop>
+          <q-btn role="button" aria-label="ViewsCounter" id="chartBtn" flat round icon="fa-solid fa-chart-simple" size="sm" @click.stop>
           </q-btn>
           <span>{{ meta.impressions }}</span>
         </div>
 
         <div class="my-button" id="bookmark" v-if="ifLoggedRouter">
-          <q-btn id="bookmarkBtn" flat round :icon="hasCollected ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'" size="sm"
-            @click.stop.prevent="bookmarkHandler(collected, id)">
+          <q-btn role="button" aria-label="Bookmark" id="bookmarkBtn" flat round :icon="hasCollected ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'"
+            size="sm" @click.stop.prevent="bookmarkHandler(collected, id)">
           </q-btn>
           <span></span>
         </div>
@@ -114,7 +111,7 @@ const props = defineProps({
   id: {
     type: String,
   },
-  _id:{
+  _id: {
     type: String
   },
   author: {
@@ -191,15 +188,15 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  replied:{
+  replied: {
     type: Boolean,
     default: false
   },
-  replies:{
+  replies: {
     type: Array,
-    default: ()=>[]
+    default: () => []
   },
-  showReply:{
+  showReply: {
     type: Boolean,
     default: false
   }
@@ -208,7 +205,7 @@ const props = defineProps({
 /******************************************
                     data
  *******************************************/
-const { hidePost, cancelHidePost, getReplies,getOfficialReplies, add_posReaction, add_negReaction, undo_posReaction, undo_negReaction, addPositivePublic, addNegativePublic } = usePostStore()
+const { hidePost, cancelHidePost, getReplies, getOfficialReplies, add_posReaction, add_negReaction, undo_posReaction, undo_negReaction, addPositivePublic, addNegativePublic } = usePostStore()
 const router = useRouter();
 
 const ifLoggedRouter = router.currentRoute.value.name != "Public"
@@ -224,7 +221,7 @@ const hasLiked = reactive({
 /******************************************
                functions
  *******************************************/
-const {addToBookmark, removeBookmark} = usePostStore()
+const { addToBookmark, removeBookmark } = usePostStore()
 const gotoAuthor = ((author) => {
   // console.log("goto post's author page");
 
@@ -257,7 +254,7 @@ const bookmarkHandler = (collected, id) => {
     addToBookmark(id);
   }
   else {
-    hasCollected.value =false;
+    hasCollected.value = false;
     removeBookmark(id);
   }
 };
@@ -352,13 +349,13 @@ const userDetails = reactive({
   accountType: "user"
 })
 onMounted(async () => {
-  if(ifLoggedRouter){
-    try{
+  if (ifLoggedRouter) {
+    try {
       const data = await fetchUser(props.author)
       userDetails.verified = data.verified
       userDetails.accountType = data.accountType
     }
-    catch(err){
+    catch (err) {
       console.log("【ShowPost】fetchUser to get verified state failed, please see console for more informations!")
     }
   }
@@ -377,6 +374,10 @@ onMounted(async () => {
 .my-posts
   display: flex
   align-items: flex-start
+
+.my-posts:focus
+  outline: 2px solid #1da1f2
+  outline-offset: 4px
 .post-content
   margin-bottom: 11px
   font-size: 15px

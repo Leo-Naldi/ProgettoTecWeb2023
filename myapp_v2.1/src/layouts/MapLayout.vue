@@ -1,16 +1,16 @@
 <template>
-  <q-layout view="hHh lpR fFf">
-    <q-page-container>
-      <q-header elevated>
+  <q-layout view="hHh lpR fFf" role="main" aria-label="Main Layout">
+    <q-page-container role="main" aria-label="Page Content">
+      <q-header elevated role="banner">
         <q-toolbar class="my-headerbar">
 
 
           <q-toolbar-title>
             <q-input v-model="searchText" @keyup.enter="submit"
               placeholder="Insert the keywords that you want to search, please DONOT put the '#' symbol" outlined
-              rounded dense>
+              rounded dense aria-label="Search Input">
               <template v-slot:prepend>
-                <q-icon name="search" />
+                <q-icon name="search" aria-hidden="true" />
               </template>
             </q-input>
           </q-toolbar-title>

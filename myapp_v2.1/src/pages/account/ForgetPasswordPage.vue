@@ -1,16 +1,17 @@
 <template>
-  <MyForm ref="form" @submit="onSubmit">
-    <q-input v-model="user.email" label="Email" :rules="[v => required(v, 'Email'), v => email(v)]" class="q-pt-md" />
+  <MyForm ref="form" @submit="onSubmit" role="form" aria-labelledby="forgetPassword-form-label">
+    <div id="forgetPassword-form-label" class="visually-hidden">ForgetPassword Form</div>
+    <MyInput v-model="user.email" label="Email" :rules="[v => required(v, 'Email'), v => email(v)]" class="q-pt-md" aria-label="ForgetPassword User Mail Input" aria-required="true" autofucus/>
     <div class="q-pt-lg row justify-between">
       <div class="col-6">
         <div class="row">
-          <router-link :to="{ name: 'Login' }" class="col-12">
+          <router-link :to="{ name: 'Login' }" class="col-12" role="link" tabindex="0">
             <span>Have credentials?</span>
           </router-link>
         </div>
       </div>
       <div class="col-6 text-right">
-        <MyButton label="Send" aria-label="SendForgetPassRequests" type="submit" :loading="isLoading" />
+        <q-btn class="focus-style" label="Send" aria-label="SendForgetPassRequests" type="submit" :loading="isLoading" tabindex="0" role="button" />
       </div>
     </div>
   </MyForm>

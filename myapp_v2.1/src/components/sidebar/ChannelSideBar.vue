@@ -1,17 +1,15 @@
 <template>
-  <div :class="ifShow ? 'trend-container' : 'trend-container bg-grey-2'" style="max-width: full">
-    <div class="flex justify-between items-center q-px-md q-py-sm" clickable>
+  <div :class="ifShow ? 'trend-container' : 'trend-container bg-grey-2'" style="max-width: full" role="region" aria-label="Trend Container">
+    <div class="flex justify-between items-center q-px-md q-py-sm" role="banner" aria-label="Channel Header" clickable>
       <q-icon name="fa-solid fa-users-rectangle" size="xs" class="bg-grey-2" />
       <p class="text-weight-bold text-h6" style="margin-bottom: -0.2rem">Channel to follow</p>
     </div>
     <ChannelEnum :channels="randomChannels"/>
     <div>
       <p class="text-weight-bold text-center q-pa-sm cursor-pointer text-primary clickable"
-        @click="showMoreHandler()">
+        @click="showMoreHandler()" role="button" tabindex="0" aria-label="Show More Channels">
         Show more</p>
-
     </div>
-
   </div>
 </template>
 

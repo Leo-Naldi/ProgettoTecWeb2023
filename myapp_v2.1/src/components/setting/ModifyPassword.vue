@@ -1,12 +1,12 @@
 <template>
-  <div class="demo form-bg">
+  <div class="demo form-bg" role="region" aria-label="Change Password Form">
     <q-card class="form-card" flat>
       <q-card-section v-if="!isForget">
         <div class="text-h6" align="center">Change your password</div>
       </q-card-section>
 
       <q-card-section>
-        <q-form @submit="changePassword" class="q-gutter-md">
+        <q-form @submit="changePassword" class="q-gutter-md" role="form" aria-labelledby="formLabel" no-submit-on-enter>
           <!--
             //TODO: verify current password!
             <q-input
@@ -24,21 +24,21 @@
 
           <q-input filled v-model="form.newPassword" label="new Password" lazy-rules :rules="[
             (val) => (val && val.length > 0) || 'length must greater than 0!',
-          ]">
+          ]" aria-required="true" aria-describedby="newPasswordError">
             <template v-slot:before>
-              <q-icon name="lock" class="on-left" />
+              <q-icon name="lock" class="on-left" aria-hidden="true"/>
             </template>
           </q-input>
 
           <q-input filled v-model="form.confirmPassword" label="confirm your password" lazy-rules
-            :rules="[(val) => !!val || 'Email is missing', isValidPassword]">
+            :rules="[(val) => !!val || 'Email is missing', isValidPassword]" aria-required="true" aria-describedby="confirmPasswordError">
             <template v-slot:before>
-              <q-icon name="lock" class="on-left" />
+              <q-icon name="lock" class="on-left" aria-hidden="true" />
             </template>
           </q-input>
 
           <q-card-actions align="center">
-            <q-btn label="Submit" type="submit" color="primary" size="md" style="width: 100px" />
+            <q-btn label="Submit" type="submit" color="primary" size="md" style="width: 100px" role="button" tabindex="0" aria-label="Submit Form"  />
           </q-card-actions>
         </q-form>
       </q-card-section>

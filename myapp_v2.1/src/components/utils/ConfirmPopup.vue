@@ -1,16 +1,16 @@
 <template>
 
-  <q-card>
+  <q-card role="dialog" aria-labelledby="dialogTitle" aria-describedby="dialogContent">
     <q-card-section class="row items-center">
       <q-avatar icon="heart_broken" color="primary" text-color="white" />
-      <span class="q-ml-sm"><slot></slot>
+      <span class="q-ml-sm" id="dialogTitle"><slot></slot>
         </span>
     </q-card-section>
 
     <q-card-actions align="right">
       <q-form @submit="handleConfirm()" class="q-gutter-md">
-        <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn flat label="I'm sure" color="primary" type="submit" v-close-popup />
+        <q-btn aria-label="Cancel Button" flat label="Cancel" color="primary" v-close-popup />
+        <q-btn aria-label="Confirm Button" flat label="I'm sure" color="primary" type="submit" v-close-popup />
       </q-form>
 
     </q-card-actions>

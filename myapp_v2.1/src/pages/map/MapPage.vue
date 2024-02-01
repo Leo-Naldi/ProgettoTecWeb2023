@@ -5,7 +5,9 @@
 </style>
 
 <template>
-  <div id="MapPage" class="full-map"></div>
+  <div id="MapPage" class="full-map" role="application"
+    aria-label="Map showing posts locations"
+    tabindex="0"></div>
   <p class="text-center" v-if="!keywords && !channels">Please insert a words in inputbar to visualize the map!</p>
 </template>
 

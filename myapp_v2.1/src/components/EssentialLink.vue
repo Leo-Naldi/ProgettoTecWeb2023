@@ -1,26 +1,26 @@
 <template>
-  <q-item class="my-hover text-capitalize text-h6" clickable tag="a" :to="link">
+  <q-item class="my-hover text-capitalize text-h6" clickable tag="a" :to="link" role="link" tabindex="0">
     <q-item-section v-if="icon" avatar>
       <q-badge v-if="icon == 'notifications'" class="my-badage" rounded :label="unread_cnt" />
-      <q-icon size="md" :name="icon"></q-icon>
+      <q-icon size="md" :name="icon" aria-hidden="true"></q-icon>
 
     </q-item-section>
 
     <q-item-section class="between-icon">
       <q-item-label>{{ title }}</q-item-label>
     </q-item-section>
-    <q-menu style="border-radius: 12px" v-if="icon == 'more_horiz'">
+    <q-menu style="border-radius: 12px" v-if="icon == 'more_horiz'" role="menuitem" tabindex="0">
       <q-list>
         <q-item v-for="(item, i) in moreList" :key="i" v-close-popup clickable class="flex items-center">
-          <router-link v-if="item.icon=== 'verified_user'" :to="{ path: item.address }">
-            <q-icon :name="item.icon" class="q-mr-sm" />
+          <router-link v-if="item.icon=== 'verified_user'" :to="{ path: item.address }" tabindex="-1">
+            <q-icon :name="item.icon" class="q-mr-sm" aria-hidden="true" />
             <q-item-section>{{
               item.lable
             }}</q-item-section>
           </router-link>
           <div v-else>
-            <q-icon :name="item.icon" class="q-mr-sm" />
-            <q-item-section><a :href="item.address">{{
+            <q-icon :name="item.icon" class="q-mr-sm" aria-hidden="true" />
+            <q-item-section><a :href="item.address" tabindex="-1">{{
               item.lable
             }}</a></q-item-section>
           </div>

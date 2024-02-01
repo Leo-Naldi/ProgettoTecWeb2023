@@ -12,6 +12,7 @@ import { format } from "date-fns";
 
 import { LocalStorage } from "quasar";
 import { USER_KEY, TOKEN_KEY, setUser } from "src/common/localStorageHandler";
+import { showNegative } from "src/common/utils";
 
 
 export const useSocketStore = defineStore("socket", {
@@ -166,6 +167,14 @@ export const useSocketStore = defineStore("socket", {
         useUserStore().setUserJson(newUser)
         console.log("[socket] new user json is: ", newUser)
       })
+
+      mysocket.on('disconnect', () => {
+        showNegative("【current user socket disconnected! 】")
+      })
+      mysocket.on('error', (error) => {
+        showNegative('Socket error! Please open console to see details');
+        console.log("【namespace socket error】: ", error)
+      });
     },
   },
 });

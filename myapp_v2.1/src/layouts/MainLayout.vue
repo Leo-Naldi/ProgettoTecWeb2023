@@ -1,14 +1,8 @@
 <template>
-  <q-layout view="lHr LpR fFf">
-    <q-header elevated>
+  <q-layout view="lHr LpR fFf" role="main" aria-label="Main Layout">
+    <q-header elevated role="banner">
       <q-toolbar class="my-headerbar">
         <MyButton flat dense round icon="menu" aria-label="leftSideBar" @click="toggleLeftDrawer" />
-
-        <q-toolbar-title>{{ $q.screen.width }} x {{ $q.screen.height }}, {{ miniStateR }},{{ leftDrawerOpen }} {{
-          $q.screen.gt.xs && $q.screen.lt.md }}
-        </q-toolbar-title>
-
-        <div>Quasar v{{ $q.version }}</div>
 
         <MyButton dense flat round icon="menu" aria-label="rightSideBar" @click="toggleRightDrawer" />
 
@@ -16,7 +10,7 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above :mini="miniState.value" @mouseover="miniState.value = false"
+    <q-drawer aria-label="Left Drawer" v-model="leftDrawerOpen" show-if-above :mini="miniState.value" @mouseover="miniState.value = false"
       @mouseout="miniState.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="320" :breakpoint="600"
       bordered>
       <div class="flex flex-center cursor-pointer" @click="goHome()">
@@ -28,8 +22,7 @@
             v-bind="link" />
         </q-list>
         <q-btn class="q-mini-drawer-hide q-px-xl q-py-xs q-my-md my-button" push @mouseover="miniState.value = false"
-          v-if="leftDrawerOpen == true" unelevated rounded label="new" size="18px"
-          @click="persistentWrite = true" />
+          v-if="leftDrawerOpen == true" unelevated rounded label="new" size="18px" @click="persistentWrite = true" />
         <q-btn round icon="history_edu" class="q-my-md q-mini-drawer-only" />
         <q-dialog v-model="persistentWrite" persistent transition-show="scale" transition-hide="scale">
           <q-card>
@@ -49,20 +42,20 @@
         </q-dialog>
       </div>
 
-            <q-list class="absolute-bottom my-info">
+      <q-list class="absolute-bottom my-info">
 
         <q-item class="cursor-pointer flex justify-between items-center  ">
           <q-avatar avatar>
             <img src="https://cdn.quasar.dev/img/avatar2.jpg">
-             <div v-if="user.verified">
+            <div v-if="user.verified">
               <q-icon name="fa-solid fa-circle-check" class="verified" size="1rem" />
             </div>
           </q-avatar>
 
           <q-item-section class="my-avatar">
             <q-item-label class="text-weight-medium">{{ userName || "NaN" }}
-              <div class="q-ml-sm rounded-rectangle" >
-                <p style="display:inline">{{ user.admin? Admin:user.accountType }}</p>
+              <div class="q-ml-sm rounded-rectangle">
+                <p style="display:inline">{{ user.admin ? Admin : user.accountType }}</p>
               </div>
             </q-item-label>
             <q-item-label caption>@{{ userHandle || "NaN" }}</q-item-label>
@@ -81,20 +74,29 @@
       </q-list>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container  role="main" aria-label="Page Content">
       <router-view />
-      <NotifyHandler ref="audio"></NotifyHandler>
+      <NotifyHandler ref="audio" aria-live="polite"></NotifyHandler>
     </q-page-container>
 
-    <q-drawer :breakpoint="600" :mini="miniStateR.value" @mouseover="miniStateR.value = false"
+    <q-drawer aria-label="Right Drawer" :breakpoint="600" :mini="miniStateR.value" @mouseover="miniStateR.value = false"
       @mouseout="miniStateR.value = !($q.screen.gt.xs && $q.screen.lt.md) ? false : true" :width="350" show-if-above
       v-model="rightDrawerOpen" side="right" bordered>
-      <searchSideBar @mouseover="miniStateR.value = false"  v-show="rightDrawerOpen === true  && miniStateR.value == false && (router.currentRoute.value.name == 'searchWithParam' || router.currentRoute.value.name=='searchPage')" class="q-ma-md"/>
-      <TrendsSideBar @mouseover="miniStateR.value = false"  v-show="rightDrawerOpen === true  && miniStateR.value == false && router.currentRoute.value.name != 'DisploreHashtag'" class="q-ma-md" />
-      <ChannelSideBar @mouseover="miniStateR.value = false"   v-show="rightDrawerOpen === true  && miniStateR.value == false && router.currentRoute.value.name != 'DisploreChannel'" class="q-ma-md" />
-      <q-icon name="fa-solid fa-arrow-trend-up" class="bg-grey-2 q-my-md round  q-px-md q-mini-drawer-only flex" size="xs"/>
-      <q-icon name="fa-solid fa-users-rectangle" class="bg-grey-2 q-my-md q-px-md round q-mini-drawer-only flex " size="xs" />
-      <q-icon name="fa-solid fa-arrow-trend-up" class="bg-grey-2 q-my-md round  q-px-md q-mini-drawer-only flex" size="xs"/>
+      <searchSideBar @mouseover="miniStateR.value = false"
+        v-show="rightDrawerOpen === true && miniStateR.value == false && (router.currentRoute.value.name == 'searchWithParam' || router.currentRoute.value.name == 'searchPage')"
+        class="q-ma-md" />
+      <TrendsSideBar @mouseover="miniStateR.value = false"
+        v-show="rightDrawerOpen === true && miniStateR.value == false && router.currentRoute.value.name != 'DisploreHashtag'"
+        class="q-ma-md" />
+      <ChannelSideBar @mouseover="miniStateR.value = false"
+        v-show="rightDrawerOpen === true && miniStateR.value == false && router.currentRoute.value.name != 'DisploreChannel'"
+        class="q-ma-md" />
+      <q-icon name="fa-solid fa-arrow-trend-up" class="bg-grey-2 q-my-md round  q-px-md q-mini-drawer-only flex"
+        size="xs" />
+      <q-icon name="fa-solid fa-users-rectangle" class="bg-grey-2 q-my-md q-px-md round q-mini-drawer-only flex "
+        size="xs" />
+      <q-icon name="fa-solid fa-arrow-trend-up" class="bg-grey-2 q-my-md round  q-px-md q-mini-drawer-only flex"
+        size="xs" />
     </q-drawer>
 
   </q-layout>
@@ -116,7 +118,7 @@ import { useChannelStore } from "src/stores/channel";
 import WritePost from "src/components/posts/WritePost.vue";
 import { LocalStorage } from "quasar";
 import { removePublicPosts, removeUser } from "src/common/localStorageHandler";
-import {useNotificationsStore} from "src/stores/notification"
+import { useNotificationsStore } from "src/stores/notification"
 import NotifyHandler from "src/components/notify/NotifyHandler.vue";
 
 const linksList = [
@@ -197,9 +199,9 @@ export default defineComponent({
 
     const persistentWrite = ref(false)
     const audio = ref()
-    const noti_Reply = computed(()=> useNotificationsStore().getPlayReac.cnt)
-    const noti_Reply_id = computed(()=> useNotificationsStore().getPlayReac.id)
-    const unreadCnt = computed(()=>useGlobalStore().getUnreadCnt)
+    const noti_Reply = computed(() => useNotificationsStore().getPlayReac.cnt)
+    const noti_Reply_id = computed(() => useNotificationsStore().getPlayReac.id)
+    const unreadCnt = computed(() => useGlobalStore().getUnreadCnt)
 
     // watch if there are reactions to my message
     watch(
@@ -277,7 +279,7 @@ export default defineComponent({
         });
       }
     },
-    logout(){
+    logout() {
       useUserStore().clearUser();
       usePostStore().resetStoreLogged();
       useChannelStore().resetStoredChannelLogged()
@@ -285,7 +287,7 @@ export default defineComponent({
       this.router.push({ name: "Public" });
     }
   },
-  async mounted(){
+  async mounted() {
     await useChannelStore().fetchChannels()
   }
 });

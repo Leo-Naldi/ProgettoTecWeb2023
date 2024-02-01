@@ -1,53 +1,60 @@
 <template>
   <q-page padding>
-    <q-input class="q-pb-md" @keyup.enter="submit" v-model="searchText"
+    <q-input aria-label="Search InputBar" class="q-pb-md" @keyup.enter="submit" v-model="searchText"
       placeholder="Please input the text that you want them show in results" outlined rounded dense>
-      <q-menu fit v-if="searchList.length > 0">
+      <q-menu role="listbox" fit v-if="searchList.length > 0">
         <q-list style="min-width: 100px">
-          <q-item clickable v-for="(item, index) in searchList" :key="index" @click="fetchSearchResults(item)">
+          <q-item role="option" tabindex="0" clickable v-for="(item, index) in searchList" :key="index" @click="fetchSearchResults(item)">
             <q-item-section>{{ item }}</q-item-section>
             <q-item-section side>
-              <div class="alert-box-close" @click.stop="_deleteOne(index)" color="red">
-                <i class="material-icons">close</i>
+              <div role="button" tabindex="0" class="alert-box-close" @click.stop="_deleteOne(index)" color="red">
+                <i class="material-icons" aria-hidden="true">close</i>
               </div>
             </q-item-section>
           </q-item>
           <q-separator />
           <q-item clickable>
-            <q-item-section @click="_clear">
+            <q-item-section role="option" tabindex="0" @click="_clear">
               <div class="clear">clear all history</div>
             </q-item-section>
           </q-item>
         </q-list>
       </q-menu>
       <template v-slot:prepend>
-        <q-icon name="search" />
+        <q-icon name="search" aria-hidden="true" />
       </template>
       <template v-slot:after>
-        <!-- @click="showFilter()" -->
-        <q-icon name="settings" class="cursor-pointer" @click.stop>
-          <q-popup-proxy>
+        <q-icon role="button"
+          tabindex="0"
+          aria-haspopup="true"
+          aria-expanded="false"
+           name="settings" class="cursor-pointer" @click.stop>
+          <q-popup-proxy role="dialog" aria-labelledby="filter-settings-label">
             <q-card class="my-card">
               <q-card-section>
                 <div class="q-pt-md">
                   Don't show posts:<q-toggle v-model="tabFilter.showPosts" checked-icon="check" color="primary"
-                    unchecked-icon="clear" />
+                    unchecked-icon="clear" role="switch" aria-checked="true" />
                 </div>
                 <div class="q-pt-md">
                   Don't show channels:<q-toggle v-model="tabFilter.showChannels" checked-icon="check" color="primary"
-                    unchecked-icon="clear" />
+                    unchecked-icon="clear" role="switch"
+                    aria-checked="false" />
                 </div>
                 <div class="q-pt-md">
                   Don't show users:<q-toggle v-model="tabFilter.showUsers" checked-icon="check" color="primary"
-                    unchecked-icon="clear" />
+                    unchecked-icon="clear" role="switch"
+                    aria-checked="false" />
                 </div>
                 <div class="q-pt-md">
                   Don't show mentions:<q-toggle v-model="tabFilter.showMentions" checked-icon="check" color="primary"
-                    unchecked-icon="clear" />
+                    unchecked-icon="clear" role="switch"
+                    aria-checked="false" />
                 </div>
                 <div class="q-pt-md">
                   Don't show tags:<q-toggle v-model="tabFilter.showTags" checked-icon="check" color="primary"
-                    unchecked-icon="clear" />
+                    unchecked-icon="clear" role="switch"
+                    aria-checked="false" />
                 </div>
               </q-card-section>
             </q-card>
@@ -59,79 +66,71 @@
     <div>
       It seems that you've choosen some filters to search! click this button to
       confirm
-      <q-btn size="sm" @click="useFilter = true">Confirm</q-btn>
-      <!-- <p>{{ searchFilter }}</p> -->
+      <q-btn size="sm" @click="useFilter = true" tabindex="0" role="button" aria-label="Confirm Button" >Confirm</q-btn>
     </div>
 
-    <!-- <q-scroll-area class="absolute full-width full-height"> -->
-    <!-- <q-separator class="divider" color="grey-2" size="10px" /> -->
-    <!-- <div class="column relative" style="height: 35rem"> -->
     <div class="col q-pa-xs">
-      <q-item-label class="nav-option text-subtitle1 flex justify-around q-py-lg">
-        <strong v-if="tabFilter.showPosts === true" @click="onActive('posts')" :style="[
+      <q-item-label class="nav-option text-subtitle1 flex justify-around q-py-lg" role="tabpanel">
+        <strong role="tab" aria-selected="true" v-if="tabFilter.showPosts === true" @click="onActive('posts')" :style="[
           isActive === 'posts'
             ? { borderBottom: '2px solid #1da1f2' }
             : { borderBottom: '2px solid transparent' },
         ]"><q-icon style="margin: 0 -3px 3px 0" color="grey" name="reply_all" size="xs" />&ensp;Posts</strong>
-        <strong v-if="tabFilter.showChannels === true" @click="onActive('channel')" :style="[
+        <strong role="tab" aria-selected="false" v-if="tabFilter.showChannels === true" @click="onActive('channel')" :style="[
           isActive === 'channel'
             ? { borderBottom: '2px solid #1da1f2' }
             : { borderBottom: '2px solid transparent' },
         ]"><q-icon style="margin: 0 -3px 3px 0" color="grey" name="movie" size="xs" />&ensp;Channel</strong>
-        <strong v-if="tabFilter.showUsers === true" @click="onActive('user')" :style="[
+        <strong role="tab" aria-selected="false" v-if="tabFilter.showUsers === true" @click="onActive('user')" :style="[
           isActive === 'user'
             ? { borderBottom: '2px solid #1da1f2' }
             : { borderBottom: '2px solid transparent' },
         ]"><q-icon style="margin: 0 -3px 3px 0" color="grey" name="person" size="xs" />&ensp;User</strong>
-        <strong v-if="tabFilter.showMentions === true" @click="onActive('mention')" :style="[
+        <strong role="tab" aria-selected="false" v-if="tabFilter.showMentions === true" @click="onActive('mention')" :style="[
           isActive === 'mention'
             ? { borderBottom: '2px solid #1da1f2' }
             : { borderBottom: '2px solid transparent' },
         ]"><q-icon style="margin: 0 -3px 6px 0" color="grey" name="@" size="xs" />&ensp;Mention</strong>
-        <strong v-if="tabFilter.showTags === true" @click="onActive('tag')" :style="[
+        <strong role="tab" aria-selected="false" v-if="tabFilter.showTags === true" @click="onActive('tag')" :style="[
           isActive === 'tag'
             ? { borderBottom: '2px solid #1da1f2' }
             : { borderBottom: '2px solid transparent' },
         ]"><q-icon style="margin: 0 -3px 3px 0" color="grey" name="tag" size="xs" />&ensp;Tag</strong>
       </q-item-label>
-      <!-- </div> -->
     </div>
 
     <div>
-      <div v-if="isActive === 'posts'">
+      <div v-if="isActive === 'posts'" role="tabpanel" aria-labelledby="posts" >
         <ShowPost v-for="post in searchResults.posts" :key="post._id" v-bind="post" clickable />
         <p v-if="searchResults.posts.length == 0" style="text-align: center; vertical-align: center">
           No result
         </p>
       </div>
-      <div v-if="isActive === 'user'">
+      <div v-if="isActive === 'user'" role="tabpanel" aria-labelledby="users" >
         <UserEnum :members="searchResults.users" clickable />
-        <!-- <ShowPost v-for="user in searchResults.users" :key="user._id" v-bind="user" clickable/> -->
         <p v-if="searchResults.users.length == 0" style="text-align: center; vertical-align: center">
           No result
         </p>
       </div>
-      <div v-if="isActive === 'channel'">
+      <div v-if="isActive === 'channel'" role="tabpanel" aria-labelledby="channels" >
         <ChannelEnum :channels="searchResults.channels" clickable />
-        <!-- <ShowPost v-for="channel in searchResults.channels" :key="channel._id" v-bind="channel" clickable/> -->
         <p v-if="searchResults.channels.length == 0" style="text-align: center; vertical-align: center">
           No result
         </p>
       </div>
-      <div v-if="isActive === 'mention'">
+      <div v-if="isActive === 'mention'" role="tabpanel" aria-labelledby="mention" >
         <ShowPost v-for="tag in searchResults.mentions" :key="tag._id" v-bind="tag" clickable />
         <p v-if="searchResults.mentions.length == 0" style="text-align: center; vertical-align: center">
           No result
         </p>
       </div>
-      <div v-if="isActive === 'tag'">
+      <div v-if="isActive === 'tag'" role="tabpanel" aria-labelledby="tags" >
         <ShowPost v-for="tag in searchResults.tags" :key="tag._id" v-bind="tag" clickable />
         <p v-if="searchResults.tags.length == 0" style="text-align: center; vertical-align: center">
           No result
         </p>
       </div>
     </div>
-    <!-- </q-scroll-area> -->
   </q-page>
 </template>
 

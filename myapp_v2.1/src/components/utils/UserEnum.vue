@@ -1,5 +1,5 @@
 <template>
-    <div style="align-items:center;  ">
+    <div class="items-center">
 
     <q-item v-for="user in users" :key="user.id" style="disply:flex" class="q-mb-sm" @click="gotoUserDetail(user.handle)" clickable v-ripple>
       <q-item-section avatar>
@@ -11,7 +11,7 @@
       </q-item-section>
 
       <q-item-section >
-        <q-item-label style="display:flex; align-items: center;">{{ user.handle }}
+        <q-item-label class="flex items-center">{{ user.handle }}
           <div v-if="if_for_channel && channelDetails.name!='' && user.accountType=='admin'" class="q-ml-sm rounded-rectangle" >
             <p style="display:inline">Admin</p>
           </div>
@@ -20,11 +20,11 @@
       </q-item-section>
 
       <div style="margin-left:auto" v-if="request_handler && showAdminButton">
-        <q-btn @click.stop.prevent="refuseHandler(user.handle)"  size="12px" flat dense round icon="close"  />
-        <q-btn @click.stop.prevent="consentHandler(user.handle)"  size="12px" flat dense round icon="done"  />
+        <q-btn aria-label="Refuse Request" role="button" @click.stop.prevent="refuseHandler(user.handle)"  size="12px" flat dense round icon="close"  />
+        <q-btn aria-label="Consent Request" role="button" @click.stop.prevent="consentHandler(user.handle)"  size="12px" flat dense round icon="done"  />
       </div>
       <div style="margin-left:auto" v-if="member_handler && showAdminButton">
-        <q-btn @click.stop.prevent="removeHandler(user.handle)"  size="12px" flat dense round icon="person_remove"  />
+        <q-btn aria-label="Remove Member" role="button" @click.stop.prevent="removeHandler(user.handle)"  size="12px" flat dense round icon="person_remove"  />
       </div>
 
     </q-item>

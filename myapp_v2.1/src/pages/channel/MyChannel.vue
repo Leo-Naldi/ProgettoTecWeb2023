@@ -1,28 +1,31 @@
 <template>
-  <div style="display: flex;
-  justify-content: right;
-  align-items: flex-end;">
+  <div role="region" aria-label="Your Channels" class="flex justify-end items-end">
+    <!-- Create Channel Button -->
     <div style="align-self: right;">
-      <q-btn flat round size="md" icon="group_add" @click="createChannel()">
+      <q-btn flat round size="md" icon="group_add" @click="createChannel" role="button" aria-haspopup="true"
+        aria-expanded="false">
         <q-popup-proxy>
           <CloseDialog>
-            <div class="col-md-4 col-sm-5 col-xs-12 q-gutter-y-md q-pt-md q-pl-md q-pb-md">
-              <p class=" text-weight-bold text-h6 " align="center">
-                Created Channel</p>
-              <q-form @submit="createChannel()" class="q-gutter-md">
-                <q-input class="col" outlined dense square label="name" :rules="[val => !!val || 'Name is required']" v-model="channelData.name" />
-
-                <q-input type="textarea" outlined dense square label="personal descriptions"
-                  v-model="channelData.description" />
-
+            <!-- Create Channel Form -->
+            <div class="col-md-4 col-sm-5 col-xs-12 q-gutter-y-md q-pt-md q-pl-md q-pb-md" role="form">
+              <p class="text-weight-bold text-h6 tex-center">
+                Created Channel
+              </p>
+              <MyForm @submit="createChannel" class="q-gutter-md" role="form" aria-labelledby="createChannel-form-label">
+                  <div id="createChannel-form-label" class="visually-hidden">ForgetPassword Form</div>
+                <MyInput class="col" outlined dense square label="name" :rules="[val => !!val || 'Name is required']"
+                  v-model="channelData.name" aria-label="channel name" />
+                <MyInput type="textarea" outlined dense square label="personal descriptions"
+                  v-model="channelData.description" aria-label="channel description" />
                 <div>
-                  <!-- q-checkbox has default value as -->
-                  <q-checkbox v-model="channelData.publicChannel" label="Set Public" /></div>
-                <div><q-checkbox v-model="channelData.official" label="Set Official" /></div>
-
-
-                <q-btn label="create channel" type="submit" color="primary" unelevated />
-              </q-form>
+                  <q-checkbox v-model="channelData.publicChannel" label="Set Public" role="checkbox"
+                    aria-checked="true" />
+                </div>
+                <div>
+                  <q-checkbox v-model="channelData.official" label="Set Official" role="checkbox" aria-checked="false" />
+                </div>
+                <q-btn label="create channel" aria-label="create channel" type="submit" color="primary" unelevated role="button" />
+              </MyForm>
             </div>
           </CloseDialog>
         </q-popup-proxy>
@@ -30,23 +33,25 @@
     </div>
   </div>
 
-  <p class="q-mt-none text-weight-bold text-h5 q-pl-lg q-pt-lg">
+  <!-- Your Created Channels -->
+  <p class="q-mt-none text-weight-bold text-h5 q-pl-lg q-pt-lg" role="heading">
     Your Created Channels
   </p>
-  <div class="q-pa-md">
+  <div class="q-pa-md" role="region" aria-label="Created Channels">
     <q-list style="max-width: 450px;">
-      <ChannelEnum :channels="userChannels.userCreated" clickable />
+      <ChannelEnum :channels="userChannels.userCreated" clickable role="list" />
     </q-list>
   </div>
 
-  <q-separator color="grey-2" size="3px" />
+  <q-separator color="grey-2" size="3px" role="separator" />
 
-  <p class="q-mt-none text-weight-bold text-h5 q-pl-lg q-pt-lg">
+  <!-- Your Joined Channels -->
+  <p class="q-mt-none text-weight-bold text-h5 q-pl-lg q-pt-lg" role="heading">
     Your Joined Channels
   </p>
-  <div class="q-pa-md">
+  <div class="q-pa-md" role="region" aria-label="Joined Channels">
     <q-list style="max-width: 450px;">
-      <ChannelEnum :channels="userChannels.userJoined" clickable />
+      <ChannelEnum :channels="userChannels.userJoined" clickable role="list" />
     </q-list>
   </div>
 </template>
@@ -58,6 +63,7 @@ import ChannelEnum from "src/components/channel/ChannelEnum.vue";
 
 import { useUserStore } from "src/stores/user";
 import { useChannelStore } from "src/stores/channel";
+import MyForm from "src/components/common/MyForm.vue";
 
 
 const channelStore = useChannelStore()
@@ -80,30 +86,29 @@ function filteredData(formData) {
   return Object.entries(formData)
     .reduce((acc, [key, value]) => {
       if (value !== '') {
-        if (key === 'publicChannel' && value !=true)
+        if (key === 'publicChannel' && value != true)
           acc[key] = value;
-        else if (key === 'official' && value !=false)
-        {
-          if (user_json.admin){
+        else if (key === 'official' && value != false) {
+          if (user_json.admin) {
             acc[key] = value;
           }
         }
-        if (key != 'publicChannel' && key!='official')
+        if (key != 'publicChannel' && key != 'official')
           acc[key] = value;
       }
       return acc;
     }, {})
 }
 
-const createChannel = async ()=>{
-  if (channelData.name!=""){
-  const channelData_json = JSON.parse(JSON.stringify(channelData))
-  const submit_channelData = filteredData(channelData_json)
-  // console.log("ready to create channel: ", submit_channelData)
-  const res = await channelStore.createChannel(channelData.name, submit_channelData)
-  if(res.length>1){
-    userChannels.userCreated.unshift(res[1])
-  }
+const createChannel = async () => {
+  if (channelData.name != "") {
+    const channelData_json = JSON.parse(JSON.stringify(channelData))
+    const submit_channelData = filteredData(channelData_json)
+    // console.log("ready to create channel: ", submit_channelData)
+    const res = await channelStore.createChannel(channelData.name, submit_channelData)
+    if (res.length > 1) {
+      userChannels.userCreated.unshift(res[1])
+    }
   }
 }
 
