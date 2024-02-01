@@ -5,7 +5,23 @@ import Reply from './Reply';
 import { Box, Button } from '@mui/material';
 
 
-export default function RepliesVarList({ replies, page, maxPages, onPageChange }) {
+export default function RepliesVarList({ 
+    replies, 
+    page, 
+    maxPages, 
+    onPageChange,
+    setGeo,
+    setOpenGeoModal,
+    geoModalId,
+    openGeoModal,
+    setMediaUrl,
+    setOpenImageModal,
+    openImageModal,
+    imageModalId,
+    setOpenVideoModal,
+    openVideoModal,
+    videoModalId,
+}) {
 
     const listHeight = 450;
 
@@ -44,7 +60,18 @@ export default function RepliesVarList({ replies, page, maxPages, onPageChange }
                                         index={index} 
                                         message={replies[index]} 
                                         setSize={setSize} 
-                                        windowWidth={windowWidth} />
+                                        windowWidth={windowWidth}
+                                        setGeo={setGeo}
+                                        setOpenGeoModal={setOpenGeoModal}
+                                        openGeoModal={openGeoModal}
+                                        geoModalId={geoModalId}
+                                        setMediaUrl={setMediaUrl}
+                                        setOpenImageModal={setOpenImageModal}
+                                        openImageModal={openImageModal}
+                                        setOpenVideoModal={setOpenVideoModal}
+                                        openVideoModal={openVideoModal}
+                                        imageModalId={imageModalId}
+                                        videoModalId={videoModalId}/>
                                 </div>
                             );
                         

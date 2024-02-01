@@ -50,19 +50,21 @@ export default function Reply({
                     variant="body2"
                     color="text.secondary">
                     {created.format('DD/MM/YYYY, HH:mm')}
-                </Typography>
-                {geo && <Button 
-                    variant="text"
-                    onClick={() => {
-                        setGeo(geo);
-                        setOpenGeoModal(true);
-                    }}
-                    startIcon={<LocationOnOutlinedIcon fontSize="small" />}
-                    aria-controls={geoModalId}
-                    aria-haspopup="dialog"
-                    aria-expanded={openGeoModal ? 'true' : undefined}>
+                    {geo && <Button
+                        variant="text"
+                        onClick={() => {
+                            setGeo(geo);
+                            setOpenGeoModal(true);
+                        }}
+                        sx={{ ml: 1 }}
+                        size="small"
+                        startIcon={<LocationOnOutlinedIcon fontSize="small" />}
+                        aria-controls={geoModalId}
+                        aria-haspopup="dialog"
+                        aria-expanded={openGeoModal ? 'true' : undefined}>
                         Location
                     </Button>}
+                </Typography>
                     <Box sx={{ my: 1 }}>
                         {text || '-'}
                     </Box>

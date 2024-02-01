@@ -405,12 +405,27 @@ function Row({
             }
         }
 
+        let reply_created_cb = (data) => {
+            if ((replies) && (replies.length < 100)) {
+                let new_replies = [
+                    ...replies,
+                    data,
+                ]
+                setReplies(new_replies)
+            } else {
+                setReplies([data]);
+            }
+        }
+
         socket.on('message:deleted', reply_deleted_cb);
         socket.on('message:changed', reply_changed_cb);
+        socket.on('message:created', reply_created_cb);
 
         return () => {
             socket.off('message:deleted', reply_deleted_cb);
             socket.off('message:changed', reply_changed_cb);
+            socket.off('message:created', reply_created_cb);
+
         }
 
     }, []);
@@ -523,7 +538,19 @@ function Row({
                                 onPageChange={(p) => {
                                     setPage(p);
                                     fetchReplies(p);
-                                }}/>
+                                }}
+                                setGeo={setGeo}
+                                setOpenGeoModal={setOpenGeoModal}
+                                geoModalId={geoModalId}
+                                openGeoModal={openGeoModal}
+                                setMediaUrl={setMediaUrl}
+                                setOpenImageModal={setOpenImageModal}
+                                openImageModal={openImageModal}
+                                imageModalId={imageModalId}
+                                setOpenVideoModal={setOpenVideoModal}
+                                openVideoModal={openVideoModal}
+                                videoModalId={videoModalId}
+                                />
                         }
                         {((!fetchingReplies) && (replies?.length === 0)) && <Container>
                             <Typography
@@ -855,7 +882,7 @@ export default function Squeals({ managed }) {
 
         return (
             <TableContainer aria-live="polite">
-                <Table aria-label='Squeals Table'>
+                <Table aria-label='Squeals Table' aria-live='polite'>
                     <caption>Squeals by @{managed}.</caption>
                     <TableHead>
                         <TableRow>
