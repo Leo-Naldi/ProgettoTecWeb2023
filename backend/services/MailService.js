@@ -31,7 +31,7 @@ class MailService {
   static generateVerificationURL(email, handle, token) {
     return (
       config.app_url +
-      "verifyAccount/?email=" +
+      "/#/user/verifyAccount/?email=" +
       email +
       "&handle=" +
       handle +

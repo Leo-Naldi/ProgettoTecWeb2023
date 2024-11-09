@@ -1,7 +1,7 @@
 <template>
   <q-layout view="lHr LpR fFf" role="banner" aria-label="Main Layout">
     <q-header elevated>
-      <q-toolbar class="my-headerbar">
+      <q-toolbar class="my-headerbar justify-between">
 
         <MyButton role="button" class="sidebarbutton" flat dense round icon="menu" aria-label="leftSideBar" tabindex="0" @click="toggleLeftDrawer" />
 

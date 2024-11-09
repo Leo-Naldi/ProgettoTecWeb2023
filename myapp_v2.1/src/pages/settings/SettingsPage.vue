@@ -143,7 +143,7 @@
                   <q-item-section>
                     <q-item-label>email</q-item-label>
                     <q-item-label class="text-grey-6">
-                      change bined email
+                      change binded email
                     </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>

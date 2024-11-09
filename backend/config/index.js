@@ -67,9 +67,12 @@ const config = {
    * DB url
    * @type {string}
    */
-  db_url: (env === 'deploy') ? 
-    `mongodb://${db_username}:${db_password}@${db_site}/${db_name}?authSource=admin&writeConcern=majority`: 
-    `mongodb://${db_host}:${db_port}/${db_name}`,
+  // db_url: (env === 'deploy') ? 
+  //   `mongodb://${db_username}:${db_password}@${db_site}/${db_name}?authSource=admin&writeConcern=majority`: 
+  //   `mongodb://${db_host}:${db_port}/${db_name}`,
+  db_url:
+  // `mongodb://${db_username}:${db_password}@${db_site}/${db_name}?authSource=admin&writeConcern=majority`,
+  `mongodb://${db_host}:${db_port}/${db_name}`,
   /**
    * Test DB url
    * @type {string}
@@ -77,7 +80,11 @@ const config = {
   db_test_url: (db_username) ?
     `mongodb://${db_username}:${db_password}@${db_host}/${db_test_name}` :
     `mongodb://${db_host}:${db_port}/${db_test_name}`,
-  /**
+  /** 
+   * Frontend base url
+   * */  
+  app_url: process.env.WEBSITE_URL,
+    /**
    * @type {number}
    */
   danger_threshold: Math.floor(crit_mass_base * danger_zone),

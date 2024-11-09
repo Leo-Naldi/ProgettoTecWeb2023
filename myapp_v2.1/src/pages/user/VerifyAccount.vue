@@ -1,20 +1,21 @@
 <template>
   <q-page padding role="region" aria-label="User Information">
     <div>
+      <h2 class="text-center">You Verified your account successfully!</h2>
       <p role="status" aria-live="assertive">
-        Email in parameter: <span role="text" aria-label="{{ email }}">{{ email }}</span>
+        This is your Email: <span role="text" aria-label="{{ email }}">{{ email }}</span>
       </p>
     </div>
     <div>
       <p role="status" aria-live="assertive">
-        Handle in parameter: <span role="text" aria-label="{{ handle }}">{{ handle }}</span>
+        This is your Handle: <span role="text" aria-label="{{ handle }}">{{ handle }}</span>
       </p>
     </div>
-    <div>
+    <!-- <div>
       <p role="status" aria-live="assertive">
         Token in parameter: <span role="text" aria-label="{{ token }}">{{ token }}</span>
       </p>
-    </div>
+    </div> -->
   </q-page>
 </template>
 

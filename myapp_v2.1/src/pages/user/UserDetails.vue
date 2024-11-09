@@ -85,7 +85,7 @@
         <ShowPost v-for="post in userMessageDetails.userPosts" :key="post.id" v-bind="post"
           class="q-py-md" clickable role="listitem" aria-label="User Post"
         />
-        <p v-if="userMessageDetails.userPosts.length <= 0" role="status" aria-live="assertive">
+        <p v-if="userMessageDetails.userPosts && userMessageDetails.userPosts.length <= 0" role="status" aria-live="assertive">
           No user Posts!
         </p>
       </q-list>
@@ -222,7 +222,6 @@ onMounted(() => {
   border: 0.2rem solid #1DA1F2
   border-radius: 50%
   transform: translateY(100%)
-
 
 strong
   cursor: pointer

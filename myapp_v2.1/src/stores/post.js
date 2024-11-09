@@ -143,9 +143,13 @@ export const usePostStore = defineStore("post", {
     },
 
     messageHandler(data) {
-      if (!data.length){
+      if (!Array.isArray(data)){
         var obj = data
-        const post_text = obj["content"].text;
+        const post_text = null
+
+        if (obj["content"].hasOwnProperty("text")  ){
+          post_text = obj["content"].text;
+        }
         obj["liked"] = false;
         obj["disliked"] = false;
         obj["replied"] = false;
@@ -259,7 +263,6 @@ export const usePostStore = defineStore("post", {
         // var res_arr = [];
 
         if_newTag.forEach(async (hashtag) => {
-          // if contains geo TODO:ok
 /*           if (tweet.content.geo) {
             const findGeoCountry = await getCountryFromLocation(
               tweet.content.geo.coordinates
@@ -628,19 +631,43 @@ export const usePostStore = defineStore("post", {
 
         count: { min_likes: "232132", min_dislikes: "21212" },  //
       }; */
-      let search_api = "?author="+searchFilters.from.user
-      search_api+=searchFilters.contains.keywords.split(/\s*,\s*/).map(keyword => "&keywords=" + keyword).join("");
-      search_api+=searchFilters.contains.mentions.split(/\s*,\s*/).map(mention => "&mentions=" + mention).join("");
-      search_api+=searchFilters.contains.text.split(/\s*,\s*/).map(text => "&text=" + text).join("");
-      search_api+=searchFilters.to.user.split(/\s*,\s*/).map(user => "&dests=" + user).join("");
-      search_api+=searchFilters.to.channel.split(/\s*,\s*/).map(channel => "&dests=" + channel).join("");
-      if (searchFilters.timeFrame.before!="2023-11-19 12:44"){
-        search_api+="&before="+searchFilters.timeFrame.before
+      let params = [];
+
+      if (searchFilters.from.user) {
+        params.push("author=" + searchFilters.from.user);
       }
-      if (searchFilters.timeFrame.after!="2023-11-19 22:44"){
-        search_api+="&after="+searchFilters.timeFrame.after
+
+      if (searchFilters.contains.keywords) {
+        params.push(...searchFilters.contains.keywords.split(/\s*,\s*/).filter(keyword => keyword).map(keyword => "keywords=" + keyword));
       }
-      console.log("【post.js】 's searchPostsFiltered final search API：",search_api)
+
+      if (searchFilters.contains.mentions) {
+        params.push(...searchFilters.contains.mentions.split(/\s*,\s*/).filter(mention => mention).map(mention => "mentions=" + mention));
+      }
+
+      if (searchFilters.contains.text) {
+        params.push(...searchFilters.contains.text.split(/\s*,\s*/).filter(text => text).map(text => "text=" + text));
+      }
+
+      const destUsers = searchFilters.to.user.split(/\s*,\s*/).filter(user => user);
+      const destChannels = searchFilters.to.channel.split(/\s*,\s*/).filter(channel => channel);
+
+      if (destUsers.length || destChannels.length) {
+        const dests = [...destUsers, ...destChannels];
+        params.push(...dests.map(dest => "dests=" + dest));
+      }
+
+      if (searchFilters.timeFrame.before !== "2023-11-19 12:44") {
+        params.push("before=" + searchFilters.timeFrame.before);
+      }
+
+      if (searchFilters.timeFrame.after !== "2023-11-19 22:44") {
+        params.push("after=" + searchFilters.timeFrame.after);
+      }
+
+      const search_api = "?" + params.join("&");
+      console.log("【post.js】 's searchPostsFiltered final search API：", search_api);
+
 
       try {
         const response = await API.search_message_base(search_api)

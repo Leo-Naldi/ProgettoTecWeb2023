@@ -575,7 +575,7 @@ const sendNewPost = async () => {
     toSend.content.video = newPost.videoURL
   }
   if (newPost.coordinates.length > 0){                                                      // coordinate
-    toSend.content={}
+    toSend.content= (toSend.content!={}) ?  toSend.content :{};
     toSend.content.geo=  { type: "Point", coordinates: toRaw(newPost.coordinates) } ;
   }
 
