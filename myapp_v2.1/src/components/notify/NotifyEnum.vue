@@ -2,9 +2,12 @@
   <div>
     <q-item role="listitem" aria-labelledby="authorLabel" aria-describedby="contentLabel">
       <q-item-section top avatar>
-        <q-avatar>
+        <!-- <q-avatar>
           <img src="https://cdn.quasar.dev/img/boy-avatar.png" alt="User Avatar" />
-        </q-avatar>
+        </q-avatar> -->
+        <q-avatar color="primary" text-color="white">
+          {{ author[0] }}
+          </q-avatar>
       </q-item-section>
 
       <q-item-section>

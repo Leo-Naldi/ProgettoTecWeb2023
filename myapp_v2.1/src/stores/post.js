@@ -145,7 +145,7 @@ export const usePostStore = defineStore("post", {
     messageHandler(data) {
       if (!Array.isArray(data)){
         var obj = data
-        const post_text = null
+        var post_text = null
 
         if (obj["content"].hasOwnProperty("text")  ){
           post_text = obj["content"].text;
